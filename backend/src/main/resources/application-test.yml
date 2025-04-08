@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver            #  변경
+    url: jdbc:mysql://localhost:3306/your_database_name    #  변경
+    username: your_mysql_username                          #  변경
+    password: your_mysql_password                          #  변경
+custom:
+  site:
+    name: "BLOG"
+    cookieDomain: "${custom.prod.cookieDomain}"
+    frontUrl: "${custom.prod.frontUrl}"
+    backUrl: "${custom.prod.backUrl}"
