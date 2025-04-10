@@ -23,6 +23,12 @@ spring:
         format_sql: true
         highlight_sql: true
         use_sql_comments: true
+
+  docker:
+    compose:
+      file: docker-compose.yml  # 파일 경로 명시
+      lifecycle-management: start-and-stop # Docker Compose 라이프사이클 관리 활성화
+
 logging:
   level:
     com.ll.blog: DEBUG
@@ -30,6 +36,7 @@ logging:
     org.hibernate.orm.jdbc.bind: TRACE
     org.hibernate.orm.jdbc.extract: TRACE
     org.springframework.transaction.interceptor: TRACE
+
 custom:
   dev:
     cookieDomain: localhost
