@@ -2,6 +2,7 @@ plugins {
 	java
 	id("org.springframework.boot") version "3.4.4"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("com.avast.gradle.docker-compose") version "0.16.12" // ✅ 다른 플러그인 사용 (Palantir 아님)
 }
 
 group = "com.golden_dobakhe"
@@ -9,13 +10,7 @@ version = "0.0.1-SNAPSHOT"
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
-}
-
-configurations {
-	compileOnly {
-		extendsFrom(configurations.annotationProcessor.get())
+		languageVersion.set(JavaLanguageVersion.of(21))
 	}
 }
 
@@ -31,9 +26,24 @@ dependencies {
 	runtimeOnly("com.mysql:mysql-connector-j")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	runtimeOnly("com.h2database:h2")
+	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+
+
 }
 
-tasks.withType<Test> {
-	useJUnitPlatform()
+// Docker Compose 설정 (정상 작동되는 버전)
+dockerCompose {
+	useComposeFiles.set(listOf("docker-compose.yml"))
+	startedServices.set(listOf("mysql"))
+	isRequiredBy(tasks.named("bootRun")) // bootRun 실행 시 Docker Compose 자동 실행
+	removeContainers.set(true)
+	stopContainers.set(true)
+	removeVolumes.set(true)
 }
+
+// bootRun 작업 종료 시 Docker Compose 정리
+tasks.named("bootRun") {
+	finalizedBy("dockerComposeDown") // bootRun 작업 종료 후 dockerComposeDown 실행
+}
+
