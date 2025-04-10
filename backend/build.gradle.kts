@@ -28,7 +28,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	runtimeOnly("com.h2database:h2")
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
-
+	implementation ("org.springframework.boot:spring-boot-starter-security") //security
 
 }
 
