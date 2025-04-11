@@ -33,7 +33,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",            // Swagger UI
                                 "/v3/api-docs/**",           // OpenAPI JSON
                                 "/swagger-resources/**",     // Swagger 리소스
-                                "/webjars/**"                // Swagger static).permitAll())
+                                "/webjars/**"                // Swagger static
+                                         ).permitAll())
                 .sessionManagement(session -> session
                         //세션을 저장하지 않는다 -> 세션을 사용하지 않겠다는 뜻 jwt인증을 쓸거니까
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
