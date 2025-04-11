@@ -28,6 +28,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	runtimeOnly("com.h2database:h2")
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
 	implementation ("org.springframework.boot:spring-boot-starter-security") //security
 
 
@@ -44,7 +45,7 @@ dependencies {
 
 }
 
-// Docker Compose 설정 (정상 작동되는 버전)
+//// Docker Compose 설정 (정상 작동되는 버전)
 dockerCompose {
 	useComposeFiles.set(listOf("docker-compose.yml"))
 	startedServices.set(listOf("mysql"))
