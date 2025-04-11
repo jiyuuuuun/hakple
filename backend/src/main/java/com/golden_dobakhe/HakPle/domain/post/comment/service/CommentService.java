@@ -29,7 +29,7 @@ public class CommentService {
        if(board==null){ //게시판이 존재 X
            return CommentDeleteResult.BOARD_NOT_FOUND;
        }
-       User user=userRepository.findById(2).orElse(null); //유저디테일에서 사용자 정보 가져와서 넣기
+       User user=userRepository.findById(2L).orElse(null); //유저디테일에서 사용자 정보 가져와서 넣기
        if(user==null){ //유저 존재 X
            return CommentDeleteResult.USER_NOT_FOUND;
        }
@@ -52,7 +52,7 @@ public class CommentService {
 
     //댓글 수정
     public CommentDeleteResult commentUpdate(CommentRequestDto commentRequestDto) {
-        User user=userRepository.findById(1).orElse(null); //유저티테일에서 사용자 정보 가져와서 넣기
+        User user=userRepository.findById(1L).orElse(null); //유저티테일에서 사용자 정보 가져와서 넣기
         if(user==null){ //유저 존재 X
             return CommentDeleteResult.USER_NOT_FOUND;
         }
@@ -76,7 +76,7 @@ public class CommentService {
 
     //댓글 삭제
     public CommentDeleteResult commentDelete(Long commenterId) {
-        User user=userRepository.findById(1).orElse(null); //유저티테일에서 사용자 정보 가져와서 넣기
+        User user=userRepository.findById(1L).orElse(null); //유저티테일에서 사용자 정보 가져와서 넣기
         if(user==null){ //유저 존재 X
             return CommentDeleteResult.USER_NOT_FOUND;
         }
