@@ -9,8 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 @Repository
 public interface BoardRepository extends JpaRepository<Board, Long> {
     Page<Board> findByAcademyCodeAndStatus(String academyCode, Status status, Pageable pageable);
@@ -23,7 +21,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             "AND (b.title LIKE %:keyword% " +
             "OR b.content LIKE %:keyword% " +
             "OR t.hashtag.hashtagName LIKE %:keyword% " +
-            "OR u.nickname LIKE %:keyword%)")
+            "OR u.nickName LIKE %:keyword%)")
     Page<Board> searchBoards(@Param("academyCode") String academyCode,
                              @Param("keyword") String keyword,
                              Pageable pageable);
@@ -36,5 +34,4 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     Page<Board> findByTagAndAcademyCode(@Param("academyCode") String academyCode,
                                         @Param("tag") String tag,
                                         Pageable pageable);
-
 }
