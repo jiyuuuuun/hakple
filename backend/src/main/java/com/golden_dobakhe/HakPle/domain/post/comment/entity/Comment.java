@@ -24,6 +24,10 @@ public class Comment extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Lob // TEXT 타입
+    @Column(nullable = false)
+    private String content; // 내용 (TEXT 타입)
+
     private int likeCount; // 댓글 좋아요 수
 
     @Enumerated(EnumType.STRING)
