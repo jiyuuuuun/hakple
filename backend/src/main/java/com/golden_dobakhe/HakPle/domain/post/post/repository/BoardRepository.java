@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BoardRepository extends JpaRepository<Board, Long> {
+
     Page<Board> findByAcademyCodeAndStatus(String academyCode, Status status, Pageable pageable);
 
     @Query("SELECT DISTINCT b FROM Board b " +
@@ -38,4 +39,5 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     Page<Board> findByTagAndAcademyCode(@Param("academyCode") String academyCode,
                                         @Param("tag") String tag,
                                         Pageable pageable);
+
 }
