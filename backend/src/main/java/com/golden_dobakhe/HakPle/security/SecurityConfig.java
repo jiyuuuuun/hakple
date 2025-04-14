@@ -1,14 +1,31 @@
 package com.golden_dobakhe.HakPle.security;
 
+import com.golden_dobakhe.HakPle.domain.user.entity.User;
+import com.golden_dobakhe.HakPle.global.entity.Status;
+import jakarta.servlet.Filter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+
 
 @Configuration
 @Slf4j
 public class SecurityConfig {
+
+    private final FakeAuthenticationFilter fakeAuthenticationFilter;
+
+    public SecurityConfig(FakeAuthenticationFilter fakeAuthenticationFilter) {
+        this.fakeAuthenticationFilter = fakeAuthenticationFilter;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity security) throws Exception {
         //접근 제한
@@ -25,19 +42,9 @@ public class SecurityConfig {
 //                                        "/swagger-resources/",     // Swagger 리소스
 //                                        "/webjars/*"                // Swagger static
 //                                ).permitAll()
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/", "/success", "/failure",
-                                "/swagger-ui/**",        // Swagger UI 전체 허용
-                                "/v3/api-docs/**",       // OpenAPI JSON 허용
-                                "/swagger-resources/**", // Swagger 리소스 허용
-                                "/webjars/**",           // Swagger static 자원 허용
-                                "/api/v1/posts/**",
-                                "/api/v1/academies/**",
-                                "/api/v1/myInfos/**"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                );
+
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()) // 🔓 모두 허용
+                .addFilterBefore(fakeAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         /*
         // 로그인
@@ -56,5 +63,8 @@ public class SecurityConfig {
 
         //세션
         return security.build();
+
+
     }
 }
+
