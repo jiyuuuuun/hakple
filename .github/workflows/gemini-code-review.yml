@@ -64,7 +64,7 @@ jobs:
             fs.writeFileSync('review_result.txt', text);
             console.log('Review results saved!');
 
-      # 코멘트 저장
+      # 코멘트 저장 (jq 제거!)
       - name: Load review result
         id: store
         run: |
@@ -73,7 +73,7 @@ jobs:
           echo "$COMMENT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # PR 코멘트로 fallback (PR이든 push든 항상 남김)
+      # PR 코멘트로 등록
       - name: Add Gemini Review as PR Comment
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
@@ -100,3 +100,4 @@ jobs:
         with:
           name: gemini-code-review
           path: review_result.txt
+
