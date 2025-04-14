@@ -1,6 +1,6 @@
 package com.golden_dobakhe.HakPle.security;
 
-import com.golden_dobakhe.HakPle.security.filter.FakeAuthenticationFilter;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +23,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final FakeAuthenticationFilter fakeAuthenticationFilter;
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
