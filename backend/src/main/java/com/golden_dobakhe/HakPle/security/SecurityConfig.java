@@ -22,13 +22,24 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @Slf4j
 public class SecurityConfig {
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity security) throws Exception {
         //접근 제한
         security
                 .csrf(csrf -> csrf.disable())
+//                .authorizeHttpRequests(auth -> auth
+//                                .requestMatchers(
+//                                        "/", "/success", "/failure", // 기존
+//                                        "/swagger-ui/",            // Swagger UI
+//                                        "/v3/api-docs/",           // OpenAPI JSON
+//                                        "/api/v1/posts/",
+//                                        "/api/v1/academies",
+//                                        "/api/v1/myInfos",
+//                                        "/swagger-resources/",     // Swagger 리소스
+//                                        "/webjars/*"                // Swagger static
+//                                ).permitAll()
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers("/", "/success", "/failure", "/login",                   
                                 "/swagger-ui/**",            // Swagger UI
                                 "/v3/api-docs/**",           // OpenAPI JSON
@@ -42,14 +53,6 @@ public class SecurityConfig {
                 //이후 요청시 헤더에 Authorization
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()));
-
-        //security.build();
-
-        //로그인
-        security
-                .formLogin(form -> form.disable()
-                );
-
 
 
 
@@ -76,5 +79,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+
     }
 }
