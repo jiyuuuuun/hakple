@@ -26,28 +26,28 @@ public class TestAuthController {
         return ResponseEntity.ok("여기는 집");
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginDto req) {
-        User user= userservice.findByUserName(req);
+    //@PostMapping("/login")
+   // public ResponseEntity<?> login(@RequestBody LoginDto req) {
+        //User user= userservice.findByUserName(req);
         //일단은 유저가 있는지 없는지 확인
         //없으면 나가리
-        if (user == null)
-            return ResponseEntity.status(404).body("님 없음");
-        if (!req.getPassword().equals(user.getPassword()))
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("비번이 틀린댑쇼");
-
-        //있다면? 토큰 만들고
-        String accessToken = jwtTokenizer.createAccessToken(user.getId(), user.getUserName(), user.getNickName(),user.getPhoneNum(), user.getStatus());
-        String refreshToken = jwtTokenizer.createRefreshToken(user.getId(), user.getUserName(), user.getNickName(),user.getPhoneNum(), user.getStatus());
-
-        //토큰을 저장하고
-        userservice.addRefreshToken(user, refreshToken);
+//        if (user == null)
+//            return ResponseEntity.status(404).body("님 없음");
+//        if (!req.getPassword().equals(user.getPassword()))
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("비번이 틀린댑쇼");
+//
+//        //있다면? 토큰 만들고
+//        String accessToken = jwtTokenizer.createAccessToken(user.getId(), user.getUserName(), user.getNickName(),user.getPhoneNum(), user.getStatus());
+//        String refreshToken = jwtTokenizer.createRefreshToken(user.getId(), user.getUserName(), user.getNickName(),user.getPhoneNum(), user.getStatus());
+//
+//        //토큰을 저장하고
+//        userservice.addRefreshToken(user, refreshToken);
 
 
         //만든걸 보내야지
-        LoginResponseDto loginResponseDto = new LoginResponseDto(accessToken, refreshToken, user.getId(), user.getUserName());
-        return ResponseEntity.ok(loginResponseDto);
-    }
+//        LoginResponseDto loginResponseDto = new LoginResponseDto(accessToken, refreshToken, user.getId(), user.getUserName());
+//        return ResponseEntity.ok(loginResponseDto);
+ //   }
 
     @GetMapping("/success")
     public ResponseEntity<String> success() {

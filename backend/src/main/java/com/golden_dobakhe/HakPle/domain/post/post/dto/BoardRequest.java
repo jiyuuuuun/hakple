@@ -10,7 +10,6 @@ import java.util.List;
 public class BoardRequest {
     private String title;
     private String content;
-    private String academyCode;
     private List<String> tags;
 
 
@@ -18,7 +17,6 @@ public class BoardRequest {
     public BoardRequest(String title, String content, String academyCode, List<String> tags) {
         this.title = title;
         this.content = content;
-        this.academyCode = academyCode;
         this.tags = (tags != null) ? tags : new ArrayList<>();
     }
 }

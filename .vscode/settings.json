@@ -1,0 +1,6 @@
+{
+    "java.project.sourcePaths": [
+        "frontend/public/svg"
+    ],
+    "java.compile.nullAnalysis.mode": "automatic"
+}

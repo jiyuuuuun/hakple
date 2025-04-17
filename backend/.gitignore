@@ -40,6 +40,12 @@ out/
 ### Custom ###
 application-secret.yml
 
+.idea
+.terraform
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+
 
 ### terraform ###
 .terraform

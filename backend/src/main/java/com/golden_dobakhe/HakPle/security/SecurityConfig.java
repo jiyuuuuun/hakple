@@ -26,14 +26,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // 🔓 모든 요청 허용
-            )
-            .addFilterBefore(fakeAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // ✅ 필터 추가
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .httpBasic(httpBasic -> httpBasic.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()));
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll() // 🔓 모든 요청 허용
+                )
+                .addFilterBefore(fakeAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // ✅ 필터 추가
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
         return http.build();
     }
@@ -55,4 +55,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-

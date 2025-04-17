@@ -11,16 +11,16 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class TestAuthService {
-    private final TestRepository testRepository;
-
-    //일단 간단하게 있는지 없는지 체크
-    public User findByUserName(LoginDto dto) {
-        return testRepository.findByUserName(dto.getUsername());
-    }
-
-    public void addRefreshToken(User user, String refreshToken) {
-        user.setRefreshToken(refreshToken);
-        testRepository.save(user);
-    }
+//    private final TestRepository testRepository;
+//
+//    //일단 간단하게 있는지 없는지 체크
+//    public User findByUserName(LoginDto dto) {
+//        return testRepository.findByUserName(dto.getUsername());
+//    }
+//
+//    public void addRefreshToken(User user, String refreshToken) {
+//        user.setRefreshToken(refreshToken);
+//        testRepository.save(user);
+//    }
 
 }

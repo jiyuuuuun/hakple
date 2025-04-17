@@ -18,10 +18,12 @@ import lombok.experimental.SuperBuilder;
 public class Comment extends BaseEntity {
     @ManyToOne(optional = false)
     @JoinColumn(name = "board_id", nullable = false)
+    @ToString.Exclude
     private Board board;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "user_id", nullable = false)
+    @ToString.Exclude
     private User user;
 
     @Lob // TEXT 타입
