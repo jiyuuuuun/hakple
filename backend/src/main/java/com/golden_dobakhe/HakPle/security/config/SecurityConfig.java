@@ -35,7 +35,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/failure", "/login",
+                        .requestMatchers( "/login",
                                 "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000", //카카오 로그인
                                 "/swagger-ui/**",            // Swagger UI
                                 "/v3/api-docs/**",           // OpenAPI JSON

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao';
+const redirectUrlAfterSocialLogin = 'http://localhost:3000';
+
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -42,13 +45,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#FAF9FE] px-4">
       <div className="w-full max-w-[600px] bg-white rounded-3xl p-12 shadow-lg">
         <div className="flex flex-col items-center mb-12">
-          <Image
-            src="/logo.png"
-            alt="Hakple 로고"
-            width={60}
-            height={60}
-            className="mb-6"
-          />
+          <Link href="/" className="cursor-pointer">
+            <Image
+              src="/logo.png"
+              alt="Hakple 로고"
+              width={60}
+              height={60}
+              className="mb-6"
+            />
+          </Link>
           <h1 className="text-4xl font-bold">
             <span className="text-[#8C4FF2]">Hakple</span>
             <span className="text-black">에 오신 것을 환영합니다</span>
@@ -105,7 +110,7 @@ export default function LoginPage() {
               className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
             />
             <label htmlFor="remember" className="ml-3 text-base text-gray-600">
-              로그인 상태 유지
+              로그인 상태 유지가 될 것 같아보임?
             </label>
             <Link href="/forgot-password" className="ml-auto text-base text-gray-600 hover:text-purple-600">
               비밀번호를 잊으셨나요?
@@ -121,6 +126,7 @@ export default function LoginPage() {
 
           <button
             type="button"
+            onClick={() => window.location.href = `${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
             className="w-full py-4 text-lg bg-[#FFE500] text-black rounded-lg hover:bg-[#FFD700] transition-colors flex items-center justify-center"
           >
             카카오 계정으로 로그인
