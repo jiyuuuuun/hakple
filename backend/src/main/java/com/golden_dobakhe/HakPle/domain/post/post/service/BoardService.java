@@ -23,7 +23,7 @@ public interface BoardService {
     Page<BoardResponse> searchBoardsByType(String academyCode, String searchType, String keyword, String sortType, Pageable pageable);
 
     Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType, Pageable pageable);
-    
+
     BoardResponse updateBoard(Long id, BoardRequest request, Long userId);
     void deleteBoard(Long id, Long userId);
     void toggleLike(Long id, Long userId);
@@ -31,7 +31,7 @@ public interface BoardService {
     Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Pageable pageable);
 
     Page<BoardResponse> getBoardsByTag(String academyCode, String tag, String sortType, Pageable pageable);
-    
+
     void createBoardReport(Long id, Long userId);
 
     List<TagResponse> getPopularTagsByUserId(Long userId);
@@ -43,6 +43,6 @@ public interface BoardService {
     void increaseViewCount(Long id);
 
     boolean isReportedByUser(Long boardId, Long userId);
-    
+
     boolean isLikedByUser(Long boardId, Long userId);
 }

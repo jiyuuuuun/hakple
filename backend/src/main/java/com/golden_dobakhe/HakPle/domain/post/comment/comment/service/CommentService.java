@@ -5,11 +5,15 @@ import com.golden_dobakhe.HakPle.domain.post.comment.comment.dto.CommentRequestD
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.dto.CommentResponseDto;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.entity.Comment;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentRepository;
+import com.golden_dobakhe.HakPle.domain.post.comment.exception.CommentException;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.entity.Status;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import com.golden_dobakhe.HakPle.global.Status;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,10 +38,10 @@ public class CommentService {
         // 게시글 존재 여부 확인
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new RuntimeException("게시글이 존재하지 않습니다."));
-        
+
         // 게시글에 연결된 모든 댓글 조회
         List<Comment> comments = board.getComments();
-        
+
         // 활성 상태인 댓글만 필터링하고 DTO로 변환
         return comments.stream()
                 .filter(comment -> comment.getStatus() == Status.ACTIVE)
@@ -46,18 +50,18 @@ public class CommentService {
     }
 
     //댓글 저장
-    public CommentResult commentSave(CommentRequestDto commentRequestDto) {
+    public Comment commentSave(CommentRequestDto commentRequestDto,Long userId) {
        Board board=boardRepository.findById(commentRequestDto.getBoardId()).orElse(null);
        if(board==null){ //게시판이 존재 X
-           return CommentResult.BOARD_NOT_FOUND;
+           throw  new CommentException(CommentResult.BOARD_NOT_FOUND);
        }
-       User user=userRepository.findById(7L).orElse(null); //유저디테일에서 사용자 정보 가져와서 넣기
+       User user=userRepository.findById(userId).orElse(null);
        if(user==null){ //유저 존재 X
-           return CommentResult.USER_NOT_FOUND;
+           throw  new CommentException(CommentResult.USER_NOT_FOUND);
        }
        if(commentRequestDto.getContent() == null || commentRequestDto.getContent().trim().isEmpty()) {
             // 비어 있는 문자열
-            return CommentResult.EMPTY;
+           throw  new CommentException(CommentResult.EMPTY);
        }
 
         Comment comment= Comment.builder()
@@ -66,15 +70,15 @@ public class CommentService {
                .user(user)
                .status(Status.ACTIVE)
                .build();
-       log.info("댓글 저장: boardId={}, userId={}, content={}", board.getId(), user.getId(), comment.getContent());
+       log.info(comment.toString());
        commentRepository.save(comment);
-     return CommentResult.SUCCESS;
+     return comment;
     }
 
 
     //댓글 수정
-    public CommentResult commentUpdate(CommentRequestDto commentRequestDto) {
-        User user=userRepository.findById(7L).orElse(null); //유저티테일에서 사용자 정보 가져와서 넣기
+    public CommentResult commentUpdate(CommentRequestDto commentRequestDto,Long userId) {
+        User user=userRepository.findById(userId).orElse(null);
         if(user==null){ //유저 존재 X
             return CommentResult.USER_NOT_FOUND;
         }
@@ -82,13 +86,13 @@ public class CommentService {
             // 비어 있는 문자열
             return CommentResult.EMPTY;
         }
-        Comment comment=commentRepository.findById(commentRequestDto.getCommenterId()).orElse(null);
+        Comment comment=commentRepository.findById(commentRequestDto.getCommentId()).orElse(null);
         if(comment==null){ //없는 댓글
             return CommentResult.COMMENT_NOT_FOUND;
         }
-        if(comment.getUser().getId().equals(7L)) {//댓글 작성자와 요청을 보낸 사용자가 일치하면 (시큐리티 사용)
+        if(comment.getUser().getId()==userId) {
             comment.setContent(commentRequestDto.getContent());
-            log.info("댓글 수정: commentId={}, content={}", comment.getId(), comment.getContent());
+            log.info(comment.toString());
             return CommentResult.SUCCESS;
         }else{
             return CommentResult.UNAUTHORIZED;
@@ -97,8 +101,8 @@ public class CommentService {
     }
 
     //댓글 삭제
-    public CommentResult commentDelete(Long commentId) {
-        User user=userRepository.findById(7L).orElse(null); //유저티테일에서 사용자 정보 가져와서 넣기
+    public CommentResult commentDelete(Long commentId,Long userId) {
+        User user=userRepository.findById(userId).orElse(null);
         if(user==null){ //유저 존재 X
             return CommentResult.USER_NOT_FOUND;
         }
@@ -106,15 +110,15 @@ public class CommentService {
         if(comment==null){ //없는 댓글
             return CommentResult.COMMENT_NOT_FOUND;
         }
-        if(comment.getUser().getId().equals(7L)) {//댓글 작성자와 요청을 보낸 사용자가 일치하면 (시큐리티 사용)
+        if(comment.getUser().getId()==userId) {
             comment.setStatus(Status.INACTIVE);
-            log.info("댓글 삭제: commentId={}", comment.getId());
+            log.info(comment.toString());
             return CommentResult.SUCCESS;
         }else{
             return CommentResult.UNAUTHORIZED;
         }
     }
 
-    //댓글 신고
+
 
 }

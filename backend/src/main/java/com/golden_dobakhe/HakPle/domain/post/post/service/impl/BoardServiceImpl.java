@@ -3,7 +3,6 @@ package com.golden_dobakhe.HakPle.domain.post.post.service.impl;
 
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardRequest;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
-import com.golden_dobakhe.HakPle.domain.post.post.dto.TagResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.*;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.*;
@@ -107,7 +106,7 @@ public class BoardServiceImpl implements BoardService {
 
 
         board.getUser().getNickName();
-        
+
 
         Hibernate.initialize(board.getBoardLikes());
 
@@ -128,12 +127,12 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode)) {
             throw BoardException.invalidRequest();
         }
-        
+
 
         if (!StringUtils.hasText(sortType)) {
             sortType = "등록일순";
         }
-        
+
         return boardRepository.findByAcademyCodeAndStatus(academyCode, Status.ACTIVE, sortType, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
@@ -300,7 +299,7 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(request.getContent())) {
             throw BoardException.invalidRequest();
         }
-       
+
     }
 
     private List<String> extractImageUrls(String content) {
@@ -320,15 +319,15 @@ public class BoardServiceImpl implements BoardService {
     public String getAcademyCodeByUserId(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> BoardException.notFound());
-        
+
         String academyCode = user.getAcademyId();
         if (!StringUtils.hasText(academyCode)) {
             throw BoardException.invalidRequest();
         }
-        
+
         return academyCode;
     }
-    
+
 
     @Override
     @Transactional(readOnly = true)
@@ -350,7 +349,7 @@ public class BoardServiceImpl implements BoardService {
         String academyCode = getAcademyCodeByUserId(userId);
         return getBoardsByTag(academyCode, tag, sortType, pageable);
     }
-    
+
 
     @Override
     @Transactional(readOnly = true)
@@ -358,7 +357,7 @@ public class BoardServiceImpl implements BoardService {
         String academyCode = getAcademyCodeByUserId(userId);
         return getPopularTags(academyCode);
     }
-    
+
 
     @Override
     @Transactional(readOnly = true)
@@ -366,14 +365,14 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword) || !StringUtils.hasText(searchType)) {
             throw BoardException.invalidRequest();
         }
-        
+
         return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
                 });
     }
-    
+
 
     @Override
     @Transactional(readOnly = true)
@@ -381,7 +380,7 @@ public class BoardServiceImpl implements BoardService {
         String academyCode = getAcademyCodeByUserId(userId);
         return searchBoardsByType(academyCode, searchType, keyword, sortType, pageable);
     }
-    
+
     @Override
     @Transactional
     public void increaseViewCount(Long id) {
@@ -391,14 +390,14 @@ public class BoardServiceImpl implements BoardService {
         board.increaseViewCount();
         boardRepository.save(board);
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public boolean isReportedByUser(Long boardId, Long userId) {
 
         return boardReportRepository.findByBoardIdAndUserId(boardId, userId).isPresent();
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public boolean isLikedByUser(Long boardId, Long userId) {

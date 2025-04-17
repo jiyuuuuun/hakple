@@ -7,8 +7,8 @@ import com.golden_dobakhe.HakPle.domain.post.comment.exception.CommentException;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikedCommentDto;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.entity.CommentLike;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;
-import com.golden_dobakhe.HakPle.domain.user.entity.User;
-import com.golden_dobakhe.HakPle.domain.user.repository.UserRepository;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,10 +70,10 @@ public class LikeService {
     public CommentResult toggleCommentLike(Long commentId, User user) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
-                
+
         // 이미 좋아요 했는지 확인
         Optional<CommentLike> existingLike = likeRepository.findByCommentIdAndUserId(commentId, user.getId());
-        
+
         if (existingLike.isPresent()) {
             // 이미 좋아요 한 경우: 좋아요 취소
             likeRepository.delete(existingLike.get());

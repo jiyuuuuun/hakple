@@ -13,7 +13,7 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("HakPle API 문서")
-                        .version("1.0")
+                        .version("v1.0.0")
                         .description("API 설명을 여기에 작성합니다."));
     }
 }

@@ -3,7 +3,6 @@ package com.golden_dobakhe.HakPle.domain.post.comment.like.controller;
 import com.golden_dobakhe.HakPle.domain.post.comment.CommentResult;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikedCommentDto;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.service.LikeService;
-import com.golden_dobakhe.HakPle.domain.user.entity.User;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 @RestController
 @RequiredArgsConstructor
@@ -35,18 +33,6 @@ public class ApiV1LikeController {
         User user = principal.getUser();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(likeService.likeComment(commentId, user));
-    }
-
-    @Operation(summary = "댓글 좋아요 토글", description = "로그인한 사용자가 특정 댓글의 좋아요를 토글합니다. 이미 좋아요를 눌렀으면 취소하고, 아니면 추가합니다.")
-    @ApiResponse(responseCode = "200", description = "좋아요 토글 성공")
-    @PostMapping("/comments/{commentId}/toggle")
-    public ResponseEntity<CommentResult> toggleCommentLike(
-            @Parameter(description = "좋아요를 토글할 댓글 ID", example = "1")
-            @PathVariable(name ="commentId") Long commentId,
-            @AuthenticationPrincipal CustomUserDetails principal
-    ) {
-        User user = principal.getUser();
-        return ResponseEntity.ok(likeService.toggleCommentLike(commentId, user));
     }
 
     @Operation(summary = "댓글 좋아요 수 조회", description = "특정 댓글의 좋아요 수를 조회합니다.")
