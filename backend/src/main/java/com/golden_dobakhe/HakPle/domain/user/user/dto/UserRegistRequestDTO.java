@@ -1,18 +1,16 @@
 package com.golden_dobakhe.HakPle.domain.user.user.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.*;
-
 @Getter
 @Setter
 @Schema(description = "회원가입 시 입력하는 사용자 정보 DTO")
-public class UserDTO {
+public class UserRegistRequestDTO {
 
     @NotBlank(message = "닉네임은 필수 입력값입니다.")
     @Pattern(
