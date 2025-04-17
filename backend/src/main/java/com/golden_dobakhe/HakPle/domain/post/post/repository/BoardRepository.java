@@ -1,7 +1,7 @@
 package com.golden_dobakhe.HakPle.domain.post.post.repository;
 
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
-import com.golden_dobakhe.HakPle.global.entity.Status;
+import com.golden_dobakhe.HakPle.global.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -34,7 +34,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
            "END DESC")
     Page<Board> findByAcademyCodeAndStatus(
             @Param("academyCode") String academyCode, 
-            @Param("status") Status status, 
+            @Param("status") Status status,
             @Param("sortType") String sortType,
             Pageable pageable);
 

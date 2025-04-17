@@ -2,6 +2,8 @@ server:
   port: 8090
 
 spring:
+  main:
+    allow-bean-definition-overriding: true
   mvc:
     static-path-pattern: /uploads/** # 정적 파일 접근 경로 설정
   output:

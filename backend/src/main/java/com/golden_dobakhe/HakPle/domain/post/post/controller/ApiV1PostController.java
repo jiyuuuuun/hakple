@@ -182,7 +182,6 @@ public ResponseEntity<BoardResponse> getBoard(
             @RequestParam(required = false) String searchType) {
         
         Long userId = 7L;
-        
         Pageable pageable = PageRequest.of(page, size);
         
         if (StringUtils.hasText(tag)) {

@@ -26,7 +26,7 @@ public class WebConfig implements WebMvcConfigurer {
             absoluteUploadPath = uploadDir;
         }
         
-        // file: 프로토콜로 시작하는지 확인
+        // file: 프로토콜로 시작하는지 확인!
         String location = absoluteUploadPath.startsWith("file:") ? 
             absoluteUploadPath : "file:" + absoluteUploadPath + "/";
             

@@ -12,7 +12,6 @@ public class BoardRequest {
     private String content;
     private List<String> tags;
 
-
     @Builder
     public BoardRequest(String title, String content, String academyCode, List<String> tags) {
         this.title = title;

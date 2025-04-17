@@ -10,6 +10,7 @@ import java.util.List;
 
 public interface BoardService {
     BoardResponse createBoard(BoardRequest request, Long userId);
+
     BoardResponse getBoard(Long id,  Boolean postView);
 
     Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Pageable pageable);
