@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 interface Post {
@@ -311,13 +310,7 @@ export default function PostPage() {
         
         <div className="flex justify-end mb-5 pt-[20px] pb-[20px] ">
           <Link href="/post/new" className="bg-[#9c50d4] rounded-[10px] text-[#ffffff] py-[5px] px-[10px] text-sm no-underline flex items-center">
-            <Image 
-              src="/svg/글쓰기.png" 
-              width={16} 
-              height={16} 
-              alt="글쓰기 아이콘" 
-              className="mr-[5px]"
-            />
+            <span className="material-icons text-sm text-[#ffffff] mr-[5px]">edit</span>
             새 글쓰기
           </Link>
         </div>
