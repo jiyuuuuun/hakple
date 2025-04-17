@@ -21,7 +21,7 @@ public class ApiV1AuthController {
     private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
 
-    @GetMapping("/")
+    @GetMapping("/home")
     public ResponseEntity<String> home() {
         return ResponseEntity.ok("여기는 집");
     }

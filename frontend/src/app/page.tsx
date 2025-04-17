@@ -104,9 +104,11 @@ export default function Home() {
                   placeholder="검색어를 입력하세요"
                 />
               </div>
-              <button className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 md:px-6 rounded-md text-sm whitespace-nowrap h-[38px]">
-                로그인
-              </button>
+              <Link href="/login">
+                <button className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 md:px-6 rounded-md text-sm whitespace-nowrap h-[38px]">
+                  로그인
+                </button>
+              </Link>
             </div>
           </div>
 
