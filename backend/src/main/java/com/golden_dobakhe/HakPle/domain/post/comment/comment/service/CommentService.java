@@ -10,11 +10,15 @@ import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 
 
+import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
+import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,7 +120,13 @@ public class CommentService {
             return CommentResult.UNAUTHORIZED;
         }
     }
+    public Page<CommentResponseDto> findMyComments(String userName, Pageable pageable) {
+        User user = userRepository.findByUserName(userName)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
+        return commentRepository.findAllByUserAndStatus(user, Status.ACTIVE, pageable)
+                .map(CommentResponseDto::fromEntity);
+    }
 
 
 }

@@ -9,6 +9,10 @@ import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -118,6 +122,19 @@ public class ApiV1CommentController {
             default:
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("댓글 삭제 실패 : 서버 오류");
         }
+    }
+    @GetMapping("/my")
+    @Operation(summary = "내 댓글 목록 조회")
+    public ResponseEntity<Page<CommentResponseDto>> getMyComments(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PageableDefault(size = 10, sort = "creationTime", direction = Sort.Direction.DESC) Pageable pageable) {
+        String userName = principal.getUser().getUserName();
+        Page<CommentResponseDto> comments = commentService.findMyComments(userName, pageable);
+
+        if (comments.isEmpty()) {
+            return ResponseEntity.ok(Page.empty()); // 빈 Page 객체 반환
+        }
+        return ResponseEntity.ok(comments);
     }
 }
 
