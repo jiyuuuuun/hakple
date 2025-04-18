@@ -5,5 +5,6 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AcademyRepository extends JpaRepository<Academy, Long> {
-    Optional<Academy> findByPhoneNumEndsWith(String suffix);
+    boolean existsByAcademyCode(String academyCode);
+    Optional<Academy> findByAcademyCode(String academyCode);
 }
