@@ -11,10 +11,10 @@ import lombok.Getter;
 public class MyInfoResponseDto { //사용자 정보 조회용
 
     @Schema(description = "사용자 닉네임", example = "lion_123")
-    private String nickname;
+    private String nickName;
 
     @Schema(description = "사용자 아이디", example = "라이온")
-    private String username;
+    private String userName;
 
     @Schema(description = "사용자 전화번호", example = "01012345678")
     private String phoneNum;

@@ -24,13 +24,10 @@ export default function Header({ isLoggedIn: propIsLoggedIn }: { isLoggedIn?: bo
         // prop으로 전달받은 값이 있으면 그 값을 사용
         if (propIsLoggedIn !== undefined) {
             setIsLoggedIn(propIsLoggedIn)
-            return
+        } else {
+            // 로그인 상태 확인 로직
+            setIsLoggedIn(pathname === '/home' || pathname.startsWith('/myinfo'))
         }
-
-        // 로그인 상태 확인 로직
-        // 예: 토큰 확인, 세션 확인 등
-        // 여기서는 간단하게 '/home' 경로에 있으면 로그인된 것으로 가정
-        setIsLoggedIn(pathname === '/home' || pathname.startsWith('/myinfo'))
     }, [pathname, propIsLoggedIn])
 
     return (

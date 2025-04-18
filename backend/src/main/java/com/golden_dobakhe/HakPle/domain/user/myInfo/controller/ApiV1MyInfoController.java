@@ -1,4 +1,3 @@
-
 package com.golden_dobakhe.HakPle.domain.user.myInfo.controller;
 
 import com.golden_dobakhe.HakPle.domain.user.myInfo.dto.MyInfoResponseDto;
