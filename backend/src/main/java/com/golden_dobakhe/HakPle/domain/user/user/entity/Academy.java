@@ -23,4 +23,7 @@ public class Academy extends BaseEntity {
 
     @Column(length = 20, nullable = false)
     private String phoneNum;
+
+    @Column(length = 20, nullable = false, unique = true)
+    private String academyCode; //ABC1234XYZ ← 전화번호 뒷자리가 1234인 경우
 }

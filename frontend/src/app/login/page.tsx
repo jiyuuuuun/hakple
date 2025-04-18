@@ -37,10 +37,13 @@ export default function LoginPage() {
 
       const data = await response.json();
       console.log('로그인 성공:', data);
-      
   
       //라우터로 보내면 레이아웃이 갱신이 안됨
       window.location.href = "/"
+
+      // TODO: 로그인 성공 후 처리 (예: 토큰 저장, 페이지 이동 등)
+      // localStorage.setItem('accessToken', data.accessToken);
+      // localStorage.setItem('refreshToken', data.refreshToken);
       
     } catch (error) {
       console.error('로그인 에러:', error);

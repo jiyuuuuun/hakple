@@ -40,7 +40,7 @@ public class ApiV1PostController {
     @Operation(summary = "게시물 ID로 조회", description = "특정 ID의 게시물을 조회합니다.")
     @GetMapping("/{id}")
 public ResponseEntity<BoardResponse> getBoard(
-        @PathVariable Long id,
+        @PathVariable("id") Long id,
         @RequestParam(required = false, defaultValue = "true") Boolean postView) {
     return ResponseEntity.ok(boardService.getBoard(id, postView));
 }
@@ -48,12 +48,12 @@ public ResponseEntity<BoardResponse> getBoard(
     @Operation(summary = "게시물 목록 조회", description = "게시물 목록을 페이징 처리하여 조회합니다.")
     @GetMapping
     public ResponseEntity<Page<BoardResponse>> getBoards(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "등록일순") String sortType,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String tag,
-            @RequestParam(required = false) String searchType,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "tag", required = false) String tag,
+            @RequestParam(name = "searchType", required = false) String searchType,
             @PageableDefault(size = 10) Pageable pageable) {
 
         Long userId = 7L;
@@ -76,7 +76,7 @@ public ResponseEntity<BoardResponse> getBoard(
     @Operation(summary = "게시물 수정", description = "특정 ID의 게시물을 수정합니다.")
     @PutMapping("/{id}")
     public ResponseEntity<BoardResponse> updateBoard(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             @RequestBody BoardRequest request
 
     ) {
@@ -86,7 +86,7 @@ public ResponseEntity<BoardResponse> getBoard(
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBoard(
-            @PathVariable Long id
+            @PathVariable("id") Long id
 
     ) {
         Long userId = 7L;
@@ -97,7 +97,7 @@ public ResponseEntity<BoardResponse> getBoard(
     @Operation(summary = "게시물 좋아요 토글", description = "게시물을 좋아요합니다.")
     @PostMapping("/{id}/like")
     public ResponseEntity<Void> toggleLike(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
         Long userId = 7L;
         boardService.toggleLike(id, userId);
@@ -108,7 +108,7 @@ public ResponseEntity<BoardResponse> getBoard(
     @GetMapping("/tag/{tag}")
     public ResponseEntity<Page<BoardResponse>> getBoardsByTag(
             @PathVariable String tag,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(name = "page", defaultValue = "1") int page,
             @PageableDefault(size = 10) Pageable pageable,
             @RequestParam(defaultValue = "등록일순") String sortType
     ) {
@@ -123,7 +123,7 @@ public ResponseEntity<BoardResponse> getBoard(
     @Operation(summary = "게시물 신고", description = "특정 ID의 게시물을 신고합니다.")
     @PostMapping("/{id}/report")
     public ResponseEntity<Void> createBoardReport(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
         Long userId = 7L;
         boardService.createBoardReport(id, userId);
@@ -133,7 +133,7 @@ public ResponseEntity<BoardResponse> getBoard(
     @Operation(summary = "게시물 신고 상태 확인", description = "현재 사용자가 특정 게시물을 신고했는지 확인합니다.")
     @GetMapping("/{id}/report-status")
     public ResponseEntity<Map<String, Boolean>> checkBoardReportStatus(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
         Long userId = 7L;
         
@@ -147,7 +147,7 @@ public ResponseEntity<BoardResponse> getBoard(
     @Operation(summary = "게시물 좋아요 상태 확인", description = "현재 사용자가 특정 게시물을 좋아요했는지 확인합니다.")
     @GetMapping("/{id}/like-status")
     public ResponseEntity<Map<String, Boolean>> checkBoardLikeStatus(
-            @PathVariable Long id
+            @PathVariable("id") Long id
     ) {
         Long userId = 7L;
         
@@ -160,7 +160,9 @@ public ResponseEntity<BoardResponse> getBoard(
 
     @Operation(summary = "게시물 조회수 증가", description = "게시물의 조회수를 1 증가시킵니다.")
     @PostMapping("/{id}/view")
-    public ResponseEntity<Void> increaseViewCount(@PathVariable Long id) {
+    public ResponseEntity<Void> increaseViewCount(
+            @PathVariable("id") Long id
+    ) {
         Long userId = 7L;
         boardService.increaseViewCount(id);
         return ResponseEntity.ok().build();
@@ -174,12 +176,13 @@ public ResponseEntity<BoardResponse> getBoard(
 
     @GetMapping("/tags")
     public ResponseEntity<Page<BoardResponse>> getTaggedBoards(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "등록일순") String sortType,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String tag,
-            @RequestParam(required = false) String searchType) {
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "tag", required = false) String tag,
+            @RequestParam(name = "searchType", required = false) String searchType
+    ) {
         
         Long userId = 7L;
         Pageable pageable = PageRequest.of(page, size);

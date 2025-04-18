@@ -43,7 +43,7 @@ export default function PostDetailPage() {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editCommentContent, setEditCommentContent] = useState('');
   const [lastEditedCommentId, setLastEditedCommentId] = useState<number | null>(null);
-  const hasLoadedRef = useRef(false);
+  const isMounted = useRef(false);
   // 드롭다운 메뉴 상태 관리
   const [showPostMenu, setShowPostMenu] = useState(false);
   const [showCommentMenu, setShowCommentMenu] = useState<number | null>(null);
@@ -100,14 +100,27 @@ export default function PostDetailPage() {
     const fetchPostDetail = async () => {
       if (!params.id) return;
       
-      // 컴포넌트 마운트에서 한 번만 실행되도록 체크
-      if (hasLoadedRef.current) return;
-      hasLoadedRef.current = true;
+      // 마운트 체크 (React 18 StrictMode 대응)
+      if (isMounted.current) {
+        return;
+      }
+      isMounted.current = true;
+      
+      // 세션 스토리지에서 이미 조회했는지 확인
+      const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '{}');
+      const postKey = `post_${params.id}`;
+      const hasViewed = viewedPosts[postKey];
       
       setLoading(true);
       try {
-        // 기본 게시글 정보 호출 (항상 postView=true로 설정하여 서버에서 조회수 관리)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}?postView=true`);
+        // 이미 조회한 경우 postView=false로 설정
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}?postView=${!hasViewed}`);
+        
+        // 조회 기록 저장
+        if (!hasViewed) {
+          viewedPosts[postKey] = true;
+          sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+        }
         
         if (!response.ok) {
           let errorMsg = '게시글을 불러오는데 실패했습니다.';
@@ -190,10 +203,8 @@ export default function PostDetailPage() {
     
     fetchPostDetail();
     
-    // 컴포넌트 언마운트 시 참조 초기화
-    return () => {
-      hasLoadedRef.current = false;
-    };
+    // 언마운트 시 ref 초기화하지 않음 - 중요!
+    return () => {};
   }, [params.id]);
 
   // 게시글 좋아요 기능
@@ -613,7 +624,7 @@ export default function PostDetailPage() {
           <p className="mb-4">{error}</p>
           <button 
             onClick={() => router.push('/post')}
-            className="bg-[#9c50d4] text-white px-4 py-2 rounded-md"
+            className="bg-[#980ffa] text-white px-4 py-2 rounded-md"
           >
             목록으로 돌아가기
           </button>
@@ -629,7 +640,7 @@ export default function PostDetailPage() {
           <h1 className="text-xl font-semibold mb-4">게시글을 찾을 수 없습니다</h1>
           <button 
             onClick={() => router.push('/post')}
-            className="bg-[#9c50d4] text-white px-4 py-2 rounded-md"
+            className="bg-[#980ffa] text-white px-4 py-2 rounded-md"
           >
             목록으로 돌아가기
           </button>
@@ -718,7 +729,7 @@ export default function PostDetailPage() {
           </div>
         </div>
         
-        <h1 className="text-xl font-bold mb-2 pl-10">{post.title}</h1>
+        <h1 className="text-xl font-bold mb-2 pl-2">{post.title}</h1>
         
         {/* 게시글 내용 */}
         <div className="py-4 pl-5">
@@ -769,7 +780,7 @@ export default function PostDetailPage() {
         <h3 className="font-medium">{comments.length}개의 댓글</h3>
         <button
           onClick={() => router.push('/post')}
-          className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+          className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
         >
           목록
         </button>
@@ -781,7 +792,7 @@ export default function PostDetailPage() {
         {comments.length > 0 ? (
           <div className="space-y-4 mb-4">
             {comments.map(comment => (
-              <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#9c50d4]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
+              <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#980ffa]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
                 {editingCommentId === comment.id ? (
                   // 댓글 수정 모드
                   <div className="py-[10px] rounded-[10px] bg-purple-50">
@@ -798,7 +809,7 @@ export default function PostDetailPage() {
                         value={editCommentContent}
                         onChange={(e) => setEditCommentContent(e.target.value)}
                         placeholder="댓글을 수정하세요..."
-                        className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#9c50d4] h-[100px] resize-none pl-[10px] pt-[10px]"
+                        className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
                       />
                     </div>
                     <div className="flex justify-end mt-2 p-[10px] space-x-2">
@@ -810,7 +821,7 @@ export default function PostDetailPage() {
                       </button>
                       <button
                         onClick={submitCommentEdit}
-                        className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+                        className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
                       >
                         수정
                       </button>
@@ -821,7 +832,7 @@ export default function PostDetailPage() {
                   // 일반 댓글 표시 모드
                   <div className={`flex flex-col transition-all duration-300 ${
                     lastEditedCommentId === comment.id 
-                      ? 'bg-purple-50 border-l-4 border-[#9c50d4] px-2 py-1 rounded animate-highlight-fade' 
+                      ? 'bg-purple-50 border-l-4 border-[#980ffa] px-2 py-1 rounded animate-highlight-fade' 
                       : ''
                   }`}>
                     {/* 1줄: 프로필 이미지, 닉네임, 시간 */}
@@ -911,7 +922,7 @@ export default function PostDetailPage() {
           <div className="flex">
             <textarea
               placeholder="댓글을 입력하세요..."
-              className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#9c50d4] h-[100px] resize-none pl-[10px] pt-[10px]"
+              className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
             />
@@ -919,7 +930,7 @@ export default function PostDetailPage() {
           <div className="flex justify-end mt-2 p-[10px]">
             <button
               onClick={handleCommentSubmit}
-              className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+              className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
             >
               등록
             </button>

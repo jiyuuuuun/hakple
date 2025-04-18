@@ -176,7 +176,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
         {tags.map((tag, index) => (
           <div 
             key={`tag-${index}-${tag}`}
-            className="flex items-center bg-[#9c50d4] text-[#ffffff] rounded-[10px] p-[5px] cursor-pointer hover:bg-[#8a40c0] transition-all"
+            className="flex items-center bg-[#980ffa] text-[#ffffff] rounded-[10px] p-[5px] cursor-pointer hover:bg-[#8a40c0] transition-all"
             onClick={() => removeTag(tag)}
             title="클릭하여 제거"
           >
@@ -330,14 +330,14 @@ const NewPostPage = () => {
               <div className="flex justify-between">
                 <button
                   onClick={() => router.push('/post')}
-                  className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+                  className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
                 >
                   목록
                 </button>
                 <button 
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+                  className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
                 >
                   {isSubmitting ? '등록 중...' : '등록하기'}
                 </button>

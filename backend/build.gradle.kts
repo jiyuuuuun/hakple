@@ -31,9 +31,15 @@ dependencies {
 //  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
     implementation("org.springframework.boot:spring-boot-starter-security") //security
+    testImplementation ("org.testcontainers:mysql:1.19.3")
+    testImplementation ("org.testcontainers:junit-jupiter:1.19.3")
+    testImplementation ("org.springframework.security:spring-security-test")
+    implementation ("org.springframework.boot:spring-boot-starter-validation")
 
 
-	// JWT & JSON
+
+
+    // JWT & JSON
 	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
@@ -42,7 +48,7 @@ dependencies {
 	implementation("com.google.code.gson:gson")
 
 	// Validation
-	implementation("jakarta.validation:jakarta.validation-api:3.0.2")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     //누리고
     implementation("net.nurigo:sdk:4.2.7") // 누리고 SDK

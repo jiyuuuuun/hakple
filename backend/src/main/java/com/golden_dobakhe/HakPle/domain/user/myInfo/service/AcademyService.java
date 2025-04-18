@@ -5,7 +5,6 @@ import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.myInfo.validator.AcademyCodeValidator;
-import java.util.Optional;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.AcademyRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +22,9 @@ public class AcademyService {
         // 유효성 검사
         AcademyCodeValidator.validateAcademyId(academyCode);
 
-        // 전화번호 뒷자리 추출
-        String phoneSuffix = extractPhoneSuffix(academyCode);
-
-        // 학원 찾기
-        Optional<Academy> academyOpt = academyRepository.findByPhoneNumEndsWith(phoneSuffix);
-        Academy academy = academyOpt.orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
+        // 학원 찾기 (코드로 직접 조회) , 전화번호 뒷자리로 조회하면 중복 가능성 있으므로
+        Academy academy = academyRepository.findByAcademyCode(academyCode)
+                .orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
 
         // 사용자 찾기
         User user = userRepository.findByUserName(userName)
@@ -40,7 +36,4 @@ public class AcademyService {
         return academy.getAcademyName();
     }
 
-    public String extractPhoneSuffix(String academyCode) {
-        return academyCode.substring(3, 7);
-    }
 }

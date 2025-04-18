@@ -1,3 +1,6 @@
+<!-- 
+//주호님 코드
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -210,5 +213,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             {children}
         </main>
         </LoginMemberContext>
-    );
+    ); 
+-->
+
+'use client'
+
+import { useEffect } from 'react'
+export function ClientLayout({ children }: { children: React.ReactNode }) {
+    useEffect(() => {
+        fetch('/api/members/me')
+            .then((response) => response.json())
+            .then((data) => {
+                console.log(data)
+            })
+    }, [])
+    return <main>{children}</main>
 }
