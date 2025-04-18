@@ -309,7 +309,7 @@ export default function PostPage() {
         )}
         
         <div className="flex justify-end mb-5 pt-[20px] pb-[20px] ">
-          <Link href="/post/new" className="bg-[#9c50d4] rounded-[10px] text-[#ffffff] py-[5px] px-[10px] text-sm no-underline flex items-center">
+          <Link href="/post/new" className="bg-[#980ffa] rounded-[10px] text-[#ffffff] py-[5px] px-[10px] text-sm no-underline flex items-center">
             <span className="material-icons text-sm text-[#ffffff] mr-[5px]">edit</span>
             새 글쓰기
           </Link>
@@ -404,7 +404,7 @@ function Tag({ text, count, active = false, onClick }: { text: string; count: st
     <button 
       className={`px-3 py-[11px] text-sm border-none ${
         active 
-          ? 'bg-[#9c50d4] text-[#ffffff]' 
+          ? 'bg-[#980ffa] text-[#ffffff]' 
           : 'bg-[#f2f2f2] text-[#555555] hover:bg-[#e5e5e5]'
       }`}
       onClick={onClick}
@@ -526,7 +526,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
   
   if (active) {
     return (
-      <button className={`${baseClasses} text-[#ffffff] bg-[#8e44ad] font-medium border-0`}>
+      <button className={`${baseClasses} text-[#ffffff] bg-[#980ffa] font-medium border-0`}>
         {text}
       </button>
     );
@@ -553,7 +553,7 @@ function PostItem({ id, title, nickname, time, viewCount, commentCount, likeCoun
   return (
     <div className="px-[10px] py-[5px] bg-white border-b border-[#eeeeee]">
       <Link href={`/post/${id}`} className="block mb-3 no-underline">
-        <h3 className="text-lg font-semibold text-[#333333] hover:text-[#8e44ad]">{title}</h3>
+        <h3 className="text-lg font-semibold text-[#333333] hover:text-[#980ffa]">{title}</h3>
       </Link>
       
       <div className="flex items-center justify-between mb-3 gap-[10px]">
