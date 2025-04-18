@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
+// TODO : 나중에 배포시 
 const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao';
 const redirectUrlAfterSocialLogin = 'http://localhost:3000';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,11 +23,12 @@ export default function LoginPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
+        }, 
         body: JSON.stringify({
           username,
           password,
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -33,9 +37,13 @@ export default function LoginPage() {
 
       const data = await response.json();
       console.log('로그인 성공:', data);
+  
+      //라우터로 보내면 레이아웃이 갱신이 안됨
+      window.location.href = "/"
+
       // TODO: 로그인 성공 후 처리 (예: 토큰 저장, 페이지 이동 등)
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      // localStorage.setItem('accessToken', data.accessToken);
+      // localStorage.setItem('refreshToken', data.refreshToken);
       
     } catch (error) {
       console.error('로그인 에러:', error);
@@ -126,13 +134,12 @@ export default function LoginPage() {
             로그인
           </button>
 
-          <button
-            type="button"
-            onClick={() => window.location.href = `${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
+  
+            <Link href={`${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
             className="w-full py-4 text-lg bg-[#FFE500] text-black rounded-lg hover:bg-[#FFD700] transition-colors flex items-center justify-center"
-          >
+            >
             카카오 계정으로 로그인
-          </button>
+          </Link>
 
           <p className="text-center text-base text-gray-600">
             아직 회원이 아니신가요?{' '}
