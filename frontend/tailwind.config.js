@@ -37,7 +37,7 @@ module.exports = {
         },
         custom: {
           purple: {
-            DEFAULT: '#9c50d4',
+            DEFAULT: '#980ffa',
             hover: '#8a45bc'
           }
         }

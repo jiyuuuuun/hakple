@@ -446,7 +446,7 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="URL 입력"
-              className="w-full px-3 py-2 border border-gray-300 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-[#9c50d4] m-[10px]"
+              className="w-full px-3 py-2 border border-gray-300 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-[#980ffa] m-[10px]"
               style={{ width: '270px' }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -464,7 +464,7 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
               </button>
               <button 
                 onClick={handleLinkConfirm}
-                className="px-3 py-1 bg-[#9c50d4] text-[#ffffff] rounded hover:bg-[#8e44ad] m-[10px] border-none  rounded-[10px] p-[5px]"
+                className="px-3 py-1 bg-[#980ffa] text-[#ffffff] rounded hover:bg-[#8e44ad] m-[10px] border-none  rounded-[10px] p-[5px]"
               >
                 확인
               </button>
