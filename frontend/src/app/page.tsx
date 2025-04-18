@@ -1,14 +1,12 @@
 'use client'
 
-import Header_home from '@/components/Header_home'
+import Link from 'next/link'
 
 export default function Home() {
     console.log(process.env.NEXT_PUBLIC_API_BASE_URL)
 
     return (
         <>
-            <Header_home />
-
             <main className="flex flex-col items-center justify-center py-12 px-4 max-w-screen-lg mx-auto">
                 <section className="w-full text-center mb-15">
                     <h1 className="text-3xl font-bold mb-4">
@@ -20,9 +18,11 @@ export default function Home() {
                         3분 만에 가입하고
                         <br />내 학원 정보와 커뮤니티를 무료로 이용해보세요
                     </p>
-                    <button className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-3 px-8 rounded-md">
-                        3분 만에 회원가입 하기
-                    </button>
+                    <Link href="/signup">
+                        <button className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-3 px-8 rounded-md">
+                            3분 만에 회원가입 하기
+                        </button>
+                    </Link>
                 </section>
 
                 <section className="w-full mb-10 py-5">

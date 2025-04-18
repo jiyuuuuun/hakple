@@ -1,20 +1,37 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
-
-// 로그인 후 헤더 컴포넌트
+import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 /**
  * 헤더 컴포넌트
  *
  * 웹사이트의 상단 네비게이션 바를 제공합니다.
- * 로고, 네비게이션 메뉴, 검색 기능, 로그인 버튼을 포함합니다.
+ * 로고, 네비게이션 메뉴, 검색 기능, 로그인/로그아웃 버튼을 포함합니다.
+ * 로그인 상태에 따라 UI가 변경됩니다.
  * 반응형으로 설계되어 모바일과 데스크톱 환경에 모두 대응합니다.
  */
-export default function Header_afterLogin() {
+export default function Header({ isLoggedIn: propIsLoggedIn }: { isLoggedIn?: boolean }) {
     // 모바일에서 메뉴 버튼 클릭 시 상태 관리
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    // 로그인 상태 관리
+    const [isLoggedIn, setIsLoggedIn] = useState(false)
+    const pathname = usePathname()
+
+    // 페이지 로드 시 로그인 상태 확인
+    useEffect(() => {
+        // prop으로 전달받은 값이 있으면 그 값을 사용
+        if (propIsLoggedIn !== undefined) {
+            setIsLoggedIn(propIsLoggedIn)
+            return
+        }
+
+        // 로그인 상태 확인 로직
+        // 예: 토큰 확인, 세션 확인 등
+        // 여기서는 간단하게 '/home' 경로에 있으면 로그인된 것으로 가정
+        setIsLoggedIn(pathname === '/home' || pathname.startsWith('/myinfo'))
+    }, [pathname, propIsLoggedIn])
 
     return (
         <header className="bg-[#f2edf4] py-3 sticky top-0 z-10 shadow-sm">
@@ -81,7 +98,7 @@ export default function Header_afterLogin() {
                         </nav>
                     </div>
 
-                    {/* 오른쪽: 검색과 로그인 */}
+                    {/* 오른쪽: 검색과 로그인/로그아웃 */}
                     <div className="flex items-center space-x-2 md:space-x-3">
                         {/* 검색 입력창 */}
                         <div className="relative w-full max-w-[180px] md:max-w-[220px]">
@@ -106,19 +123,25 @@ export default function Header_afterLogin() {
                             />
                         </div>
 
-                        {/* 로그아웃 버튼 */}
-                        <Link href="/login">
+                        {/* 로그인/로그아웃 버튼 */}
+                        <Link href={isLoggedIn ? '/login' : '/login'}>
                             <button className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-2 px-4 md:px-5 rounded-md text-sm whitespace-nowrap h-[36px]">
-                                로그아웃
+                                {isLoggedIn ? '로그아웃' : '로그인'}
                             </button>
                         </Link>
 
-                        {/* 프로필 이미지 */}
-                        <Link href="/myinfo" className="flex items-center">
-                            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                                <img src="/profile.png" alt="프로필" className="min-w-full min-h-full object-cover" />
-                            </div>
-                        </Link>
+                        {/* 프로필 이미지 (로그인 시에만 표시) */}
+                        {isLoggedIn && (
+                            <Link href="/myinfo" className="flex items-center">
+                                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+                                    <img
+                                        src="/profile.png"
+                                        alt="프로필"
+                                        className="min-w-full min-h-full object-cover"
+                                    />
+                                </div>
+                            </Link>
+                        )}
                     </div>
                 </div>
 
@@ -133,7 +156,7 @@ export default function Header_afterLogin() {
                                 홈
                             </Link>
                             <Link
-                                href="/academy"
+                                href="/post"
                                 className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
                             >
                                 게시판

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Header_afterLogin from '@/components/Header_afterLogin'
 
 export default function ProfileUpdatePage() {
     const router = useRouter()
@@ -29,8 +28,6 @@ export default function ProfileUpdatePage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <Header_afterLogin />
-
             <main className="max-w-screen-lg mx-auto pt-6 pb-10">
                 <div className="bg-white rounded-lg shadow-sm mx-4 md:mx-auto max-w-2xl mt-4">
                     <div className="p-6">

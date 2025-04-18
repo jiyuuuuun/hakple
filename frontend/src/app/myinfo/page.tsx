@@ -3,15 +3,23 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useEffect } from 'react'
 import { ChevronRightIcon, PencilIcon, ChatBubbleLeftIcon, HeartIcon } from '@heroicons/react/24/outline'
 import { UserIcon, LockClosedIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
-import Header_afterLogin from '@/components/Header_afterLogin'
 
-export default function MyinfoPage() {
+export default function MyInfoPage() {
+    const [users, setusers] = useState([])
+
+    useEffect(() => {
+        fetch('http://localhost:8090/api/v1/myInfos', {
+            credentials: 'include',
+        })
+            .then((result) => result.json())
+            .then((result) => setusers(result.data.myInfos))
+    }, [])
+
     return (
         <div className="min-h-screen bg-gray-50">
-            <Header_afterLogin />
-
             <div>
                 <main className="max-w-screen-lg mx-auto pb-10 pt-6">
                     {/* 프로필 섹션 */}

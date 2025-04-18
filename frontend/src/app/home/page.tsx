@@ -1,12 +1,9 @@
 import React from 'react'
-import Header_afterLogin from '@/components/Header_afterLogin'
 import Link from 'next/link'
 
 export default function HomePage() {
     return (
         <div className="min-h-screen bg-gray-50">
-            <Header_afterLogin />
-
             <main className="max-w-screen-lg mx-auto px-4 py-6">
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* 왼쪽 사이드바 - 학원 목록 */}
