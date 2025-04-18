@@ -46,7 +46,7 @@ public class ApiV1AdminController {
     @Operation(summary = "학원 등록", description = "새로운 학원을 등록하고 학원 코드를 반환합니다.")
     public ResponseEntity<String> createAcademy(@RequestBody @Valid AcademyRequestDto requestDto) {
         String academyCode = adminService.createAcademy(requestDto);
-        return ResponseEntity.ok("학원이 등록되었습니다. 코드: " + academyCode);
+        return ResponseEntity.ok(academyCode);
     }
 
 }

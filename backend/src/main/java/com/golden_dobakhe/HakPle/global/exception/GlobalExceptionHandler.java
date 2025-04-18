@@ -9,6 +9,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -51,15 +53,20 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<String> handleValidationErrors(MethodArgumentNotValidException e) {
-        String errorMessage = e.getBindingResult()
+    public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex) {
+        List<String> errorMessages = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(fieldError -> fieldError.getDefaultMessage())
-                .findFirst()
-                .orElse("잘못된 요청입니다.");
-        return ResponseEntity.badRequest().body(errorMessage);
+                .map(fieldError -> String.format("[%s] %s", fieldError.getField(), fieldError.getDefaultMessage()))
+                .toList();
+
+        Map<String, Object> responseBody = new HashMap<>();
+        responseBody.put("message", "입력값이 올바르지 않습니다.");
+        responseBody.put("errors", errorMessages);
+
+        return ResponseEntity.badRequest().body(responseBody);
     }
+
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
