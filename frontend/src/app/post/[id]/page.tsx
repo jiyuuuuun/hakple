@@ -624,7 +624,7 @@ export default function PostDetailPage() {
           <p className="mb-4">{error}</p>
           <button 
             onClick={() => router.push('/post')}
-            className="bg-[#9c50d4] text-white px-4 py-2 rounded-md"
+            className="bg-[#980ffa] text-white px-4 py-2 rounded-md"
           >
             목록으로 돌아가기
           </button>
@@ -640,7 +640,7 @@ export default function PostDetailPage() {
           <h1 className="text-xl font-semibold mb-4">게시글을 찾을 수 없습니다</h1>
           <button 
             onClick={() => router.push('/post')}
-            className="bg-[#9c50d4] text-white px-4 py-2 rounded-md"
+            className="bg-[#980ffa] text-white px-4 py-2 rounded-md"
           >
             목록으로 돌아가기
           </button>
@@ -780,7 +780,7 @@ export default function PostDetailPage() {
         <h3 className="font-medium">{comments.length}개의 댓글</h3>
         <button
           onClick={() => router.push('/post')}
-          className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+          className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
         >
           목록
         </button>
@@ -792,7 +792,7 @@ export default function PostDetailPage() {
         {comments.length > 0 ? (
           <div className="space-y-4 mb-4">
             {comments.map(comment => (
-              <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#9c50d4]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
+              <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#980ffa]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
                 {editingCommentId === comment.id ? (
                   // 댓글 수정 모드
                   <div className="py-[10px] rounded-[10px] bg-purple-50">
@@ -809,7 +809,7 @@ export default function PostDetailPage() {
                         value={editCommentContent}
                         onChange={(e) => setEditCommentContent(e.target.value)}
                         placeholder="댓글을 수정하세요..."
-                        className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#9c50d4] h-[100px] resize-none pl-[10px] pt-[10px]"
+                        className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
                       />
                     </div>
                     <div className="flex justify-end mt-2 p-[10px] space-x-2">
@@ -821,7 +821,7 @@ export default function PostDetailPage() {
                       </button>
                       <button
                         onClick={submitCommentEdit}
-                        className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+                        className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
                       >
                         수정
                       </button>
@@ -832,7 +832,7 @@ export default function PostDetailPage() {
                   // 일반 댓글 표시 모드
                   <div className={`flex flex-col transition-all duration-300 ${
                     lastEditedCommentId === comment.id 
-                      ? 'bg-purple-50 border-l-4 border-[#9c50d4] px-2 py-1 rounded animate-highlight-fade' 
+                      ? 'bg-purple-50 border-l-4 border-[#980ffa] px-2 py-1 rounded animate-highlight-fade' 
                       : ''
                   }`}>
                     {/* 1줄: 프로필 이미지, 닉네임, 시간 */}
@@ -922,7 +922,7 @@ export default function PostDetailPage() {
           <div className="flex">
             <textarea
               placeholder="댓글을 입력하세요..."
-              className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#9c50d4] h-[100px] resize-none pl-[10px] pt-[10px]"
+              className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
             />
@@ -930,7 +930,7 @@ export default function PostDetailPage() {
           <div className="flex justify-end mt-2 p-[10px]">
             <button
               onClick={handleCommentSubmit}
-              className="bg-[#9c50d4] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+              className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
             >
               등록
             </button>
