@@ -43,7 +43,7 @@ export default function PostDetailPage() {
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editCommentContent, setEditCommentContent] = useState('');
   const [lastEditedCommentId, setLastEditedCommentId] = useState<number | null>(null);
-  const hasLoadedRef = useRef(false);
+  const isMounted = useRef(false);
   // 드롭다운 메뉴 상태 관리
   const [showPostMenu, setShowPostMenu] = useState(false);
   const [showCommentMenu, setShowCommentMenu] = useState<number | null>(null);
@@ -100,14 +100,27 @@ export default function PostDetailPage() {
     const fetchPostDetail = async () => {
       if (!params.id) return;
       
-      // 컴포넌트 마운트에서 한 번만 실행되도록 체크
-      if (hasLoadedRef.current) return;
-      hasLoadedRef.current = true;
+      // 마운트 체크 (React 18 StrictMode 대응)
+      if (isMounted.current) {
+        return;
+      }
+      isMounted.current = true;
+      
+      // 세션 스토리지에서 이미 조회했는지 확인
+      const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '{}');
+      const postKey = `post_${params.id}`;
+      const hasViewed = viewedPosts[postKey];
       
       setLoading(true);
       try {
-        // 기본 게시글 정보 호출 (항상 postView=true로 설정하여 서버에서 조회수 관리)
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}?postView=true`);
+        // 이미 조회한 경우 postView=false로 설정
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}?postView=${!hasViewed}`);
+        
+        // 조회 기록 저장
+        if (!hasViewed) {
+          viewedPosts[postKey] = true;
+          sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+        }
         
         if (!response.ok) {
           let errorMsg = '게시글을 불러오는데 실패했습니다.';
@@ -190,10 +203,8 @@ export default function PostDetailPage() {
     
     fetchPostDetail();
     
-    // 컴포넌트 언마운트 시 참조 초기화
-    return () => {
-      hasLoadedRef.current = false;
-    };
+    // 언마운트 시 ref 초기화하지 않음 - 중요!
+    return () => {};
   }, [params.id]);
 
   // 게시글 좋아요 기능
@@ -718,7 +729,7 @@ export default function PostDetailPage() {
           </div>
         </div>
         
-        <h1 className="text-xl font-bold mb-2 pl-10">{post.title}</h1>
+        <h1 className="text-xl font-bold mb-2 pl-2">{post.title}</h1>
         
         {/* 게시글 내용 */}
         <div className="py-4 pl-5">

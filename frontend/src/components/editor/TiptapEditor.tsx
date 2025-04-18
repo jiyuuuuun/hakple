@@ -18,6 +18,7 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const linkButtonRef = useRef<HTMLButtonElement>(null);
+  const linkModalRef = useRef<HTMLDivElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -25,6 +26,24 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // 모달 외부 클릭 감지를 위한 이벤트 핸들러
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showLinkModal && 
+          linkModalRef.current && 
+          !linkModalRef.current.contains(event.target as Node) &&
+          linkButtonRef.current && 
+          !linkButtonRef.current.contains(event.target as Node)) {
+        setShowLinkModal(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showLinkModal]);
 
   const editor = useEditor({
     extensions: [
@@ -419,8 +438,8 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
         <div className="absolute z-50" style={{ 
           top: linkButtonRef.current ? linkButtonRef.current.offsetTop + linkButtonRef.current.offsetHeight + 5 : 0,
           left: linkButtonRef.current ? linkButtonRef.current.offsetLeft : 0,
-        }}>
-          <div className="bg-[#ffffff] p-4 rounded-lg shadow-lg border border-gray-200" style={{ width: '300px' }}>
+        }} ref={linkModalRef}>
+          <div className="bg-[#ffffff] p-4 rounded-lg shadow-lg border border-gray-200" style={{ width: '320px' }}>
             <h3 className="text-base font-medium mb-3 m-[10px]">링크 삽입</h3>
             <input
               type="text"

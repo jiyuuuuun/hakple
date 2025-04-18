@@ -48,12 +48,12 @@ public ResponseEntity<BoardResponse> getBoard(
     @Operation(summary = "게시물 목록 조회", description = "게시물 목록을 페이징 처리하여 조회합니다.")
     @GetMapping
     public ResponseEntity<Page<BoardResponse>> getBoards(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "등록일순") String sortType,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String tag,
-            @RequestParam(required = false) String searchType,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "tag", required = false) String tag,
+            @RequestParam(name = "searchType", required = false) String searchType,
             @PageableDefault(size = 10) Pageable pageable) {
 
         Long userId = 7L;
@@ -108,7 +108,7 @@ public ResponseEntity<BoardResponse> getBoard(
     @GetMapping("/tag/{tag}")
     public ResponseEntity<Page<BoardResponse>> getBoardsByTag(
             @PathVariable String tag,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(name = "page", defaultValue = "1") int page,
             @PageableDefault(size = 10) Pageable pageable,
             @RequestParam(defaultValue = "등록일순") String sortType
     ) {
@@ -174,12 +174,13 @@ public ResponseEntity<BoardResponse> getBoard(
 
     @GetMapping("/tags")
     public ResponseEntity<Page<BoardResponse>> getTaggedBoards(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "등록일순") String sortType,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String tag,
-            @RequestParam(required = false) String searchType) {
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "tag", required = false) String tag,
+            @RequestParam(name = "searchType", required = false) String searchType
+    ) {
         
         Long userId = 7L;
         Pageable pageable = PageRequest.of(page, size);
