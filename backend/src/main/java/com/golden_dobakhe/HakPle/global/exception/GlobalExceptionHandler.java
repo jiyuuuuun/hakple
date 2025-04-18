@@ -5,6 +5,7 @@ import com.golden_dobakhe.HakPle.domain.resource.image.exception.ProfileImageExc
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.myInfo.exception.MyInfoException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -45,6 +46,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(500)
                 .body(new ErrorResponse("서버 오류가 발생했습니다."));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldError().getDefaultMessage();
+        return ResponseEntity.badRequest().body(message);
     }
 
     public record ErrorResponse(String message) {
