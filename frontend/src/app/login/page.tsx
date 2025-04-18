@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
+// TODO : 나중에 배포시 
 const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao';
 const redirectUrlAfterSocialLogin = 'http://localhost:3000';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +36,9 @@ export default function LoginPage() {
 
       const data = await response.json();
       console.log('로그인 성공:', data);
-      // TODO: 로그인 성공 후 처리 (예: 토큰 저장, 페이지 이동 등)
+      
+      // 로그인 성공 시 메인 페이지로 리다이렉트
+      router.push('/');
       
     } catch (error) {
       console.error('로그인 에러:', error);
