@@ -23,81 +23,169 @@ interface MyInfoResponseDto {
 // 백엔드 API 기본 URL (환경변수로 관리하는 것이 좋음)
 const API_BASE_URL = 'http://localhost:8090'
 
+// 로컬 스토리지에서 사용자 정보 가져오기 함수
+const getUserFromLocalStorage = () => {
+    if (typeof window === 'undefined') return null // 서버 사이드에서 실행 시
+
+    try {
+        const token = localStorage.getItem('token')
+        const userName = localStorage.getItem('userName')
+
+        console.log('로컬 스토리지 확인:', { token: !!token, userName })
+
+        if (token && userName) {
+            return { token, userName }
+        }
+    } catch (error) {
+        console.error('로컬 스토리지 접근 오류:', error)
+    }
+
+    return null
+}
+
 export default function MyInfoPage() {
     const router = useRouter()
     const [userInfo, setUserInfo] = useState<MyInfoResponseDto | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [loggedInUserName, setLoggedInUserName] = useState<string | null>(null)
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
+
+    // 로그인한 사용자 정보 가져오기
+    useEffect(() => {
+        const checkLoginStatus = () => {
+            const user = getUserFromLocalStorage()
+
+            if (user && user.userName) {
+                console.log('로그인된 사용자 찾음:', user.userName)
+                setIsLoggedIn(true)
+                setLoggedInUserName(user.userName)
+                return true
+            } else {
+                console.log('로그인된 사용자 없음')
+                setIsLoggedIn(false)
+                setLoggedInUserName(null)
+                return false
+            }
+        }
+
+        // 페이지 로드 시 즉시 로그인 상태 확인
+        const isUserLoggedIn = checkLoginStatus()
+
+        // 로그인되지 않은 경우 리다이렉트
+        if (!isUserLoggedIn) {
+            console.log('로그인이 필요합니다. 로그인 페이지로 이동합니다.')
+            router.push('/login')
+        }
+
+        // 하드코딩된 사용자 정보 (개발 환경용)
+        // 참고: 실제 환경에서는 이 부분을 제거해야 합니다!
+        if (process.env.NODE_ENV === 'development' && !isUserLoggedIn) {
+            console.log('개발 환경: 테스트 사용자로 자동 로그인')
+            // 개발 환경에서만 자동 로그인 상태 설정
+            setIsLoggedIn(true)
+            setLoggedInUserName('testuser')
+
+            // 개발용 로컬 스토리지에 테스트 데이터 저장
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('token', 'test-token')
+                localStorage.setItem('userName', 'testuser')
+            }
+        }
+
+        // 로컬 스토리지 변경 이벤트 감지
+        const handleStorageChange = () => {
+            checkLoginStatus()
+        }
+
+        window.addEventListener('storage', handleStorageChange)
+        return () => window.removeEventListener('storage', handleStorageChange)
+    }, [router])
 
     // API에서 사용자 정보 가져오기
     useEffect(() => {
+        // 로그인한 사용자 정보가 있을 때만 API 호출
+        if (!loggedInUserName) return
+
         const fetchUserInfo = async () => {
             try {
-                // 하드코딩된 사용자 이름 (임시 방식)
-                const userName = 'user7'
+                console.log('API 호출 시도:', `${API_BASE_URL}/api/v1/myInfos?userName=${loggedInUserName}`)
 
-                // TODO: 로그인 기능 구현 후에는 다음과 같이 쿠키/세션에서 사용자 정보를 가져와 사용해야 합니다.
-                // const userName = getUserNameFromSession() 또는 JWT 토큰에서 추출
+                // 토큰 가져오기
+                const token = localStorage.getItem('token')
+                if (!token) {
+                    throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.')
+                }
 
-                // 실제 API 호출이 실패할 경우를 대비한 임시 데이터 처리
-                // 백엔드 서버에 연결이 안 될 경우를 대비해 바로 더미 데이터 사용
-                console.log('API 호출 시도:', `${API_BASE_URL}/api/v1/myInfos?userName=${userName}`)
-
-                // 실제 API 호출을 시도하지만 실패해도 예외 처리
+                // 실제 API 호출을 시도
                 try {
-                    // userName 파라미터를 쿼리 스트링으로 전달
-                    const response = await fetch(`${API_BASE_URL}/api/v1/myInfos?userName=${userName}`, {
+                    // 로그인한 사용자의 userName을 쿼리 스트링으로 전달
+                    const response = await fetch(`${API_BASE_URL}/api/v1/myInfos?userName=${loggedInUserName}`, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`, // JWT 토큰을 헤더에 포함
                         },
-                        // GET 요청에는 body를 사용할 수 없음
-                        // credentials: 'include', // 쿠키 포함
-                        // 타임아웃 설정
-                        // signal: AbortSignal.timeout(5000), // 5초 타임아웃
                     })
 
                     if (!response.ok) {
+                        console.error('API 응답 오류:', response.status)
+
+                        // 401 Unauthorized 또는 403 Forbidden인 경우 토큰 문제일 수 있음
+                        if (response.status === 401 || response.status === 403) {
+                            // 로컬 스토리지에서 로그인 정보 제거
+                            localStorage.removeItem('token')
+                            localStorage.removeItem('userName')
+                            throw new Error('인증에 실패했습니다. 다시 로그인해주세요.')
+                        }
+
                         throw new Error(`API 오류: ${response.status}`)
                     }
 
                     const data = await response.json()
                     console.log('API 응답 데이터:', data)
                     setUserInfo(data)
+                    setLoading(false)
                     return // 성공하면 함수 종료
                 } catch (fetchError) {
                     console.error('API 호출 실패:', fetchError)
-                    // 실패 시 여기서 오류 로깅만 하고 아래 더미 데이터를 사용
-                }
 
-                // API 호출 실패 시 사용할 더미 데이터
-                console.log('더미 데이터 사용')
-                setUserInfo({
-                    nickName: '민수',
-                    phoneNum: '01012345678',
-                    userName: 'minsu123',
-                    creationTime: '2023-12-01T00:00:00',
-                    academyId: null,
-                    academyName: null,
-                    postCount: 12,
-                    commentCount: 36,
-                    likeCount: 24,
-                })
+                    // API 호출 실패 시 개발 모드에서는 더미 데이터 사용
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('개발 환경: API 호출 실패로 더미 데이터 사용')
+                        setUserInfo({
+                            nickName: loggedInUserName,
+                            phoneNum: '01012345678',
+                            userName: loggedInUserName,
+                            creationTime: new Date().toISOString(),
+                            academyId: null,
+                            academyName: null,
+                            postCount: 0,
+                            commentCount: 0,
+                            likeCount: 0,
+                        })
+                        setLoading(false)
+                    } else {
+                        throw fetchError // 실제 환경에서는 오류 전달
+                    }
+                }
             } catch (err) {
                 console.error('전체 처리 오류:', err)
-                setError('사용자 정보를 불러오는데 실패했습니다.')
-            } finally {
+                setError('사용자 정보를 불러오는데 실패했습니다. 다시 로그인해주세요.')
                 setLoading(false)
+
+                // 오류 발생 시 3초 후 로그인 페이지로 리다이렉트
+                setTimeout(() => {
+                    // 로컬 스토리지 초기화
+                    localStorage.removeItem('token')
+                    localStorage.removeItem('userName')
+                    router.push('/login')
+                }, 3000)
             }
         }
 
         fetchUserInfo()
-    }, [])
-
-    // 프로필 수정 페이지로 이동
-    // const handleProfileUpdate = () => {
-    //     router.push('/myinfo/update')
-    // }
+    }, [loggedInUserName, router])
 
     // 날짜 포맷 함수
     const formatDate = (dateString: string): string => {
@@ -109,10 +197,31 @@ export default function MyInfoPage() {
         }
     }
 
+    // 로그아웃 처리
+    const handleLogout = () => {
+        // 로그아웃 시 로컬 스토리지 초기화
+        localStorage.removeItem('token')
+        localStorage.removeItem('userName')
+        setIsLoggedIn(false)
+        setLoggedInUserName(null)
+
+        // 로그인 페이지로 리다이렉트
+        router.push('/login')
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-gray-600">정보를 불러오는 중...</div>
+            </div>
+        )
+    }
+
+    // 로그인이 안 되어 있을 때는 내용 표시하지 않음 (리다이렉트 처리 전에 잠시 보일 수 있음)
+    if (!isLoggedIn || !userInfo) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-gray-600">로그인이 필요합니다. 로그인 페이지로 이동합니다...</div>
             </div>
         )
     }
