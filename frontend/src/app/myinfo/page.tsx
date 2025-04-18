@@ -3,21 +3,11 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState, useEffect } from 'react'
+// import { useState, useEffect } from 'react'
 import { ChevronRightIcon, PencilIcon, ChatBubbleLeftIcon, HeartIcon } from '@heroicons/react/24/outline'
 import { UserIcon, LockClosedIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 
 export default function MyInfoPage() {
-    const [users, setusers] = useState([])
-
-    useEffect(() => {
-        fetch('http://localhost:8090/api/v1/myInfos', {
-            credentials: 'include',
-        })
-            .then((result) => result.json())
-            .then((result) => setusers(result.data.myInfos))
-    }, [])
-
     return (
         <div className="min-h-screen bg-gray-50">
             <div>
@@ -105,7 +95,7 @@ export default function MyInfoPage() {
                                         <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                                     </Link>
 
-                                    <Link href="/security" className="flex items-center justify-between p-6">
+                                    <Link href="/change-password" className="flex items-center justify-between p-6">
                                         <div className="flex items-center">
                                             <LockClosedIcon className="h-5 w-5 text-gray-400 mr-3" />
                                             <span className="text-gray-700">비밀번호 변경</span>
