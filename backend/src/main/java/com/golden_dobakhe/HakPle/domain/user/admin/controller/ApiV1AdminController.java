@@ -1,5 +1,6 @@
 package com.golden_dobakhe.HakPle.domain.user.admin.controller;
 
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
@@ -40,6 +41,14 @@ public class ApiV1AdminController {
     public ResponseEntity<String> dashboard() {
         return ResponseEntity.ok("관리자만 접근 가능한 대시보드입니다.");
     }
+
+    @PostMapping
+    @Operation(summary = "학원 등록", description = "새로운 학원을 등록하고 학원 코드를 반환합니다.")
+    public ResponseEntity<String> createAcademy(@RequestBody @Valid AcademyRequestDto requestDto) {
+        String academyCode = adminService.createAcademy(requestDto);
+        return ResponseEntity.ok("학원이 등록되었습니다. 코드: " + academyCode);
+    }
+
 }
 
 
