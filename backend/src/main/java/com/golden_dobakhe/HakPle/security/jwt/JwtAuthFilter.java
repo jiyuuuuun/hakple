@@ -33,17 +33,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
 
-//        //만약에 유효한 부분이 아니면 나가리
-//        if (!request.getRequestURI().startsWith("/api/")) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
-//
-//        //만약에 필터링을 거치지 말아야 한 부분이면 나가리
-//        if (List.of("/api/v1/members/login", "/api/v1/members/logout", "/api/v1/members/join").contains(request.getRequestURI())) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
+        //만약에 유효한 부분이 아니면 나가리
+        if (!request.getRequestURI().startsWith("/api/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         //실제 실행부
         //여기서 uri 보고 토큰을 필요로 하지 않는 작업이라면 넘어가게 만든다
 
@@ -54,7 +49,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         //토큰이 없다면 그대로 진행(로그인해서 토큰을 재발급가능)
         if (token == null) {
             filterChain.doFilter(request, response);
-            return ;
+            return;
         }
 
         try {

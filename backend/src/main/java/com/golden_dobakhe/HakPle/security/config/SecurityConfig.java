@@ -35,9 +35,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/", "/failure", "/login",
                                 "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
+                                "/api/v1/auth/login",
 
                                 // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",
@@ -48,7 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                         // ✅ 나머지 열어둠 (필요하면 authenticated()로 바꿔도 됨)
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -71,9 +71,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("*");
+        //해당 사이트와 매핑? 매치? 한다
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
         config.addAllowedHeader("*");
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        //그리고 외부에서 가져온 credentials를 허용시킨다
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

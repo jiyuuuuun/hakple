@@ -2,17 +2,27 @@ package com.golden_dobakhe.HakPle.security.controller;
 
 
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.security.OAuth.CustomRequest;
+import com.golden_dobakhe.HakPle.security.OAuth.SecurityUser;
+import com.golden_dobakhe.HakPle.security.dto.MeDto;
 import com.golden_dobakhe.HakPle.security.service.AuthService;
 import com.golden_dobakhe.HakPle.security.dto.LoginDto;
 import com.golden_dobakhe.HakPle.security.dto.LoginResponseDto;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,11 +30,34 @@ import org.springframework.web.bind.annotation.*;
 public class ApiV1AuthController {
     private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
+    private final CustomRequest customRequest;
+    private final JwtTokenizer jwtTokenizer;
 
+    //테스트용이라서 배포 전에 삭제할꺼임
     @GetMapping("/home")
     public ResponseEntity<String> home() {
         return ResponseEntity.ok("여기는 집");
     }
+
+    //me api
+    @GetMapping("/me")
+    public ResponseEntity<?> me(HttpServletRequest request) {
+        String cookie = customRequest.getCookieValue("accessToken");
+        Claims claims = jwtTokenizer.parseAccessToken(cookie);
+        Object userId = claims.get("userId");
+
+        if (userId == null) {
+            throw new IllegalStateException("JWT에 userId가 없습니다!");
+        }
+
+        User user = authService.findById(((Number) userId).longValue()).get();
+
+        if (user == null)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("왜없음??");
+        MeDto meDto = new MeDto(user.getId(), user.getNickName(), user.getCreationTime(), user.getModificationTime());
+        return ResponseEntity.ok(meDto);
+    }
+
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDto req, HttpServletResponse response) {
@@ -70,6 +103,13 @@ public class ApiV1AuthController {
 
 
         return ResponseEntity.ok(loginResponseDto);
+    }
+    //로그아웃 만들어야지
+    @DeleteMapping("/logout")
+    public ResponseEntity<?> logout() {
+        //쿠키를 지우는게 나을듯
+        customRequest.deleteCookie("accessToken");
+        return ResponseEntity.ok("로그아웃 완료");
     }
 
 }

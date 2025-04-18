@@ -23,11 +23,12 @@ export default function LoginPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
+        }, 
         body: JSON.stringify({
           username,
           password,
         }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -37,7 +38,7 @@ export default function LoginPage() {
       const data = await response.json();
       console.log('로그인 성공:', data);
       
-      // 로그인 성공 시 메인 페이지로 리다이렉트
+  
       router.push('/');
       
     } catch (error) {
@@ -129,13 +130,12 @@ export default function LoginPage() {
             로그인
           </button>
 
-          <button
-            type="button"
-            onClick={() => window.location.href = `${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
+  
+            <Link href={`${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
             className="w-full py-4 text-lg bg-[#FFE500] text-black rounded-lg hover:bg-[#FFD700] transition-colors flex items-center justify-center"
-          >
+            >
             카카오 계정으로 로그인
-          </button>
+          </Link>
 
           <p className="text-center text-base text-gray-600">
             아직 회원이 아니신가요?{' '}
