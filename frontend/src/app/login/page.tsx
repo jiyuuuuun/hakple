@@ -39,7 +39,8 @@ export default function LoginPage() {
       console.log('로그인 성공:', data);
       
   
-      router.push('/');
+      //라우터로 보내면 레이아웃이 갱신이 안됨
+      window.location.href = "/"
       
     } catch (error) {
       console.error('로그인 에러:', error);
