@@ -48,7 +48,7 @@ dependencies {
 	implementation("com.google.code.gson:gson")
 
 	// Validation
-	implementation("jakarta.validation:jakarta.validation-api:3.0.2")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     //누리고
     implementation("net.nurigo:sdk:4.2.7") // 누리고 SDK
