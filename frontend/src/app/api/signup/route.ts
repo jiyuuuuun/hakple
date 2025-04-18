@@ -14,6 +14,8 @@ export async function POST(request: Request) {
         // 실제 프로덕션에서는 여기에 데이터베이스 연결 코드가 들어갑니다.
         // 예시: await db.collection('users').insertOne(data);
 
+        // 임시 파일 저장 부분을 주석 처리하여 DB에 저장되지 않도록 함
+        /*
         // 임시 저장 - 실제 구현에서는 DB에 저장해야 합니다
         // 개발 환경에서만 사용할 임시 파일 저장 방식
         const dbDir = path.join(process.cwd(), 'db')
@@ -61,12 +63,16 @@ export async function POST(request: Request) {
 
         // 파일에 저장
         fs.writeFileSync(filePath, JSON.stringify(users, null, 2))
+        */
+
+        // 데이터 저장 없이 성공 응답만 반환
+        console.log('회원가입 데이터 수신 (저장하지 않음):', data)
 
         return NextResponse.json(
             {
                 success: true,
                 message: '회원가입이 완료되었습니다.',
-                user: { id: newUser.id, nickname: newUser.nickname },
+                user: { id: data.id, nickname: data.nickname },
             },
             { status: 201 },
         )

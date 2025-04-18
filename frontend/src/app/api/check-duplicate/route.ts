@@ -10,6 +10,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, message: '필수 정보가 누락되었습니다.' }, { status: 400 })
         }
 
+        // JSON 파일 확인 부분 주석 처리
+        /*
         // 파일 경로 설정
         const dbDir = path.join(process.cwd(), 'db')
         const filePath = path.join(dbDir, 'users.json')
@@ -45,6 +47,10 @@ export async function POST(request: Request) {
                 message: `이미 사용 중인 ${field === 'id' ? '아이디' : '닉네임'}입니다.`,
             })
         }
+        */
+
+        // 중복 체크 없이 항상 사용 가능한 응답 반환
+        console.log('중복 확인 요청 (확인하지 않음):', field, value)
 
         return NextResponse.json({
             success: true,

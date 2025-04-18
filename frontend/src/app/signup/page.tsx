@@ -40,7 +40,6 @@ export default function Signup() {
     }
 
     const checkDuplicate = async (type: 'nickname' | 'id') => {
-        // Validate the field
         const fieldValue = formData[type]
 
         if (!fieldValue) {
@@ -48,45 +47,18 @@ export default function Signup() {
             return
         }
 
-        try {
-            setIsLoading(true)
+        setIsLoading(true)
 
-            // API 호출하여 중복 체크
-            const response = await fetch('/api/check-duplicate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    field: type,
-                    value: fieldValue,
-                }),
-            })
-
-            const data = await response.json()
-
-            if (data.success) {
-                if (data.available) {
-                    // 사용 가능한 경우
-                    setValidations((prev) => ({
-                        ...prev,
-                        [type === 'nickname' ? 'nicknameChecked' : 'idChecked']: true,
-                    }))
-                    setErrorMessage(`${type === 'nickname' ? '닉네임' : '아이디'} 사용 가능합니다.`)
-                } else {
-                    // 중복된 경우
-                    setErrorMessage(data.message)
-                }
-            } else {
-                // API 응답 실패
-                setErrorMessage(data.message || '중복 확인 중 오류가 발생했습니다.')
-            }
-        } catch (error) {
-            console.error('중복 확인 중 오류 발생:', error)
-            setErrorMessage('서버와 통신 중 오류가 발생했습니다.')
-        } finally {
+        // API 호출 대신 타이머로 시뮬레이션
+        setTimeout(() => {
+            // 항상 성공 응답 시뮬레이션
+            setValidations((prev) => ({
+                ...prev,
+                [type === 'nickname' ? 'nicknameChecked' : 'idChecked']: true,
+            }))
+            setErrorMessage(`${type === 'nickname' ? '닉네임' : '아이디'} 사용 가능합니다.`)
             setIsLoading(false)
-        }
+        }, 800)
     }
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -119,31 +91,43 @@ export default function Signup() {
             return
         }
 
-        try {
-            setIsLoading(true)
-            setErrorMessage('회원가입 처리 중...')
+        setIsLoading(true)
+        setErrorMessage('회원가입 처리 중...')
 
-            // API 호출하여 회원가입 처리
-            const response = await fetch('/api/signup', {
+        try {
+            // 입력데이터로 JSON 생성 및 API 요청
+            const response = await fetch('http://localhost:8090/api/v1/users/userreg', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    nickName: formData.nickname,
+                    userName: formData.id,
+                    password: formData.password,
+                    phoneNum: formData.phone,
+                }),
             })
 
-            const data = await response.json()
-
-            if (data.success) {
+            // response.json() 대신 직접 성공 처리
+            if (response.status >= 200 && response.status < 300) {
+                console.log('회원가입 성공')
                 // 회원가입 성공
                 router.push('/signup/success')
-            } else {
-                // 회원가입 실패
+                return
+            }
+
+            // 오류 응답인 경우에만 JSON 파싱 시도
+            try {
+                const data = await response.json()
                 setErrorMessage(data.message || '회원가입 처리 중 오류가 발생했습니다.')
+            } catch (parseError) {
+                console.error('응답 파싱 오류:', parseError)
+                setErrorMessage('회원가입 처리 중 오류가 발생했습니다.')
             }
         } catch (error) {
-            console.error('회원가입 처리 중 오류 발생:', error)
-            setErrorMessage('서버와 통신 중 오류가 발생했습니다.')
+            console.error('API 요청 중 오류 발생:', error)
+            setErrorMessage('서버 연결 중 오류가 발생했습니다.')
         } finally {
             setIsLoading(false)
         }
