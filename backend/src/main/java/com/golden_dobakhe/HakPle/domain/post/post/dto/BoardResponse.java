@@ -6,33 +6,54 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Getter
+@Builder
 public class BoardResponse {
     private Long id;
     private String title;
     private String content;
     private int viewCount;
     private int likeCount;
+    private int commentCount;
     private Status status;
     private String academyCode;
-    private String userNickname;
+    private String nickname;
     private List<String> tags;
     private LocalDateTime creationTime;
     private LocalDateTime modificationTime;
 
-    @Builder
-    public BoardResponse(Board board, List<String> tags) {
-        this.id = board.getId();
-        this.title = board.getTitle();
-        this.content = board.getContent();
-        this.viewCount = board.getViewCount();
-        this.likeCount = (board.getBoardLikes() != null) ? board.getBoardLikes().size() : 0;
-        this.status = board.getStatus();
-        this.academyCode = board.getAcademyCode();
-        this.userNickname = board.getUser().getNickName();
-        this.tags = tags;
-        this.creationTime = board.getCreationTime();
-        this.modificationTime = board.getModificationTime();
+    public static BoardResponse from(Board board, List<String> tags) {
+        return BoardResponse.builder()
+                .id(board.getId())
+                .title(board.getTitle())
+                .content(board.getContent())
+                .viewCount(board.getViewCount())
+                .likeCount(board.getBoardLikes() != null ? board.getBoardLikes().size() : 0)
+                .commentCount(0)
+                .status(board.getStatus())
+                .academyCode(board.getAcademyCode())
+                .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
+                .tags(tags)
+                .creationTime(board.getCreationTime())
+                .modificationTime(board.getModificationTime())
+                .build();
     }
+
+    public static BoardResponse from(Board board, List<String> tags, int commentCount) {
+        return BoardResponse.builder()
+                .id(board.getId())
+                .title(board.getTitle())
+                .content(board.getContent())
+                .viewCount(board.getViewCount())
+                .likeCount(board.getBoardLikes() != null ? board.getBoardLikes().size() : 0)
+                .commentCount(commentCount)
+                .status(board.getStatus())
+                .academyCode(board.getAcademyCode())
+                .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
+                .tags(tags)
+                .creationTime(board.getCreationTime())
+                .modificationTime(board.getModificationTime())
+                .build();
+    }
+
 }

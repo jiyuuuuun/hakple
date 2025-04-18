@@ -2,6 +2,10 @@ server:
   port: 8090
 
 spring:
+  main:
+    allow-bean-definition-overriding: true
+  mvc:
+    static-path-pattern: /uploads/** # 정적 파일 접근 경로 설정
   output:
     ansi:
       enabled: ALWAYS
@@ -75,15 +79,26 @@ custom:
     frontUrl: "${custom.dev.frontUrl}"
     backUrl: "${custom.dev.backUrl}"
 
-
 #일단 임시로 지정함
 jwt:
   secretKey: 127393911531540290533352supercalifragilisticexpialidocious
   refreshKey: 127393911531540290533352supercalifragilisticexpialidocious
-  
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html # Swagger UI 접근 경로
   api-docs:
     path: /v3/api-docs # OpenAPI 문서 경로
+
+file:
+  upload-dir: ${user.home}/hakple-uploads # 사용자 홈 디렉토리에 파일 저장
+
+
+
+aws:
+  accessKeyId: "${AWS_ACCESS_KEY_ID:default_key}"
+  secretKey: "${AWS_SECRET_ACCESS_KEY:default_secret}"
+  region: "${AWS_REGION:ap-northeast-2}"
+  s3:
+    bucket: "${AWS_S3_BUCKET:your-bucket-name}"
 

@@ -6,6 +6,7 @@ import com.golden_dobakhe.HakPle.domain.post.comment.comment.dto.CommentResponse
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.entity.Comment;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.service.CommentService;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+import java.util.List;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -26,6 +29,25 @@ public class ApiV1CommentController {
 
     private final CommentService commentService;
 
+    @Operation(summary = "게시글 ID별 댓글 목록 조회", description = "특정 게시글에 달린, 상태가 활성화된 모든 댓글을 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "댓글 목록 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "게시글 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    @GetMapping("/by-post/{boardId}")
+    public ResponseEntity<?> getCommentsByPostId(
+            @Parameter(description = "게시글 ID", example = "1")
+            @PathVariable Long boardId) {
+        try {
+            List<CommentResponseDto> comments = commentService.getCommentsByBoardId(boardId);
+            return ResponseEntity.ok(comments);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("댓글 목록 조회 실패: " + e.getMessage());
+        }
+    }
+
     @Operation(summary = "댓글 작성", description = "새로운 댓글을 작성합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "댓글 저장 완료"),
@@ -34,12 +56,12 @@ public class ApiV1CommentController {
     })
     @PostMapping
     public ResponseEntity<?> postComment(@RequestBody CommentRequestDto commentRequestDto,
-                                              @AuthenticationPrincipal CustomUserDetails principal) {
+                                         @AuthenticationPrincipal CustomUserDetails principal) {
         Comment comment = commentService.commentSave(commentRequestDto,principal.getUser().getId());
 
         if (comment != null) {
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new CommentResponseDto(comment.getId(), "댓글 저장 완료"));
+                    .body( "댓글 저장 완료");
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("댓글 저장 실패");
     }
