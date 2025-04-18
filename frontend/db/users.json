@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ekzm527",
+    "nickname": "백상아리",
+    "password": "1qa2ws3ed!",
+    "phone": "01012344321",
+    "createdAt": "2025-04-18T04:57:59.400Z"
+  },
+  {
+    "id": "cjdtkddj",
+    "nickname": "청상어",
+    "password": "cjdtkddj",
+    "phone": "01088882222",
+    "createdAt": "2025-04-18T05:02:27.109Z"
+  },
+  {
+    "id": "qortkddj",
+    "nickname": "백상어",
+    "password": "qortkddj",
+    "phone": "01000001111",
+    "createdAt": "2025-04-18T05:26:52.696Z"
+  },
+  {
+    "id": "wpwpwp",
+    "nickname": "하마",
+    "password": "qwerqw",
+    "phone": "01054789654",
+    "createdAt": "2025-04-18T07:32:27.505Z"
+  }
+]
