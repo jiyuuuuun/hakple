@@ -4,10 +4,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class AcademyRequestDto {
     @Schema(description = "학원 이름", example = "한빛학원")
     @NotBlank(message = "학원 이름은 필수입니다.")
@@ -20,7 +22,7 @@ public class AcademyRequestDto {
     @Schema(description = "학원 전화번호", example = "010-1234-5678")
     @NotBlank(message = "전화번호는 필수입니다.")
     @Pattern(
-            regexp = "^01[016789]-\\d{3,4}-\\d{4}$",
+            regexp = "^01[016789]-?\\d{3,4}-?\\d{4}$",
             message = "전화번호 형식이 올바르지 않습니다. 예: 010-1234-5678"
     )
     private String phone;

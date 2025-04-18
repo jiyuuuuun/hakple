@@ -42,7 +42,7 @@ public class ApiV1AdminController {
         return ResponseEntity.ok("관리자만 접근 가능한 대시보드입니다.");
     }
 
-    @PostMapping
+    @PostMapping("/academies/register")
     @Operation(summary = "학원 등록", description = "새로운 학원을 등록하고 학원 코드를 반환합니다.")
     public ResponseEntity<String> createAcademy(@RequestBody @Valid AcademyRequestDto requestDto) {
         String academyCode = adminService.createAcademy(requestDto);

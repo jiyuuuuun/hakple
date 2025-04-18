@@ -34,6 +34,8 @@ dependencies {
     testImplementation ("org.testcontainers:mysql:1.19.3")
     testImplementation ("org.testcontainers:junit-jupiter:1.19.3")
     testImplementation ("org.springframework.security:spring-security-test")
+    implementation ("org.springframework.boot:spring-boot-starter-validation")
+
 
 
 
