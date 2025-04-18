@@ -4,9 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import axios, { AxiosError } from 'axios'
 
-// API 기본 URL 설정 (백엔드 서버 URL)
-const API_BASE_URL = 'http://localhost:8090' // 실제 백엔드 서버 URL로 변경 필요
-
 export default function AcademyRegister() {
     const [academyCode, setAcademyCode] = useState('')
     const [error, setError] = useState('')
@@ -24,7 +21,7 @@ export default function AcademyRegister() {
 
             // 방법 1: 요청 본문에 userName과 academyCode를 함께 전송
             const response = await axios.post(
-                `${API_BASE_URL}/api/v1/academies/register`,
+                `/api/v1/academies/register`,
                 {
                     userName: dummyUserName,
                     academyCode: academyCode,
@@ -36,13 +33,14 @@ export default function AcademyRegister() {
                         // 'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     timeout: 10000,
+                    withCredentials: true, // 쿠키 포함하여 요청
                 },
             )
 
             /* 
             // 방법 2: 요청 파라미터로 전달 (백엔드가 이 방식을 지원하는 경우)
             const response = await axios.post(
-                `${API_BASE_URL}/api/v1/academies/register?userName=${dummyUserName}`,
+                `/api/v1/academies/register?userName=${dummyUserName}`,
                 {
                     academyCode: academyCode
                 },
@@ -50,7 +48,8 @@ export default function AcademyRegister() {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    timeout: 10000
+                    timeout: 10000,
+                    withCredentials: true
                 }
             )
             */
