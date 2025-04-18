@@ -5,14 +5,12 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
-
 @Getter
 @Setter
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString
 public class TagMapping extends BaseEntity { // BaseEntity 상속으로 공통 필드 포함
     @ManyToOne(optional = false)

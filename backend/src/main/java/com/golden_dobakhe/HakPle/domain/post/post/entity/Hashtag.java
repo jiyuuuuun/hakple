@@ -13,7 +13,7 @@ import java.util.List;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString
 public class Hashtag extends BaseEntity {
     @Column(length=255, unique=true, nullable=false)

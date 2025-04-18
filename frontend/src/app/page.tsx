@@ -62,7 +62,7 @@ export default function Home() {
                   홈
                 </Link>
                 <Link
-                  href="/academy"
+                  href="/post"
                   className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                 >
                   게시판

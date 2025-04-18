@@ -65,7 +65,31 @@ public class LikeService {
         return CommentResult.SUCCESS;
     }
 
+    //댓글 좋아요 토글 - 이미 좋아요 했으면 취소하고, 안했으면 추가
+    @Transactional
+    public CommentResult toggleCommentLike(Long commentId, User user) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
 
+        // 이미 좋아요 했는지 확인
+        Optional<CommentLike> existingLike = likeRepository.findByCommentIdAndUserId(commentId, user.getId());
+
+        if (existingLike.isPresent()) {
+            // 이미 좋아요 한 경우: 좋아요 취소
+            likeRepository.delete(existingLike.get());
+            comment.setLikeCount(Math.max(0, comment.getLikeCount() - 1)); // 음수 방지
+            return CommentResult.SUCCESS;
+        } else {
+            // 아직 좋아요 안 한 경우: 좋아요 추가
+            comment.setLikeCount(comment.getLikeCount() + 1);
+            CommentLike commentLike = CommentLike.builder()
+                    .comment(comment)
+                    .user(user)
+                    .build();
+            likeRepository.save(commentLike);
+            return CommentResult.SUCCESS;
+        }
+    }
 
     //댓글 당 좋아요 수
     public int likeCount(Long commentId) {
@@ -95,6 +119,4 @@ public class LikeService {
                 .map(user ->  likeRepository.findByUserId(user.getId()).size())
                 .orElse(0);
     }
-
-
 }
