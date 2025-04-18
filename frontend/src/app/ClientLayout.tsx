@@ -2,8 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useLoginMember,  LoginMemberContext} from '@/stores/auth/loginMember';
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
+    const {
+        loginMember,
+        setLoginMember,
+        setNoLoginMember,
+        isLoginMemberPending,
+        isLogin,
+        logout,
+        logoutAndHome,
+    } =useLoginMember();
+
+    //전역 Store등록, context api기술을 썼다고 함
+    const loginMemberContextValue = {
+        loginMember,
+        setLoginMember,
+        setNoLoginMember,
+        isLoginMemberPending,
+        isLogin,
+        logout,
+        logoutAndHome,
+    }
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     //[]최초 요청시 api를 보낸다, 요청시에도 저게 돌아간다고 한다
@@ -14,12 +36,25 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             })
             .then(res => res.json())
             .then(data => {
-                console.log(data);
+                //로그인 성공시
+                setLoginMember(data);
+            })
+            .catch(err => {
+                //로그인이 안되있다면
+                setNoLoginMember();
             });
     }, []);
 
+    if(isLoginMemberPending) {
+        return <div className='flex justify-center items-center h-screen'>
+            로그인 중...
+            </div>;
+    }
+
+
     return (
-        // 헤더를 통쨰로 옮김
+        //나중에 내부적으로 접근이 가능하게 된다, 그리고 value를 통하여 전역적으로 접근이 가능하게 된다
+        <LoginMemberContext value={loginMemberContextValue}>
         <main>
       <header className="bg-[#f2edf4] py-3 sticky top-0 z-10 shadow-sm">
         <div className="max-w-screen-lg mx-auto px-4">
@@ -116,11 +151,25 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                   placeholder="검색어를 입력하세요"
                 />
               </div>
-              <Link href="/login">
-                <button className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 md:px-6 rounded-md text-sm whitespace-nowrap h-[38px]">
-                  로그인
-                </button>
-              </Link>
+              {isLogin ? (
+                       <>
+                       {/* TODO : 나중에 여기 눌러서 유저 정보 보기 */}
+                       <div style={{ color: 'black' }}>{loginMember.nickname}</div>
+                       <button onClick={() => logoutAndHome()} className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 md:px-6 rounded-md text-sm whitespace-nowrap h-[38px]">
+                       로그아웃
+                       </button>
+                     
+                     </>
+              ) : (
+                        <>
+                           <Link href="/login">
+                           <button className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-4 md:px-6 rounded-md text-sm whitespace-nowrap h-[38px]">
+                             로그인
+                           </button>
+                         </Link>
+                         </>
+              )}
+   
             </div>
           </div>
 
@@ -160,5 +209,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
             {children}
         </main>
+        </LoginMemberContext>
     );
 }

@@ -104,11 +104,13 @@ public class ApiV1AuthController {
 
         return ResponseEntity.ok(loginResponseDto);
     }
+
     //로그아웃 만들어야지
     @DeleteMapping("/logout")
     public ResponseEntity<?> logout() {
         //쿠키를 지우는게 나을듯
         customRequest.deleteCookie("accessToken");
+        customRequest.deleteCookie("refreshToken");
         return ResponseEntity.ok("로그아웃 완료");
     }
 

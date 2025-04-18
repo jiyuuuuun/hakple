@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
                                 "/api/v1/auth/login",
+                                "/api/v1/auth/logout",
 
                                 // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",
