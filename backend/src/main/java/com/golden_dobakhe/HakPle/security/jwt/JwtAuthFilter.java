@@ -30,23 +30,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     //시큐리티가 실행되기 이전 토큰을 시큐리티에게 알려주는 필터
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-
-        //만약에 유효한 부분이 아니면 나가리
         if (!request.getRequestURI().startsWith("/api/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        //실제 실행부
-        //여기서 uri 보고 토큰을 필요로 하지 않는 작업이라면 넘어가게 만든다
-
-
-        //토큰을 받아오고
         String token = getTokken(request);
 
-        //토큰이 없다면 그대로 진행(로그인해서 토큰을 재발급가능)
         if (token == null) {
             filterChain.doFilter(request, response);
             return;
@@ -55,16 +48,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             Authentication authentication = jwtAuthenticationProvider.getAuthentication(token);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("❌ JWT 인증 실패: {}", e.getMessage(), e);
+
+            // 필터에서 실패 응답 직접 내려줌
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"인증 실패: " + e.getMessage() + "\"}");
+            return; // 인증 실패했으면 이후 필터 진행하면 안 됨!
         }
 
-
-
-        //이후 그걸 가지고 알아서 진행
         filterChain.doFilter(request, response);
     }
+
     //인증이 필요한 요청시 헤더에 Authorization Bearer jwt토큰내용 이렇게 나오게 된다
     private String getTokken(HttpServletRequest request) {
         String auth = request.getHeader("Authorization");
@@ -81,6 +77,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     return cookie.getValue();
             }
         }
+
+
 
         return null;
     }
