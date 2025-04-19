@@ -6,6 +6,8 @@ import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentR
 import com.golden_dobakhe.HakPle.domain.post.comment.exception.CommentException;
 import com.golden_dobakhe.HakPle.domain.post.comment.report.entity.CommentReport;
 import com.golden_dobakhe.HakPle.domain.post.comment.report.repository.CommentReportRepository;
+import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
+import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,11 @@ public class CommentReportService {
     public void reportComment(Long commentId,Long userId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
+
+        User user=userRepository.findById(comment.getUser().getId()).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+
+        user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
+
 
         User reporter = userRepository.findById(userId)
                 .orElseThrow(() -> new CommentException(CommentResult.USER_NOT_FOUND));
