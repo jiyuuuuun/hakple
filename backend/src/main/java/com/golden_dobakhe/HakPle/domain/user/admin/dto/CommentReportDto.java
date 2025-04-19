@@ -1,6 +1,7 @@
 package com.golden_dobakhe.HakPle.domain.user.admin.dto;
 
 import com.golden_dobakhe.HakPle.domain.post.comment.report.entity.CommentReport;
+import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -23,6 +24,9 @@ public class CommentReportDto {
     @Schema(description = "댓글 작성자 ID", example = "5")
     private Long reportedUserId;
 
+    @Schema(description = "게시물 ID")
+    private Long boardId;
+
     @Schema(description = "해당 사용자가 받은 총 신고 횟수", example = "3")
     private int userReportedCount;
 
@@ -34,6 +38,7 @@ public class CommentReportDto {
 
     public static CommentReportDto fromEntity(CommentReport report,int commentReportCount) {
         User user= report.getComment().getUser();
+        Board board = report.getComment().getBoard();
         return CommentReportDto.builder()
                 .reportId(report.getId())
                 .commentId(report.getComment().getId())
@@ -42,6 +47,7 @@ public class CommentReportDto {
                 .userReportedCount(user.getReportedCount())
                 .reportedAt(report.getCreationTime())
                 .commentReportedCount(commentReportCount)
+                .boardId(board.getId())
                 .build();
     }
 
