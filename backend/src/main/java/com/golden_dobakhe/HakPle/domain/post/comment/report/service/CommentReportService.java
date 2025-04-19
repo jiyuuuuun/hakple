@@ -11,9 +11,11 @@ import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class CommentReportService {
         User user=userRepository.findById(comment.getUser().getId()).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
         user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
+        log.info("UserReportCount : {}", user.getReportedCount());
 
 
         User reporter = userRepository.findById(userId)
