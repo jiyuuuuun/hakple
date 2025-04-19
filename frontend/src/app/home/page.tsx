@@ -1,7 +1,17 @@
-import React from 'react'
+'use client'
+
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 export default function HomePage() {
+    const [academyName, setAcademyName] = useState<string | null>(null)
+
+    useEffect(() => {
+        // 클라이언트 사이드에서만 localStorage 접근
+        const storedAcademyName = localStorage.getItem('academyName')
+        setAcademyName(storedAcademyName)
+    }, [])
+
     return (
         <div className="min-h-screen bg-gray-50">
             <main className="max-w-screen-lg mx-auto px-4 py-6">
@@ -11,13 +21,35 @@ export default function HomePage() {
                         <div className="bg-white rounded-lg shadow p-4 mb-6">
                             <h2 className="text-lg font-semibold mb-4">현재 학원</h2>
                             <div className="space-y-2">
-                                <div className="p-2 rounded-md flex items-center justify-between">
-                                    <span className="text-gray-700">ABC학원</span>
-                                    <div className="flex items-center text-purple-800">
-                                        <span className="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
-                                        <span className="text-sm">활성</span>
+                                {academyName ? (
+                                    <div className="p-2 rounded-md flex items-center justify-between">
+                                        <span className="text-gray-700">{academyName}</span>
+                                        <div className="flex items-center text-purple-800">
+                                            <span className="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
+                                            <span className="text-sm">활성</span>
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <Link href="/myinfo/academyRegister" className="block">
+                                        <div className="p-2 bg-gray-50 rounded-md flex items-center justify-between hover:bg-gray-100">
+                                            <span className="text-gray-700">학원 등록하기</span>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-5 w-5 text-gray-400"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                                />
+                                            </svg>
+                                        </div>
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </aside>

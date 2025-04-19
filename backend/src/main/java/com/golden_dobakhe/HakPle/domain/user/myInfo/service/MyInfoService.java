@@ -23,8 +23,8 @@ public class MyInfoService {
                 .orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
 
         return MyInfoResponseDto.builder()
-                .nickname(user.getNickName())
-                .username(user.getUserName())
+                .nickName(user.getNickName())
+                .userName(user.getUserName())
                 .phoneNum(user.getPhoneNum())
                 .creationTime(user.getCreationTime())
                 .academyCode(user.getAcademyId())

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
 /**
  * 헤더 컴포넌트
@@ -12,26 +12,17 @@ import { usePathname } from 'next/navigation'
  * 로그인 상태에 따라 UI가 변경됩니다.
  * 반응형으로 설계되어 모바일과 데스크톱 환경에 모두 대응합니다.
  */
-export default function Header({ isLoggedIn: propIsLoggedIn }: { isLoggedIn?: boolean }) {
+export default function Header() {
     // 모바일에서 메뉴 버튼 클릭 시 상태 관리
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    // 로그인 상태 관리
-    const [isLoggedIn, setIsLoggedIn] = useState(false)
-    const pathname = usePathname()
 
-    // 페이지 로드 시 로그인 상태 확인
+    // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
+    const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
+
+    // 로그인 상태 변경 감지를 위한 효과
     useEffect(() => {
-        // prop으로 전달받은 값이 있으면 그 값을 사용
-        if (propIsLoggedIn !== undefined) {
-            setIsLoggedIn(propIsLoggedIn)
-            return
-        }
-
-        // 로그인 상태 확인 로직
-        // 예: 토큰 확인, 세션 확인 등
-        // 여기서는 간단하게 '/home' 경로에 있으면 로그인된 것으로 가정
-        setIsLoggedIn(pathname === '/home' || pathname.startsWith('/myinfo'))
-    }, [pathname, propIsLoggedIn])
+        console.log('Header - 로그인 상태 감지:', isLogin, loginMember)
+    }, [isLogin, loginMember])
 
     return (
         <header className="bg-[#f2edf4] py-3 sticky top-0 z-10 shadow-sm">
@@ -123,23 +114,34 @@ export default function Header({ isLoggedIn: propIsLoggedIn }: { isLoggedIn?: bo
                             />
                         </div>
 
-                        {/* 로그인/로그아웃 버튼 */}
-                        <Link href={isLoggedIn ? '/login' : '/login'}>
-                            <button className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-2 px-4 md:px-5 rounded-md text-sm whitespace-nowrap h-[36px]">
-                                {isLoggedIn ? '로그아웃' : '로그인'}
-                            </button>
-                        </Link>
+                        {/* 로그인 상태에 따른 버튼 표시 */}
+                        {isLogin ? (
+                            <>
+                                {/* 로그아웃 버튼 */}
+                                <button
+                                    onClick={() => logoutAndHome()}
+                                    className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-2 px-4 md:px-5 rounded-md text-sm whitespace-nowrap h-[36px]"
+                                >
+                                    로그아웃
+                                </button>
 
-                        {/* 프로필 이미지 (로그인 시에만 표시) */}
-                        {isLoggedIn && (
-                            <Link href="/myinfo" className="flex items-center">
-                                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                                    <img
-                                        src="/profile.png"
-                                        alt="프로필"
-                                        className="min-w-full min-h-full object-cover"
-                                    />
-                                </div>
+                                {/* 프로필 이미지 */}
+                                <Link href="/myinfo" className="flex items-center">
+                                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+                                        <img
+                                            src="/profile.png"
+                                            alt="프로필"
+                                            className="min-w-full min-h-full object-cover"
+                                        />
+                                    </div>
+                                </Link>
+                            </>
+                        ) : (
+                            /* 로그인 버튼 */
+                            <Link href="/login">
+                                <button className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-2 px-4 md:px-5 rounded-md text-sm whitespace-nowrap h-[36px]">
+                                    로그인
+                                </button>
                             </Link>
                         )}
                     </div>
