@@ -1,11 +1,26 @@
 server:
   port: 8090
+  servlet:
+    session:
+      persistent: false    # 세션 지속성 비활성화
+      store-dir: /tmp      # 임시 디렉토리 지정 (필요시)
+      cookie:
+        secure: false      # HTTPS 사용 여부에 따라 설정
+        http-only: true    # 자바스크립트에서 쿠키 접근 방지
 
 spring:
   main:
     allow-bean-definition-overriding: true
   mvc:
     static-path-pattern: /uploads/** # 정적 파일 접근 경로 설정
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      enabled: true
+  session:
+    store-type: none       # 기본 세션 저장소 사용 (in-memory)
+    timeout: 1800          # 세션 타임아웃 30분
   output:
     ansi:
       enabled: ALWAYS

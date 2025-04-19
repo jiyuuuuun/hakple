@@ -2,6 +2,7 @@ package com.golden_dobakhe.HakPle.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -13,6 +14,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Value("${file.upload-dir:${user.home}/hakple-uploads}")
     private String uploadDir;
+    
+    @Value("${custom.site.frontUrl}")
+    private String frontUrl;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -36,6 +40,21 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(location)
                 .setCachePeriod(3600); // 캐싱 기간 설정 (초 단위)
+    }
+    
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins(frontUrl)
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+                
+        System.out.println("==================================");
+        System.out.println("CORS 설정됨");
+        System.out.println("허용 오리진: " + frontUrl);
+        System.out.println("==================================");
     }
 }
 

@@ -11,7 +11,10 @@ import java.util.List;
 public interface BoardService {
     BoardResponse createBoard(BoardRequest request, Long userId);
 
-    BoardResponse getBoard(Long id,  Boolean postView);
+    /**
+     * 게시물 ID로 조회
+     */
+    BoardResponse getBoard(Long id, Boolean postView);
 
     Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, Pageable pageable);
 

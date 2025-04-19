@@ -104,17 +104,18 @@ public class BoardServiceImpl implements BoardService {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> BoardException.notFound());
 
-
+        // 사용자 닉네임 초기화 (지연 로딩)
         board.getUser().getNickName();
 
-
+        // 게시글 좋아요 초기화 (지연 로딩)
         Hibernate.initialize(board.getBoardLikes());
 
-
+        // 조회수 증가 처리 (요청으로부터 옵션을 받음)
         if (postView == null || postView) {
             board.increaseViewCount();
         }
 
+        // 게시글 상태 검증 (삭제된 게시글인지 확인)
         board.validateStatus();
         boardRepository.save(board);
 
@@ -145,6 +146,8 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
             throw BoardException.invalidRequest();
         }
+        // 제목 또는 작성자 이름으로 검색합니다. 
+        // 내용 검색을 원하면 searchType=제목으로 별도 검색 바람
         return boardRepository.searchBoards(academyCode, keyword, sortType, null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());

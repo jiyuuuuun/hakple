@@ -1,15 +1,18 @@
 package com.golden_dobakhe.HakPle.domain.post.comment.comment.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.entity.Comment;
 import com.golden_dobakhe.HakPle.global.Status;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -23,6 +26,9 @@ public class CommentResponseDto {
     private LocalDateTime creationTime;
     private LocalDateTime modificationTime;
     private Status status;
+    
+    @JsonProperty("isLiked")
+    private boolean isLiked;
 
     public static CommentResponseDto fromEntity(Comment comment) {
         return CommentResponseDto.builder()
@@ -35,6 +41,22 @@ public class CommentResponseDto {
                 .creationTime(comment.getCreationTime())
                 .modificationTime(comment.getModificationTime())
                 .status(comment.getStatus())
+                .isLiked(false)
+                .build();
+    }
+    
+    public static CommentResponseDto fromEntity(Comment comment, boolean isLiked) {
+        return CommentResponseDto.builder()
+                .id(comment.getId())
+                .boardId(comment.getBoard().getId())
+                .content(comment.getContent())
+                .nickname(comment.getUser().getNickName())
+                .likeCount(comment.getLikeCount())
+                .userId(comment.getUser().getId())
+                .creationTime(comment.getCreationTime())
+                .modificationTime(comment.getModificationTime())
+                .status(comment.getStatus())
+                .isLiked(isLiked)
                 .build();
     }
 }

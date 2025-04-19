@@ -43,7 +43,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT b FROM Board b WHERE b.academyCode = :academyCode AND b.status = 'ACTIVE' " +
            "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
-           "OR LOWER(b.content) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
+           "OR LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
            "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
            "ORDER BY " +
            "CASE " +
