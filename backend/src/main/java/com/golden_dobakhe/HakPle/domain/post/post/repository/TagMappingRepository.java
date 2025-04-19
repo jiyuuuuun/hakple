@@ -39,12 +39,40 @@ public interface TagMappingRepository extends JpaRepository<TagMapping, Long> {
            "FROM tag_mapping t " +
            "JOIN board b ON t.board_id = b.id " +
            "JOIN hashtag h ON t.hashtag_id = h.id " +
+           "LEFT JOIN board_like bl ON b.id = bl.board_id " +
+           "WHERE b.academy_code = :academyCode " +
+           "AND b.status = 'ACTIVE' " +
+           "AND (:minLikes IS NULL OR (SELECT COUNT(*) FROM board_like WHERE board_id = b.id) >= :minLikes) " +
+           "GROUP BY h.hashtag_name " +
+           "ORDER BY count DESC " +
+           "LIMIT 5")
+    List<TagCount> findTop5PopularTagsByAcademyCode(@Param("academyCode") String academyCode, @Param("minLikes") Integer minLikes);
+    
+    @Query(nativeQuery = true, 
+           value = "SELECT h.hashtag_name as hashtagName, COUNT(t.id) as count " +
+           "FROM tag_mapping t " +
+           "JOIN board b ON t.board_id = b.id " +
+           "JOIN hashtag h ON t.hashtag_id = h.id " +
            "WHERE b.user_id = :userId " +
            "AND b.status = 'ACTIVE' " +
            "GROUP BY h.hashtag_name " +
            "ORDER BY count DESC " +
            "LIMIT 5")
     List<TagCount> findTop5PopularTagsByUserId(@Param("userId") Long userId);
+    
+    @Query(nativeQuery = true, 
+           value = "SELECT h.hashtag_name as hashtagName, COUNT(t.id) as count " +
+           "FROM tag_mapping t " +
+           "JOIN board b ON t.board_id = b.id " +
+           "JOIN hashtag h ON t.hashtag_id = h.id " +
+           "LEFT JOIN board_like bl ON b.id = bl.board_id " +
+           "WHERE b.user_id = :userId " +
+           "AND b.status = 'ACTIVE' " +
+           "AND (:minLikes IS NULL OR (SELECT COUNT(*) FROM board_like WHERE board_id = b.id) >= :minLikes) " +
+           "GROUP BY h.hashtag_name " +
+           "ORDER BY count DESC " +
+           "LIMIT 5")
+    List<TagCount> findTop5PopularTagsByUserId(@Param("userId") Long userId, @Param("minLikes") Integer minLikes);
 
     interface TagCount {
         String getHashtagName();
