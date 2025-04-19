@@ -12,19 +12,22 @@ interface Comment {
   id: number;
   content: string;
   createdAt: string;
-  postTitle: string;
-  postUrl: string;
-  postId: number | null; // null 허용
+  boardId: number;
+  nickname: string;
+  likeCount: number;
 }
 
 // API 응답 타입 정의
 interface CommentResponseDto {
   id: number;
+  boardId: number;
   content: string;
-  creationTime: string; // API 응답 필드명에 맞게 수정
-  postId: number;
-  postTitle: string;
-  postUrl: string;
+  nickname: string;
+  likeCount: number;
+  userId: number;
+  creationTime: string;
+  modificationTime: string;
+  status: string;
 }
 
 // 페이지네이션 응답 타입
@@ -69,16 +72,29 @@ export default function MyCommentsPage() {
     setError(null);
     
     try {
+      // 로컬 스토리지에서 accessToken 가져오기
+      const token = localStorage.getItem('accessToken');
+      
+      // 토큰이 없으면 로그인 페이지로 리다이렉트
+      if (!token) {
+        console.error('인증 토큰이 없습니다. 로그인이 필요합니다.');
+        router.push('/login');
+        return;
+      }
+      
       // pageable 파라미터 적용 (size=10, sort=creationTime, direction=DESC)
       const response = await fetch(`${API_BASE_URL}/api/v1/comments/my?page=${pageNum - 1}&size=10&sort=creationTime,desc`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`, // JWT 토큰 헤더에 추가
+          'Authorization': `Bearer ${token}`, // JWT 토큰 헤더에 추가
         },
       });
       
-      if (response.status === 401) {
-        // 인증 실패 시 로그인 페이지로 리다이렉트
-        router.push('/login');
+      if (response.status === 401 || response.status === 403) {
+        // 인증 실패 또는 권한 없음 시 로그인 페이지로 리다이렉트
+        console.error('인증이 만료되었거나 권한이 없습니다. 다시 로그인해주세요.');
+        // 토큰 만료 시 로컬 스토리지에서 토큰 제거
+        localStorage.removeItem('accessToken');
+        router.push('/login?redirect=my-comments');
         return;
       }
       
@@ -98,10 +114,10 @@ export default function MyCommentsPage() {
         return {
           id: item.id,
           content: item.content,
-          createdAt: item.creationTime, // 필드명 매핑
-          postTitle: item.postTitle,
-          postUrl: item.postUrl,
-          postId: item.postId || null // null로 기본값 설정
+          createdAt: item.creationTime,
+          boardId: item.boardId,
+          nickname: item.nickname,
+          likeCount: item.likeCount
         };
       });
       
@@ -113,16 +129,30 @@ export default function MyCommentsPage() {
       }
     } catch (err) {
       console.error('댓글 목록 조회 오류:', err);
-      setError('댓글 목록을 불러오는데 실패했습니다.');
+      
+      // 네트워크 오류나 기타 예외 상황인 경우
+      if (err instanceof Error) {
+        setError(err.message || '댓글 목록을 불러오는데 실패했습니다.');
+      } else {
+        setError('알 수 없는 오류가 발생했습니다.');
+      }
     } finally {
       setIsLoading(false);
     }
   };
   
-  // 초기 데이터 로드
+  // 초기 데이터 로드 및 토큰 확인
   useEffect(() => {
+    // 컴포넌트 마운트 시 로그인 상태 확인
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.log('로그인이 필요합니다.');
+      router.push('/login?redirect=my-comments');
+      return;
+    }
+    
     fetchComments(1);
-  }, []);
+  }, [router]);
   
   // 더 보기 클릭 시
   const handleLoadMore = () => {
@@ -134,11 +164,11 @@ export default function MyCommentsPage() {
   };
   
   // 게시글로 이동
-  const handleGoToPost = (postId: number | undefined) => {
-    console.log('이동 시도 중인 게시글 ID:', postId);
+  const handleGoToPost = (boardId: number | null) => {
+    console.log('이동 시도 중인 게시글 ID:', boardId);
     
-    // postId가 없거나 undefined인 경우 예외 처리
-    if (!postId) {
+    // boardId가 없는 경우 예외 처리
+    if (!boardId) {
       console.error('게시글 ID가 없습니다.');
       alert('게시글 정보를 찾을 수 없습니다.');
       return;
@@ -146,7 +176,7 @@ export default function MyCommentsPage() {
     
     try {
       // 동적 라우팅을 사용하여 post/[id] 페이지로 이동
-      router.push(`/post/${postId}`);
+      router.push(`/post/${boardId}`);
     } catch (error) {
       console.error('게시글 이동 중 오류 발생:', error);
       alert('게시글로 이동할 수 없습니다. 다시 시도해주세요.');
@@ -177,19 +207,23 @@ export default function MyCommentsPage() {
                 <div 
                   className="cursor-pointer hover:underline text-lg font-semibold text-gray-800 dark:text-gray-800 mb-3"
                   onClick={() => {
-                    console.log('게시글 제목 클릭:', comment.postId);
-                    comment.postId ? handleGoToPost(comment.postId) : null;
+                    console.log('게시글 제목 클릭:', comment.boardId);
+                    handleGoToPost(comment.boardId);
                   }}
                 >
-                  <span className="text-[#8C4FF2]">📄</span> {comment.postTitle}
+                  <span className="text-[#8C4FF2]">📄</span> 게시글
+                </div>
+                <div className="flex items-center mb-2 text-sm text-gray-500">
+                  <span className="mr-2">작성자: {comment.nickname}</span>
+                  <span>좋아요: {comment.likeCount}</span>
                 </div>
                 <p className="text-gray-700 dark:text-gray-700 mb-4 whitespace-pre-line">{comment.content}</p>
                 <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-600">
                   <span>🕒 {formatDate(comment.createdAt)}</span>
                   <button 
                     onClick={() => {
-                      console.log('원본 글 보기 버튼 클릭:', comment.postId);
-                      comment.postId ? handleGoToPost(comment.postId) : null;
+                      console.log('원본 글 보기 버튼 클릭:', comment.boardId);
+                      handleGoToPost(comment.boardId);
                     }}
                     className="text-[#8C4FF2] hover:underline"
                   >

@@ -512,7 +512,7 @@ export default function PostDetailPage() {
       console.log('댓글 삭제 요청:', commentId);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${commentId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       
       // 응답이 텍스트 형식이므로 text()로 읽습니다
@@ -827,7 +827,6 @@ export default function PostDetailPage() {
                           수정
                         </button>
                       </div>
-
                     </div>
                   ) : (
                     // 일반 댓글 표시 모드
@@ -848,7 +847,11 @@ export default function PostDetailPage() {
                             방금 수정됨
                           </span>
                         )}
-                        <div className="relative ml-auto" ref={el => commentMenuRefs.current[comment.id] = el}>
+                        <div className="relative ml-auto" ref={(el) => {
+                          if (commentMenuRefs.current) {
+                            commentMenuRefs.current[comment.id] = el;
+                          }
+                        }}>
                           <button
                             className="text-gray-500 bg-[#ffffff] border-none menu-button"
                             onClick={(e) => toggleCommentMenu(e, comment.id)}
