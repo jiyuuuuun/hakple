@@ -82,6 +82,20 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
     immediatelyRender: false,
   });
 
+  // 추가: 백엔드 서버 상태 확인 함수
+  const checkServerStatus = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/health`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("서버 상태 확인 실패:", error);
+      return false;
+    }
+  };
+
   const handleUploadPhoto = useCallback(async (files: FileList | null) => {
     if (files === null || !editor || isUploading) return;
     
@@ -97,6 +111,13 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
     
     try {
       setIsUploading(true);
+      
+      // 서버 상태 확인
+      const serverOk = await checkServerStatus();
+      if (!serverOk) {
+        alert('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
       
       // 임시 이미지 ID (나중에 식별하기 위함)
       const tempImageId = `temp-image-${Date.now()}`;
@@ -121,49 +142,8 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
       };
       reader.readAsDataURL(file);
       
-      // FormData 생성
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // 5초 타임아웃 설정
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      // 백엔드 API 호출
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/upload_local`, {
-        method: 'POST',
-        body: formData,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const contentType = response.headers.get("content-type");
-        let errorMessage = '이미지 업로드에 실패했습니다.';
-        
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.message || errorMessage;
-          } catch (e) {
-            console.error('응답 파싱 오류:', e);
-          }
-        }
-        
-        console.error(`서버 응답 오류 (상태 코드: ${response.status}):`, errorMessage);
-        
-        // 상태 코드에 따른 맞춤형 메시지
-        let userMessage = errorMessage;
-        if (response.status === 413) {
-          userMessage = '이미지 크기가 너무 큽니다. 더 작은 이미지를 사용해주세요.';
-        } else if (response.status === 415) {
-          userMessage = '지원되지 않는 이미지 형식입니다. JPG, PNG 등의 일반적인 형식을 사용해주세요.';
-        } else if (response.status >= 500) {
-          userMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-        }
-        
-        // 임시 이미지 제거 시도
+      // 오류 발생 시 임시 이미지 제거 함수
+      const handleUploadFailure = (error: string) => {
         try {
           // data-id로 임시 이미지 찾아 제거
           const deleteTransaction = editor.state.tr;
@@ -186,54 +166,108 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
           console.error('임시 이미지 제거 중 오류:', removeError);
         }
         
-        alert(userMessage);
-        return;
-      }
+        // 오류 메시지 표시
+        alert(`이미지 업로드 실패: ${error}\n\n가능한 해결책:\n1. 로그인 상태를 확인해주세요\n2. 다른 이미지를 사용해보세요\n3. 네트워크 연결을 확인해주세요`);
+      };
       
-      // 서버에서 반환된 이미지 URL 받기
-      const contentType = response.headers.get("content-type");
-      let imageUrl;
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('file', file);
       
-      if (contentType && contentType.indexOf("application/json") !== -1) {
-        // JSON 응답인 경우
-        const jsonResponse = await response.json();
-        imageUrl = jsonResponse.url || jsonResponse.filePath || jsonResponse;
-      } else {
-        // 일반 텍스트 응답인 경우
-        imageUrl = await response.text();
-      }
+      // 5초 타임아웃 설정
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      // 중요: 이미지를 새로 추가하지 않고, 기존 임시 이미지의 src만 업데이트
-      const updateTransaction = editor.state.tr;
-      let updated = false;
-      
-      // 문서 내의 이미지 노드를 순회하며 임시 이미지를 찾아 업데이트
-      editor.state.doc.descendants((node, pos) => {
-        if (node.type.name === 'image' && node.attrs['data-id'] === tempImageId) {
-          // 임시 이미지를 찾았으면 URL만 업데이트
-          const newAttrs = {
-            ...node.attrs,
-            src: imageUrl // URL만 변경
-          };
-          updateTransaction.setNodeMarkup(pos, undefined, newAttrs);
-          updated = true;
-          return false; // 찾았으므로 순회 중단
+      try {
+        // 백엔드 API 호출
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/upload_local`, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+          credentials: 'include' // 인증 정보 포함
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const contentType = response.headers.get("content-type");
+          let errorMessage = '이미지 업로드에 실패했습니다.';
+          
+          if (contentType && contentType.indexOf("application/json") !== -1) {
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorMessage;
+            } catch (e) {
+              console.error('응답 파싱 오류:', e);
+            }
+          }
+          
+          console.error(`서버 응답 오류 (상태 코드: ${response.status}):`, errorMessage);
+          
+          // 상태 코드에 따른 맞춤형 메시지
+          let userMessage = errorMessage;
+          if (response.status === 413) {
+            userMessage = '이미지 크기가 너무 큽니다. 더 작은 이미지를 사용해주세요.';
+          } else if (response.status === 415) {
+            userMessage = '지원되지 않는 이미지 형식입니다. JPG, PNG 등의 일반적인 형식을 사용해주세요.';
+          } else if (response.status === 401 || response.status === 403) {
+            userMessage = '로그인이 필요하거나 권한이 없습니다. 다시 로그인해주세요.';
+          } else if (response.status >= 500) {
+            userMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          }
+          
+          handleUploadFailure(userMessage);
+          return;
         }
-        return true; // 계속 순회
-      });
-      
-      // 트랜잭션 실행
-      if (updated) {
-        editor.view.dispatch(updateTransaction);
+        
+        // 서버에서 반환된 이미지 URL 받기
+        const contentType = response.headers.get("content-type");
+        let imageUrl;
+        
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          // JSON 응답인 경우
+          const jsonResponse = await response.json();
+          imageUrl = jsonResponse.url || jsonResponse.filePath || jsonResponse;
+        } else {
+          // 일반 텍스트 응답인 경우
+          imageUrl = await response.text();
+        }
+        
+        // 중요: 이미지를 새로 추가하지 않고, 기존 임시 이미지의 src만 업데이트
+        const updateTransaction = editor.state.tr;
+        let updated = false;
+        
+        // 문서 내의 이미지 노드를 순회하며 임시 이미지를 찾아 업데이트
+        editor.state.doc.descendants((node, pos) => {
+          if (node.type.name === 'image' && node.attrs['data-id'] === tempImageId) {
+            // 임시 이미지를 찾았으면 URL만 업데이트
+            const newAttrs = {
+              ...node.attrs,
+              src: imageUrl // URL만 변경
+            };
+            updateTransaction.setNodeMarkup(pos, undefined, newAttrs);
+            updated = true;
+            return false; // 찾았으므로 순회 중단
+          }
+          return true; // 계속 순회
+        });
+        
+        // 트랜잭션 실행
+        if (updated) {
+          editor.view.dispatch(updateTransaction);
+        }
+      } catch (error) {
+        console.error('이미지 업로드 중 네트워크 오류:', error);
+        handleUploadFailure(error instanceof Error ? error.message : '네트워크 오류가 발생했습니다.');
       }
       
     } catch (error) {
-      console.error('이미지 업로드 중 오류 발생:', error);
-      alert('이미지 업로드에 실패했습니다.');
+      console.error('이미지 처리 중 일반 오류:', error);
+      alert('이미지 처리 중 오류가 발생했습니다.');
     } finally {
       setIsUploading(false);
     }
-  }, [editor, isUploading]);
+  }, [editor, isUploading, checkServerStatus]);
 
   const addImage = useCallback(() => {
     if (!isMounted || !editor) return;

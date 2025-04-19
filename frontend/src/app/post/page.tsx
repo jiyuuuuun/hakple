@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 
 interface Post {
   id: number;
@@ -25,6 +26,7 @@ interface Tag {
 }
 
 export default function PostPage() {
+  const { isLogin } = useGlobalLoginMember();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
@@ -61,6 +63,13 @@ export default function PostPage() {
       );
     }
   }, [searchParams]);
+
+  // 로그인 여부 확인 및 리다이렉트
+  useEffect(() => {
+    if (!isLogin) {
+      router.push('/login');
+    }
+  }, [isLogin, router]);
 
   // 2. 게시물 데이터 가져오는 함수
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string, minLikesParam?: string | null) => {
@@ -107,7 +116,8 @@ export default function PostPage() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        }
+        },
+        credentials: 'include'
       });
       
       // 7. 응답 처리
@@ -186,7 +196,8 @@ export default function PostPage() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
-        }
+        },
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -295,6 +306,28 @@ export default function PostPage() {
     }
   };
 
+  // 상태 초기화 함수 추가
+  const resetAllFilters = () => {
+    setSearchMode(false);
+    setSearchKeyword('');
+    setSortType('등록일순');
+    setPageSize('10');
+    setCurrentPage(1);
+    setSelectedTag(null);
+    setFilterType('태그');
+    
+    // 태그 활성화 상태 초기화
+    setPopularTags(prevTags => 
+      prevTags.map(tag => ({
+        ...tag,
+        isActive: false
+      }))
+    );
+    
+    // 현재 minLikes 유지하면서 데이터 다시 불러오기
+    fetchPosts(1, '10', '등록일순', '', undefined, minLikes);
+  };
+
   // 20. 컴포넌트 렌더링 시작
   // 서버 사이드 렌더링 또는 초기 렌더링 중에는 최소한의 UI만 표시
   if (!isMounted) {
@@ -307,17 +340,52 @@ export default function PostPage() {
     );
   }
 
+  // 로그인되지 않은 경우 로딩 표시
+  if (!isLogin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-lg shadow-md text-center">
+          <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
+          <p className="text-gray-600 mb-6">게시판에 접근하려면 로그인이 필요합니다.</p>
+          <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="bg-[#f9fafc] min-h-screen pb-8">
       <div className="max-w-[1140px] mx-auto px-4">
         {searchMode ? (
           <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
-            <h2 className="text-xl font-bold text-[#333333] mb-2 pl-[20px] pt-[20px]">"{searchKeyword}" 검색 결과</h2>
-            <p className="text-sm text-[#666666] pl-[20px] pb-[20px]">총 {searchCount}개의 게시물이 검색되었습니다.</p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-[#333333] mb-2 pl-[20px] pt-[20px]">&quot;{searchKeyword}&quot; 검색 결과</h2>
+                <p className="text-sm text-[#666666] pl-[20px] pb-[20px]">총 {searchCount}개의 게시물이 검색되었습니다.</p>
+              </div>
+              <button 
+                onClick={resetAllFilters}
+                className="bg-[#f2f2f2] text-[#666666] rounded-[5px] py-[5px] px-[10px] text-sm mr-[20px] hover:bg-[#e5e5e5] flex items-center"
+              >
+                <span className="material-icons text-sm mr-[5px]">refresh</span>
+                초기화
+              </button>
+            </div>
           </div>
         ) : popularTags.length > 0 ? (
           <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
-            <h2 className="text-xl font-bold text-[#333333] mb-4 pl-[20px] pt-[20px]">인기 태그</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-[#333333] mb-4 pl-[20px] pt-[20px]">인기 태그</h2>
+              {(selectedTag || sortType !== '등록일순' || pageSize !== '10' || filterType !== '태그') && (
+                <button 
+                  onClick={resetAllFilters}
+                  className="bg-[#f2f2f2] text-[#666666] rounded-[5px] py-[5px] px-[10px] text-sm mr-[20px] hover:bg-[#e5e5e5] flex items-center"
+                >
+                  <span className="material-icons text-sm mr-[5px]">refresh</span>
+                  초기화
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-[5px] pl-[20px] pr-[20px] pb-[20px]">
               {tagsLoading ? (
                 <p className="text-sm text-[#666666]">태그 로딩 중...</p>
@@ -354,7 +422,16 @@ export default function PostPage() {
             </div>
             <SearchInput filterType={filterType} onSearch={handleSearch} />
           </div>
-          <div className="pr-[10px]">
+          <div className="flex items-center">
+            {/* {(searchKeyword || selectedTag || sortType !== '등록일순' || pageSize !== '10' || filterType !== '태그') && (
+              <button 
+                onClick={resetAllFilters}
+                className="bg-[#f2f2f2] text-[#666666] rounded-[5px] py-[5px] px-[10px] text-sm mr-[10px] hover:bg-[#e5e5e5] flex items-center"
+              >
+                <span className="material-icons text-sm mr-[5px]">refresh</span>
+                초기화
+              </button>
+            )} */}
             <SortDropdown value={sortType} onChange={handleSortChange} />
           </div>
         </div>
@@ -381,7 +458,7 @@ export default function PostPage() {
               ) : (
                 <div className="text-center py-8 text-[#666666]">
                   검색 결과가 없습니다.
-                  {searchKeyword && <p className="mt-2">'{searchKeyword}' 검색어를 변경하여 다시 시도해보세요.</p>}
+                  {searchKeyword && <p className="mt-2">&apos;{searchKeyword}&apos; 검색어를 변경하여 다시 시도해보세요.</p>}
                 </div>
               )}
             </div>
@@ -531,7 +608,7 @@ function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.
   return (
     <div className="relative">
       <select 
-        className="px-4 py-[7px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
+        className="p-[7px] mr-[10px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
         value={value}
         onChange={onChange}
       >

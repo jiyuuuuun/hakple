@@ -64,6 +64,9 @@ export function useLoginMember() {
 
     //pending이 false되어서 로그인이 되었다고 판단함
     const setLoginMember = (member: BackendUser) => {
+        // 백엔드 응답 데이터 로깅
+        console.log('백엔드에서 받은 회원 정보:', member);
+        
         // 백엔드 응답 데이터를 User 타입으로 변환
         const user: User = {
             id: member.id || member.memberId || 0,

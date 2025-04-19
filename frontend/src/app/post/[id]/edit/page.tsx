@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useParams } from 'next/navigation'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
 // TiptapEditor를 동적으로 불러오기 (SSR 비활성화)
 const TiptapEditor = dynamic(() => import('@/components/editor/TiptapEditor'), { ssr: false })
@@ -203,6 +204,7 @@ const EditPostPage = () => {
     const router = useRouter()
     const params = useParams()
     const postId = params.id as string
+    const { isLogin } = useGlobalLoginMember()
 
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
@@ -216,7 +218,12 @@ const EditPostPage = () => {
         const fetchPostData = async () => {
             try {
                 setIsLoading(true)
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`)
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
+                    credentials: 'include', // 쿠키 인증 사용
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
 
                 if (!response.ok) {
                     throw new Error('게시글을 불러오는데 실패했습니다.')
@@ -240,6 +247,26 @@ const EditPostPage = () => {
             fetchPostData()
         }
     }, [postId])
+
+    // 로그인 여부 확인 및 리다이렉트
+    useEffect(() => {
+        if (!isLogin) {
+            router.push('/login')
+        }
+    }, [isLogin, router])
+
+    // 로그인되지 않은 경우 로딩 표시
+    if (!isLogin) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+                <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                    <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
+                    <p className="text-gray-600 mb-6">게시글 수정을 위해 로그인이 필요합니다.</p>
+                    <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
+                </div>
+            </div>
+        )
+    }
 
     // 태그 변경 핸들러 - 서버로 전송하기 전에 중복 확인 추가
     const handleTagsChange = (newTags: string[]) => {
@@ -279,6 +306,7 @@ const EditPostPage = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(postData),
+                credentials: 'include', // 쿠키 포함하여 요청
             })
 
             if (!response.ok) {
@@ -291,7 +319,7 @@ const EditPostPage = () => {
                     } else {
                         errorMsg = `서버 오류: ${response.status}`
                     }
-                } catch (e) {
+                } catch {
                     errorMsg = `서버 오류: ${response.status}`
                 }
                 throw new Error(errorMsg)
@@ -308,69 +336,73 @@ const EditPostPage = () => {
     }
 
     return (
-        <>
-            <main className="container mx-auto p-[15px] sm:p-[20px] md:p-[30px] max-w-[1200px]">
-                <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">게시글 수정</h1>
-                {isLoading ? (
-                    <div className="flex justify-center items-center h-[300px]">
-                        <p>게시글 불러오는 중...</p>
-                    </div>
-                ) : (
-                    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full border border-[#F9FAFB]">
-                        {/* 제목 입력 */}
-                        <div className="w-full mb-3 sm:mb-4 border border-[#F9FAFB] rounded-md overflow-hidden pb-[10px]">
-                            <div className="p-2 sm:p-3">
-                                <input
-                                    type="text"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="  제목을 입력해주세요"
-                                    className="w-full border border-[#F9FAFB] rounded-md py-[14px] px-[15px] px-3 text-sm focus:outline-none"
-                                />
+      
+            <main className="bg-[#f9fafc] min-h-screen pb-8">
+                <div className="max-w-[1140px] mx-auto px-4">
+                    <div className="pt-14">
+                        <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">게시글 수정</h1>
+                        {isLoading ? (
+                            <div className="flex justify-center items-center h-[300px] bg-white rounded-[10px]">
+                                <p>게시글 불러오는 중...</p>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="bg-white p-4 sm:p-6 rounded-[10px] shadow-md w-full border border-[#eeeeee]">
+                                {/* 제목 입력 */}
+                                <div className="w-full mb-3 sm:mb-4 border border-[#eeeeee] rounded-md overflow-hidden pb-[10px]">
+                                    <div className="p-2 sm:p-3">
+                                        <input
+                                            type="text"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            placeholder="  제목을 입력해주세요"
+                                            className="w-full border border-[#eeeeee] rounded-md py-[14px] px-[15px] px-3 text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
 
-                        {/* Tiptap 에디터 적용 */}
-                        <div className="w-full mb-3 sm:mb-4 border border-[#F9FAFB] rounded-md overflow-hidden">
-                            <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px]">
-                                <TiptapEditor content={content} onChange={setContent} />
-                            </div>
-                        </div>
+                                {/* Tiptap 에디터 적용 */}
+                                <div className="w-full mb-3 sm:mb-4 border border-[#eeeeee] rounded-md overflow-hidden">
+                                    <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px]">
+                                        <TiptapEditor content={content} onChange={setContent} />
+                                    </div>
+                                </div>
 
-                        {/* 태그 입력 */}
-                        <div className="w-full mb-4 sm:mb-6 border border-[#F9FAFB] rounded-md overflow-hidden pb-[10px]">
-                            <div className="p-2 sm:p-3">
-                                <TagInput tags={tags} onTagsChange={handleTagsChange} />
-                            </div>
-                        </div>
+                                {/* 태그 입력 */}
+                                <div className="w-full mb-4 sm:mb-6 border border-[#eeeeee] rounded-md overflow-hidden pb-[10px]">
+                                    <div className="p-2 sm:p-3">
+                                        <TagInput tags={tags} onTagsChange={handleTagsChange} />
+                                    </div>
+                                </div>
 
-                        {/* 에러 메시지 */}
-                        {error && <div className="w-full mb-4 text-red-500 text-sm">{error}</div>}
+                                {/* 에러 메시지 */}
+                                {error && <div className="w-full mb-4 text-red-500 text-sm">{error}</div>}
 
-                        {/* 수정 버튼 */}
-                        <div className="w-full border border-[#F9FAFB] rounded-[10px] overflow-hidden">
-                            <div className="p-2 sm:p-3">
-                                <div className="flex justify-between">
-                                    <button
-                                        onClick={() => router.push('/post')}
-                                        className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
-                                    >
-                                        목록
-                                    </button>
-                                    <button
-                                        onClick={handleSubmit}
-                                        disabled={isSubmitting}
-                                        className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
-                                    >
-                                        {isSubmitting ? '수정 중...' : '수정하기'}
-                                    </button>
+                                {/* 수정 버튼 */}
+                                <div className="w-full border border-[#F9FAFB] rounded-[10px] overflow-hidden">
+                                    <div className="p-2 sm:p-3">
+                                        <div className="flex justify-between">
+                                            <button
+                                                onClick={() => router.push('/post')}
+                                                className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+                                            >
+                                                목록
+                                            </button>
+                                            <button
+                                                onClick={handleSubmit}
+                                                disabled={isSubmitting}
+                                                className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+                                            >
+                                                {isSubmitting ? '수정 중...' : '수정하기'}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
-                )}
+                </div>
             </main>
-        </>
+        
     )
 }
 
