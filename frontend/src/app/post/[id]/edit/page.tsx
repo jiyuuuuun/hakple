@@ -314,70 +314,72 @@ const EditPostPage = () => {
 
   return (
     <>
-      <main className="container mx-auto p-[15px] sm:p-[20px] md:p-[30px] max-w-[1200px]">
-        <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">게시글 수정</h1>
-        {isLoading ? (
-          <div className="flex justify-center items-center h-[300px]">
-            <p>게시글 불러오는 중...</p>
-          </div>
-        ) : (
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full border border-[#F9FAFB]">
-            {/* 제목 입력 */}
-            <div className="w-full mb-3 sm:mb-4 border border-[#F9FAFB] rounded-md overflow-hidden pb-[10px]">
+      <main className="bg-[#f9fafc] min-h-screen">
+        <div className="container mx-auto p-[15px] sm:p-[20px] md:p-[30px] max-w-[1200px]">
+          <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">게시글 수정</h1>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-[300px]">
+              <p>게시글 불러오는 중...</p>
+            </div>
+          ) : (
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full border border-[#F9FAFB]">
+              {/* 제목 입력 */}
+              <div className="w-full mb-3 sm:mb-4 border border-[#F9FAFB] rounded-md overflow-hidden pb-[10px]">
+                <div className="p-2 sm:p-3">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="  제목을 입력해주세요"
+                    className="w-full border border-[#F9FAFB] rounded-md py-[14px] px-[15px] px-3 text-sm focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Tiptap 에디터 적용 */}
+              <div className="w-full mb-3 sm:mb-4 border border-[#F9FAFB] rounded-md overflow-hidden">
+                <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px]">
+                  <TiptapEditor content={content} onChange={setContent} />
+                </div>
+              </div>
+
+              {/* 태그 입력 */}
+              <div className="w-full mb-4 sm:mb-6 border border-[#F9FAFB] rounded-md overflow-hidden pb-[10px]">
+                <div className="p-2 sm:p-3">
+                  <TagInput tags={tags} onTagsChange={handleTagsChange} />
+                </div>
+              </div>
+
+              {/* 에러 메시지 */}
+              {error && (
+                <div className="w-full mb-4 text-red-500 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* 수정 버튼 */}
+              <div className="w-full border border-[#F9FAFB] rounded-[10px] overflow-hidden">
               <div className="p-2 sm:p-3">
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="  제목을 입력해주세요"
-                  className="w-full border border-[#F9FAFB] rounded-md py-[14px] px-[15px] px-3 text-sm focus:outline-none"
-                />
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => router.push('/post')}
+                    className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+                  >
+                    목록
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+                  >
+                    {isSubmitting ? '수정 중...' : '수정하기'}
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* Tiptap 에디터 적용 */}
-            <div className="w-full mb-3 sm:mb-4 border border-[#F9FAFB] rounded-md overflow-hidden">
-              <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px]">
-                <TiptapEditor content={content} onChange={setContent} />
-              </div>
             </div>
-
-            {/* 태그 입력 */}
-            <div className="w-full mb-4 sm:mb-6 border border-[#F9FAFB] rounded-md overflow-hidden pb-[10px]">
-              <div className="p-2 sm:p-3">
-                <TagInput tags={tags} onTagsChange={handleTagsChange} />
-              </div>
-            </div>
-
-            {/* 에러 메시지 */}
-            {error && (
-              <div className="w-full mb-4 text-red-500 text-sm">
-                {error}
-              </div>
-            )}
-
-            {/* 수정 버튼 */}
-            <div className="w-full border border-[#F9FAFB] rounded-[10px] overflow-hidden">
-            <div className="p-2 sm:p-3">
-              <div className="flex justify-between">
-                <button
-                  onClick={() => router.push('/post')}
-                  className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
-                >
-                  목록
-                </button>
-                <button 
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
-                >
-                  {isSubmitting ? '수정 중...' : '수정하기'}
-                </button>
-              </div>
-            </div>
-          </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
     </>
   );

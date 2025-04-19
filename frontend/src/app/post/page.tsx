@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface Post {
   id: number;
@@ -26,6 +26,7 @@ interface Tag {
 
 export default function PostPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -40,14 +41,29 @@ export default function PostPage() {
   const [popularTags, setPopularTags] = useState<Tag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [filterType, setFilterType] = useState('태그');
+  const [minLikes, setMinLikes] = useState<string | null>(null);
 
   // 1. 컴포넌트 마운트 시 클라이언트 사이드 렌더링 활성화
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    if (searchParams && searchParams.has('minLikes')) {
+      setMinLikes(searchParams.get('minLikes'));
+    } else {
+      setMinLikes(null);
+      // 게시판 메뉴 클릭 시 태그 선택 상태 초기화
+      setSelectedTag(null);
+      // 태그 활성화 상태도 초기화
+      setPopularTags(prevTags => 
+        prevTags.map(tag => ({
+          ...tag,
+          isActive: false
+        }))
+      );
+    }
+  }, [searchParams]);
 
   // 2. 게시물 데이터 가져오는 함수
-  const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string) => {
+  const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string, minLikesParam?: string | null) => {
     if (!isMounted) return; // 클라이언트에서만 실행
     
     setLoading(true);
@@ -76,6 +92,12 @@ export default function PostPage() {
       if (tag && tag.trim() !== '') {
         url += `&tag=${encodeURIComponent(tag)}`;
         console.log('태그로 검색:', tag);
+      }
+      
+      // minLikes 파라미터 추가
+      if (minLikesParam) {
+        url += `&minLikes=${minLikesParam}`;
+        console.log('좋아요 최소 개수:', minLikesParam);
       }
       
       console.log('API 요청 URL:', url);
@@ -150,7 +172,13 @@ export default function PostPage() {
     setTagsLoading(true);
     try {
       // academyCode 파라미터 제거
-      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/tags/popular`;
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/tags/popular`;
+      
+      // minLikes 파라미터 추가
+      if (minLikes) {
+        url += `?minLikes=${minLikes}`;
+        console.log('인기 태그 - 좋아요 최소 개수:', minLikes);
+      }
       
       console.log('인기 태그 요청 URL:', url);
       
@@ -194,17 +222,17 @@ export default function PostPage() {
   // 13. 의존성 변경 시 게시물 데이터 다시 불러오기
   useEffect(() => {
     if (isMounted) {
-      // 페이지, 페이지 크기, 정렬 방식, 검색어, 태그 중 하나라도 변경되면 게시물 다시 불러옴
-      fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined);
+      // 페이지, 페이지 크기, 정렬 방식, 검색어, 태그, minLikes 중 하나라도 변경되면 게시물 다시 불러옴
+      fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
     }
-  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, isMounted]); // filterType 제거
+  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted]); // minLikes 추가
 
   // 14. 컴포넌트 마운트 시 인기 태그 불러오기
   useEffect(() => {
     if (isMounted) {
       fetchPopularTags();
     }
-  }, [isMounted]);
+  }, [isMounted, minLikes]);
 
   // 15. 인기 태그 클릭 처리 함수
   const handleTagClick = (tagName: string) => {
@@ -235,7 +263,7 @@ export default function PostPage() {
     setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
     
     // 현재 검색 조건 유지하면서 새로운 정렬 방식으로 데이터 다시 불러오기
-    fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
+    fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined, minLikes);
   };
 
   // 18. 검색 처리 함수
@@ -271,7 +299,7 @@ export default function PostPage() {
   // 서버 사이드 렌더링 또는 초기 렌더링 중에는 최소한의 UI만 표시
   if (!isMounted) {
     return (
-      <main className="bg-[#f9fafb] min-h-screen pb-8">
+      <main className="bg-[#f9fafc] min-h-screen pb-8">
         <div className="max-w-[1140px] mx-auto px-4 pt-14">
           <div className="text-center py-8">페이지 로딩 중...</div>
         </div>
@@ -280,14 +308,14 @@ export default function PostPage() {
   }
 
   return (
-    <main className="bg-[#f9fafb] min-h-screen pb-8">
+    <main className="bg-[#f9fafc] min-h-screen pb-8">
       <div className="max-w-[1140px] mx-auto px-4">
         {searchMode ? (
           <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
             <h2 className="text-xl font-bold text-[#333333] mb-2 pl-[20px] pt-[20px]">"{searchKeyword}" 검색 결과</h2>
             <p className="text-sm text-[#666666] pl-[20px] pb-[20px]">총 {searchCount}개의 게시물이 검색되었습니다.</p>
           </div>
-        ) : (
+        ) : popularTags.length > 0 ? (
           <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
             <h2 className="text-xl font-bold text-[#333333] mb-4 pl-[20px] pt-[20px]">인기 태그</h2>
             <div className="flex flex-wrap gap-[5px] pl-[20px] pr-[20px] pb-[20px]">
@@ -306,16 +334,20 @@ export default function PostPage() {
               )}
             </div>
           </div>
+        ) : (
+          <div className="pt-14 pb-[5px]"></div>
         )}
         
-        <div className="flex justify-end mb-5 pt-[20px] pb-[20px] ">
-          <Link href="/post/new" className="bg-[#980ffa] rounded-[10px] text-[#ffffff] py-[5px] px-[10px] text-sm no-underline flex items-center">
-            <span className="material-icons text-sm text-[#ffffff] mr-[5px]">edit</span>
-            새 글쓰기
-          </Link>
-        </div>
+        {!minLikes && (
+          <div className="flex justify-end m-[5px] pt-[10px] pb-[5px] ">
+            <Link href="/post/new" className="bg-[#980ffa] rounded-[10px] text-[#ffffff] py-[5px] px-[10px] text-sm no-underline flex items-center">
+              <span className="material-icons text-sm text-[#ffffff] mr-[5px]">edit</span>
+              새 글쓰기
+            </Link>
+          </div>
+        )}
         
-        <div className="flex justify-between items-center mb-12 pb-[20px] pt-[30px] bg-[#ffffff] rounded-lg">
+        <div className="flex justify-between items-center my-5 pb-[20px] pt-[20px] bg-[#ffffff] rounded-lg">
           <div className="flex pl-[10px] pr-[10px]">
             <div className="pr-[10px]">
               <FilterDropdown value={filterType} onChange={handleFilterChange} />
@@ -331,7 +363,7 @@ export default function PostPage() {
           <div className="text-center py-8">로딩 중...</div>
         ) : (
           <>
-            <div className="space-y-0 mb-8 pb-0 bg-[#ffffff] rounded-lg border-t border-[#eeeeee]">
+            <div className="rounded-[10px] bg-[#ffffff]  border-[#eeeeee] p-[10px]">
               {posts.length > 0 ? (
                 posts.map((post) => (
                   <PostItem 
@@ -355,7 +387,7 @@ export default function PostPage() {
             </div>
 
             {posts.length > 0 && (
-              <div className="flex justify-between items-center mt-14 mb-10 pb-[20px] pt-[10px]">
+              <div className="flex justify-between items-center pb-[5px] pt-[5px]">
                 <div className="m-[10px]">
                   <select 
                     className="px-4 py-[7px] text-sm text-[#666666] bg-white border border-[#e5e5e5] rounded hover:bg-gray-50 cursor-pointer focus:outline-none"
@@ -431,7 +463,7 @@ function FilterDropdown({ value, onChange }: { value: string; onChange: (type: s
   return (
     <div className="relative" onClick={handleClick}>
       <select 
-        className="px-4 py-[7px] text-sm text-[#333333] border border-[#e5e5e5] rounded-l bg-white cursor-pointer focus:outline-none"
+        className="px-4 py-[7px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
         value={value}
         onChange={handleFilterChange}
       >
@@ -473,10 +505,10 @@ function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (
   };
   
   return (
-    <div className="relative w-[380px]">
+    <div className="relative w-[300px]">
       <div className="flex items-center border border-[#e5e5e5] rounded">
         <span 
-          className="material-icons text-[#999999] pt-[2px] pb-[2px] pl-[2px] ml-[2px] cursor-pointer" 
+          className="material-icons text-[#999999] pt-[2px] pb-[2px] p-[10px] ml-[2px] cursor-pointer" 
           onClick={handleSearchClick}
         >
           search
@@ -499,7 +531,7 @@ function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.
   return (
     <div className="relative">
       <select 
-        className="px-4 py-[7px] text-sm text-[#333333] border border-[#e5e5e5] rounded bg-white cursor-pointer focus:outline-none"
+        className="px-4 py-[7px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
         value={value}
         onChange={onChange}
       >
@@ -551,7 +583,7 @@ function PostItem({ id, title, nickname, time, viewCount, commentCount, likeCoun
   tags: string[] 
 }) {
   return (
-    <div className="px-[10px] py-[5px] bg-white border-b border-[#eeeeee]">
+    <div className="px-[10px] py-[10px] bg-white border border-[#eeeeee] rounded-[10px] m-[10px]">
       <Link href={`/post/${id}`} className="block mb-3 no-underline">
         <h3 className="text-lg font-semibold text-[#333333] hover:text-[#980ffa]">{title}</h3>
       </Link>

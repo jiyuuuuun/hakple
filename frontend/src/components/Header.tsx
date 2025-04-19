@@ -84,7 +84,7 @@ export default function Header({ isLoggedIn: propIsLoggedIn }: { isLoggedIn?: bo
                                 게시판
                             </Link>
                             <Link
-                                href="/boad"
+                                href="/post?minLikes=10"
                                 className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                             >
                                 인기글

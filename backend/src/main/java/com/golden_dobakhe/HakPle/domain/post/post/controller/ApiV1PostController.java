@@ -54,6 +54,7 @@ public ResponseEntity<BoardResponse> getBoard(
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "tag", required = false) String tag,
             @RequestParam(name = "searchType", required = false) String searchType,
+            @RequestParam(name = "minLikes", required = false) Integer minLikes,
             @PageableDefault(size = 10) Pageable pageable) {
 
         Long userId = 7L;
@@ -62,14 +63,14 @@ public ResponseEntity<BoardResponse> getBoard(
         
         if (keyword != null && !keyword.isEmpty()) {
             if (searchType != null && !searchType.isEmpty()) {
-                return ResponseEntity.ok(boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, adjustedPageable));
+                return ResponseEntity.ok(boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, minLikes, adjustedPageable));
             } else {
-                return ResponseEntity.ok(boardService.searchBoardsByUserId(userId, keyword, sortType, adjustedPageable));
+                return ResponseEntity.ok(boardService.searchBoardsByUserId(userId, keyword, sortType, minLikes, adjustedPageable));
             }
         } else if (tag != null && !tag.isEmpty()) {
-            return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, adjustedPageable));
+            return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, adjustedPageable));
         } else {
-            return ResponseEntity.ok(boardService.getBoardsByUserId(userId, sortType, adjustedPageable));
+            return ResponseEntity.ok(boardService.getBoardsByUserId(userId, sortType, minLikes, adjustedPageable));
         }
     }
 
@@ -104,20 +105,21 @@ public ResponseEntity<BoardResponse> getBoard(
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "게시물 특적 태그로 이동합니다", description = "특정 ID의 게시물 태그로 이동합니다.")
+    @Operation(summary = "게시물 특정 태그로 이동합니다", description = "특정 ID의 게시물 태그로 이동합니다.")
     @GetMapping("/tag/{tag}")
     public ResponseEntity<Page<BoardResponse>> getBoardsByTag(
             @PathVariable String tag,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @PageableDefault(size = 10) Pageable pageable,
-            @RequestParam(defaultValue = "등록일순") String sortType
+            @RequestParam(defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "minLikes", required = false) Integer minLikes
     ) {
         Long userId = 7L;
 
         Sort sort = Sort.by(Sort.Direction.DESC, "creationTime");
         Pageable adjustedPageable = PageRequest.of(page - 1, pageable.getPageSize(), sort);
 
-        return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, adjustedPageable));
+        return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, adjustedPageable));
     }
 
     @Operation(summary = "게시물 신고", description = "특정 ID의 게시물을 신고합니다.")
@@ -169,8 +171,13 @@ public ResponseEntity<BoardResponse> getBoard(
     }
 
     @GetMapping("/tags/popular")
-    public ResponseEntity<List<TagResponse>> getPopularTags() {
+    public ResponseEntity<List<TagResponse>> getPopularTags(
+            @RequestParam(name = "minLikes", required = false) Integer minLikes
+    ) {
         Long userId = 7L;
+        if (minLikes != null && minLikes > 0) {
+            return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, minLikes));
+        }
         return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId));
     }
 
@@ -181,22 +188,23 @@ public ResponseEntity<BoardResponse> getBoard(
             @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "tag", required = false) String tag,
-            @RequestParam(name = "searchType", required = false) String searchType
+            @RequestParam(name = "searchType", required = false) String searchType,
+            @RequestParam(name = "minLikes", required = false) Integer minLikes
     ) {
         
         Long userId = 7L;
         Pageable pageable = PageRequest.of(page, size);
         
         if (StringUtils.hasText(tag)) {
-            return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, pageable));
+            return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, pageable));
         } else if (StringUtils.hasText(keyword)) {
             if (StringUtils.hasText(searchType)) {
-                return ResponseEntity.ok(boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, pageable));
+                return ResponseEntity.ok(boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, minLikes, pageable));
             } else {
-                return ResponseEntity.ok(boardService.searchBoardsByUserId(userId, keyword, sortType, pageable));
+                return ResponseEntity.ok(boardService.searchBoardsByUserId(userId, keyword, sortType, minLikes, pageable));
             }
         } else {
-            return ResponseEntity.ok(boardService.getBoardsByUserId(userId, sortType, pageable));
+            return ResponseEntity.ok(boardService.getBoardsByUserId(userId, sortType, minLikes, pageable));
         }
     }
 }
