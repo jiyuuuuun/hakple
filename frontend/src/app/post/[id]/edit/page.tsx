@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, KeyboardEvent, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useParams } from 'next/navigation'
 

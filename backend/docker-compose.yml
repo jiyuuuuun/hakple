@@ -19,11 +19,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    networks:
+      - hakple-network
+
   redis:
     image: redis:latest
-    container_name: redis
+    container_name: hakple-redis
+    restart: always
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - hakple-network
 
 volumes:
   mysql-data:
+  redis-data:
+
+networks:
+  hakple-network:
+    driver: bridge

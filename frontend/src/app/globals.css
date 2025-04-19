@@ -21,8 +21,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #f5f5f5;
+    --foreground: #333333;
   }
 }
 
@@ -35,5 +35,37 @@ body {
 @layer base {
   html, body {
     @apply bg-[#f9fafb];
+  }
+  
+  /* 다크모드 스타일 */
+  .dark body {
+    @apply bg-slate-100;
+    color: #333333;
+  }
+}
+
+/* 다크모드에서 콘텐츠가 더 잘 보이도록 추가 스타일 */
+@media (prefers-color-scheme: dark) {
+  /* 배경 색상 */
+  body {
+    background-color: #f5f5f5 !important;
+  }
+  
+  /* 카드 및 콘텐츠 컨테이너 */
+  .bg-white {
+    background-color: #f1f1f1 !important;
+  }
+  
+  /* 텍스트 색상 */
+  .text-gray-900, h1, h2, h3, h4, h5, h6 {
+    color: #333333 !important;
+  }
+  
+  .text-gray-800, .font-bold, .font-semibold {
+    color: #444444 !important;
+  }
+  
+  .text-gray-700, .text-gray-600, p {
+    color: #555555 !important;
   }
 }

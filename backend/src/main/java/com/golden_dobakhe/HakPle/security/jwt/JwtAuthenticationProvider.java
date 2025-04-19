@@ -32,64 +32,56 @@ public class JwtAuthenticationProvider {
         try {
             claims = jwtTokenizer.parseAccessToken(token);
         } catch (ExpiredJwtException e) {
-            log.warn("🔐 만료된 토큰 사용 시도: {}", e.getMessage());
+            log.warn("🔐 만료된 토큰: {}", e.getMessage());
             throw new RuntimeException("토큰이 만료되었습니다", e);
+        } catch (Exception e) {
+            log.warn("🔐 토큰 파싱 실패: {}", e.getMessage());
+            throw new RuntimeException("유효하지 않은 토큰입니다", e);
         }
 
-        // ✅ Redis 블랙리스트 확인 (로그아웃 토큰 여부)
-        if (redisTemplate.hasKey(token)) {
-            log.warn("🚫 로그아웃된 토큰 사용 시도: {}", token);
-            throw new RuntimeException("로그아웃된 토큰입니다");
+        // 🔥 Redis 연결 실패 시 로그 찍힘
+        try {
+            if (redisTemplate.hasKey(token)) {
+                log.warn("🚫 블랙리스트 토큰 사용: {}", token);
+                throw new RuntimeException("로그아웃된 토큰입니다");
+            }
+        } catch (Exception e) {
+            log.error("❌ Redis 연결 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("내부 서버 오류(Redis 연결 실패)", e);
         }
 
-        // ✅ 토큰에서 정보 파싱
-        String userName = claims.getSubject();
-        Object userIdRaw = claims.get("userId");
+        Long userId = extractUserId(claims);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다"));
+
+        if (user.getStatus() != Status.ACTIVE) {
+            log.warn("🚫 비활성 사용자 접근 시도 (userId: {})", userId);
+            throw new RuntimeException("비활성화된 계정입니다");
+        }
+
         List<String> roleNames = (List<String>) claims.get("roles");
+        Collection<GrantedAuthority> authorities = roleNames.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                .collect(Collectors.toList());
 
-        Long userId = null;
-
-        if (userIdRaw instanceof Integer) {
-            userId = ((Integer) userIdRaw).longValue();
-        } else if (userIdRaw instanceof Long) {
-            userId = (Long) userIdRaw;
-        } else if (userIdRaw instanceof String) {
-            userId = Long.parseLong((String) userIdRaw);
-        }
-
-        if (userId == null) {
-            throw new IllegalStateException("JWT에 userId가 없습니다!");
-        }
-
-
-        // ✅ DB에서 유저 상태 확인 (탈퇴/정지 여부)
-        User user = userRepository.findById(userId).orElse(null);
-        if (user == null || user.getStatus() != Status.ACTIVE) {
-            log.warn("🚫 비활성화된 사용자 또는 존재하지 않는 사용자 (userId: {})", userId);
-            throw new RuntimeException("접근 불가: 탈퇴 또는 정지된 계정입니다");
-        }
-
-        String nickname = claims.get("nickname", String.class);
-        String statusStr = claims.get("status", String.class);
-        Status status = Status.valueOf(statusStr);
-
-        // ✅ UserDetails 생성
         User userForPrincipal = User.builder()
-                .userName(userName)
-                .nickName(nickname)
-                .status(status)
+                .userName(claims.getSubject())
+                .nickName(claims.get("nickname", String.class))
+                .status(Status.valueOf(claims.get("status", String.class)))
                 .password("N/A")
                 .id(userId)
                 .build();
 
-        // 문자열 → GrantedAuthority로 변환
-        Collection<GrantedAuthority> authorities = roleNames.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role)) // 혹시 ROLE_ 빠졌다면 붙이기
-                .collect(Collectors.toList());
-
-        log.info("✅ 사용자 인증 완료: userId = {}", userId);
-        CustomUserDetails customUserDetails = new CustomUserDetails(userForPrincipal);
-
-        return new JwtAuthenticationToken(authorities, customUserDetails, null);
+        log.info("✅ 인증 완료: userId = {}", userId);
+        return new JwtAuthenticationToken(authorities, new CustomUserDetails(userForPrincipal), null);
     }
+
+    private Long extractUserId(Claims claims) {
+        Object userIdRaw = claims.get("userId");
+        if (userIdRaw instanceof Integer) return ((Integer) userIdRaw).longValue();
+        if (userIdRaw instanceof Long) return (Long) userIdRaw;
+        if (userIdRaw instanceof String) return Long.parseLong((String) userIdRaw);
+        throw new IllegalStateException("JWT에 userId 없음");
+    }
+
 }

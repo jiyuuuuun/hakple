@@ -4,6 +4,7 @@ package com.golden_dobakhe.HakPle.security.config;
 import com.golden_dobakhe.HakPle.security.OAuth.CustomOAuth2RequestResolver;
 import com.golden_dobakhe.HakPle.security.OAuth.CustomOAuth2SuccessHandler;
 import com.golden_dobakhe.HakPle.security.jwt.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -51,8 +52,23 @@ public class SecurityConfig {
                         // ✅ 나머지 열어둠 (필요하면 authenticated()로 바꿔도 됨)
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            log.warn("🔒 인증 진입 실패: {}", authException.getMessage());
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\": \"로그인이 필요합니다\"}");
+                        })
+                )
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // ⭐ OAuth2 흐름에서만 세션 생성 허용
+                )
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint((request, response, authException) -> {
+                            log.warn("❌ 인증 실패: {}", authException.getMessage());
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.getWriter().write("Unauthorized: Invalid or missing token");
+                        })
                 )
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))

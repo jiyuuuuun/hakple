@@ -512,7 +512,7 @@ export default function PostDetailPage() {
       console.log('댓글 삭제 요청:', commentId);
       
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${commentId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
       
       // 응답이 텍스트 형식이므로 text()로 읽습니다
@@ -670,321 +670,395 @@ export default function PostDetailPage() {
   };
 
   return (
-    <div className="mx-auto p-5 max-w-[1000px] bg-gray-100">
-      {/* 게시판 타이틀 */}
-      <div className="p-[10px] pt-5 rounded mb-4">
-        <h1 className="text-2xl font-bold">익명 판</h1>
-      </div>
-      
-      {/* 게시글 상세 컴포넌트 */}
-      <div className="bg-[#ffffff] p-[30px] mb-4 rounded border border-[#F9FAFB]">
-        {/* 게시글 헤더 */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            <div className="w-[50px] h-[50px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
-              <span className="material-icons text-white text-[30px]">account_circle</span>
+    <main className="bg-[#f9fafc] min-h-screen">
+      <div className="mx-auto p-5 max-w-[1000px]">
+        {/* 게시판 타이틀 */}
+        <div className="p-[10px] pt-5 rounded mb-4">
+          <h1 className="text-2xl font-bold">커뮤니티</h1>
+        </div>
+
+        {/* 게시글 상세 컴포넌트 */}
+        <div className="bg-[#ffffff] p-[30px] mb-4 rounded border border-[#F9FAFB]">
+          {/* 게시글 헤더 */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center">
+              <div className="w-[50px] h-[50px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
+                <span className="material-icons text-white text-[30px]">account_circle</span>
+              </div>
+              <span className="font-medium mr-[10px]">{post.nickname}</span>
+              <span className="text-gray-500 text-sm">
+                {post.modificationTime
+                  ? `${formatTime(post.modificationTime)} (수정)`
+                  : formatTime(post.creationTime)}
+              </span>
             </div>
-            <span className="font-medium mr-[10px]">{post.nickname}</span>
-            <span className="text-gray-500 text-sm">
-              {post.modificationTime 
-                ? `${formatTime(post.modificationTime)} (수정)` 
-                : formatTime(post.creationTime)}
-            </span>
+            <div className="relative" ref={postMenuRef}>
+              <button
+                className="text-gray-500 bg-[#ffffff] border-none menu-button"
+                onClick={togglePostMenu}
+              >
+                <span className="material-icons">more_horiz</span>
+              </button>
+
+              {/* 게시글 드롭다운 메뉴 */}
+              {showPostMenu && (
+                <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
+                  <button
+                    className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
+                    onClick={handleEdit}
+                  >
+                    <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
+                    글 수정
+                  </button>
+                  <button
+                    className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
+                    onClick={handleDelete}
+                  >
+                    <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
+                    글 삭제
+                  </button>
+                  <button
+                    className="flex items-center w-full text-left p-[5px] m-[5px] text-sm m-[5px] hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] menu-item"
+                    onClick={() => handleReport(post.id)}
+                    disabled={isReported}
+                  >
+                    <span className={`material-icons ${isReported ? 'text-gray-400' : 'text-gray-500'} m-[5px] mr-2`}>flag</span>
+                    {isReported ? '신고 완료' : '글 신고'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="relative" ref={postMenuRef}>
-            <button 
-              className="text-gray-500 bg-[#ffffff] border-none menu-button"
-              onClick={togglePostMenu}
+
+          <h1 className="text-xl font-bold mb-2 pl-2">{post.title}</h1>
+
+          {/* 게시글 내용 */}
+          <div className="py-4 pl-5">
+            <div className="prose max-w-none post-content" dangerouslySetInnerHTML={createMarkup()}></div>
+          </div>
+
+          {/* 조회수, 댓글 아이콘 */}
+          <div className="flex items-center text-gray-500 space-x-4 mb-2 pl-5">
+            <div className="flex items-center">
+              <span className="material-icons text-sm mr-1 m-[5px]">visibility</span>
+              <span className="text-sm m-[5px]">{post.viewCount}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="material-icons text-sm mr-1 m-[5px]">comment</span>
+              <span className="text-sm m-[5px]">{comments.length}</span>
+            </div>
+          </div>
+
+          {/* 좋아요 버튼 */}
+          <div className="flex justify-center my-4">
+            <button
+              onClick={handleLike}
+              disabled={isLiking}
+              className={`flex items-center justify-center rounded-[10px] py-1 px-6 border-none transition-colors ${
+                isLiked 
+                  ? 'bg-pink-100 hover:bg-pink-200 text-pink-600' 
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
             >
-              <span className="material-icons">more_horiz</span>
+              <span className="material-icons m-[5px]">{isLiked ? 'favorite' : 'favorite_border'}</span>
+              <span className="m-[5px]">좋아요</span>
+              <span className="m-[5px]">{post.likeCount}</span>
             </button>
-            
-            {/* 게시글 드롭다운 메뉴 */}
-            {showPostMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
-                <button 
-                  className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                  onClick={handleEdit}
-                >
-                  <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
-                  글 수정
-                </button>
-                <button 
-                  className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
-                  onClick={handleDelete}
-                >
-                  <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
-                  글 삭제
-                </button>
-                <button 
-                  className="flex items-center w-full text-left p-[5px] m-[5px] text-sm m-[5px] hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] menu-item"
-                  onClick={() => handleReport(post.id)}
-                  disabled={isReported}
-                >
-                  <span className={`material-icons ${isReported ? 'text-gray-400' : 'text-gray-500'} m-[5px] mr-2`}>flag</span>
-                  {isReported ? '신고 완료' : '글 신고'}
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-        
-        <h1 className="text-xl font-bold mb-2 pl-2">{post.title}</h1>
-        
-        {/* 게시글 내용 */}
-        <div className="py-4 pl-5">
-          <div className="prose max-w-none post-content" dangerouslySetInnerHTML={createMarkup()}></div>
-        </div>
-        
-        {/* 조회수, 댓글 아이콘 */}
-        <div className="flex items-center text-gray-500 space-x-4 mb-2 pl-5">
-          <div className="flex items-center">
-            <span className="material-icons text-sm mr-1 m-[5px]">visibility</span>
-            <span className="text-sm m-[5px]">{post.viewCount}</span>
-          </div>
-          <div className="flex items-center">
-            <span className="material-icons text-sm mr-1 m-[5px]">comment</span>
-            <span className="text-sm m-[5px]">{comments.length}</span>
-          </div>
-        </div>
-        
-        {/* 좋아요 버튼 */}
-        <div className="flex justify-center my-4">
-          <button 
-            onClick={handleLike}
-            disabled={isLiking}
-            className={`flex items-center justify-center rounded-[10px] py-1 px-6 border-none transition-colors ${
-              isLiked 
-                ? 'bg-pink-100 hover:bg-pink-200 text-pink-600' 
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            }`}
-          >
-            <span className="material-icons m-[5px]">{isLiked ? 'favorite' : 'favorite_border'}</span>
-            <span className="m-[5px]">좋아요</span>
-            <span className="m-[5px]">{post.likeCount}</span>
-          </button>
-        </div>
-        
-        {/* 태그 목록 */}
-        <div className="flex flex-wrap gap-2 mt-3 mb-2 pl-2">
-          {post.tags && post.tags.map((tag, index) => (
-            <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-sm m-[5px]">
-              #{tag}
-            </span>
-          ))}
-        </div>
-      </div>
-      
-      {/* 댓글 개수 표시 */}
-      <div className="p-[10px] pt-5 rounded mb-4 flex justify-between items-center">
-        <h3 className="font-medium">{comments.length}개의 댓글</h3>
-        <button
-          onClick={() => router.push('/post')}
-          className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-        >
-          목록
-        </button>
-      </div>
-      
-      {/* 댓글 컴포넌트와 입력 영역을 감싸는 컨테이너 */}
-      <div className="bg-[#ffffff] rounded border border-[#f9fafb] mb-4 p-[20px] m-[10px]">
-        {/* 댓글 목록 */}
-        {comments.length > 0 ? (
-          <div className="space-y-4 mb-4">
-            {comments.map(comment => (
-              <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#980ffa]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
-                {editingCommentId === comment.id ? (
-                  // 댓글 수정 모드
-                  <div className="py-[10px] rounded-[10px] bg-purple-50">
-                    <div className="flex items-center mb-2 pl-4">
-                      <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
-                        <span className="material-icons text-white text-[24px]">account_circle</span>
-                      </div>
-                      <span className="font-medium mr-2">{comment.nickname}</span>
-                      <span className="text-purple-600 text-sm font-medium">댓글 수정 중...</span>
-                    </div>
-                    <div className="flex px-4">
-                      <textarea
-                        ref={editCommentRef}
-                        value={editCommentContent}
-                        onChange={(e) => setEditCommentContent(e.target.value)}
-                        placeholder="댓글을 수정하세요..."
-                        className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
-                      />
-                    </div>
-                    <div className="flex justify-end mt-2 p-[10px] space-x-2">
-                      <button
-                        onClick={cancelCommentEdit}
-                        className="bg-gray-200 text-gray-700 py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-                      >
-                        취소
-                      </button>
-                      <button
-                        onClick={submitCommentEdit}
-                        className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-                      >
-                        수정
-                      </button>
-                    </div>
-                  
-                  </div>
-                ) : (
-                  // 일반 댓글 표시 모드
-                  <div className={`flex flex-col transition-all duration-300 ${
-                    lastEditedCommentId === comment.id 
-                      ? 'bg-purple-50 border-l-4 border-[#980ffa] px-2 py-1 rounded animate-highlight-fade' 
-                      : ''
-                  }`}>
-                    {/* 1줄: 프로필 이미지, 닉네임, 시간 */}
-                    <div className="flex items-center mb-2">
-                      <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
-                        <span className="material-icons text-white text-[24px]">account_circle</span>
-                      </div>
-                      <span className="font-medium mr-2">{comment.nickname}</span>
-                      <span className="text-gray-500 text-sm m-[5px]">{formatTime(comment.creationTime)}</span>
-                      {lastEditedCommentId === comment.id && (
-                        <span className="text-purple-600 text-xs bg-purple-100 px-2 py-1 rounded-full ml-2 animate-pulse-light">
-                          방금 수정됨
-                        </span>
-                      )}
-                      <div className="relative ml-auto" ref={el => commentMenuRefs.current[comment.id] = el}>
-                        <button 
-                          className="text-gray-500 bg-[#ffffff] border-none menu-button"
-                          onClick={(e) => toggleCommentMenu(e, comment.id)}
-                        >
-                          <span className="material-icons">more_horiz</span>
-                        </button>
-                        
-                        {/* 댓글 드롭다운 메뉴 */}
-                        {showCommentMenu === comment.id && (
-                          <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
-                            <button 
-                              className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                console.log('수정 버튼 클릭:', comment.id);
-                                startCommentEdit(comment.id, comment.content);
-                              }}
-                            >
-                              <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
-                              댓글 수정
-                            </button>
-                            <button 
-                              className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
-                              onClick={() => handleCommentDelete(comment.id)}
-                            >
-                              <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
-                              댓글 삭제
-                            </button>
-                            <button 
-                              className="flex items-center w-full text-left p-[5px] m-[5px] text-sm m-[5px] hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] menu-item"
-                              onClick={() => handleCommentReport(comment.id)}
-                            >
-                              <span className="material-icons text-gray-500 m-[5px] mr-2">flag</span>
-                              댓글 신고
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* 2줄: 댓글 내용 */}
-                    <p className="text-gray-800 mb-2 pl-[10px]">{comment.content}</p>
-                    
-                    {/* 3줄: 좋아요 표시와 숫자 */}
-                    <div className="flex items-center">
-                      <button 
-                        className={`flex items-center text-sm bg-[#ffffff] border-none ${
-                          comment.isLiked ? 'text-pink-500' : 'text-gray-500'
-                        }`}
-                        onClick={() => handleCommentLike(comment.id)}
-                      >
-                        <span className="material-icons text-sm mr-1 m-[5px]">
-                          {comment.isLiked ? 'favorite' : 'favorite_border'}
-                        </span>
-                        <span>{comment.likeCount}</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+
+          {/* 태그 목록 */}
+          <div className="flex flex-wrap gap-2 mt-3 mb-2 pl-2">
+            {post.tags && post.tags.map((tag, index) => (
+              <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-sm m-[5px]">
+                #{tag}
+              </span>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500">
-            첫 번째 댓글을 작성해보세요.
-          </div>
-        )}
-        
-        {/* 댓글 입력 컴포넌트 */}
-        <div className="py-[10px] rounded-[10px]">
-          <div className="flex">
-            <textarea
-              placeholder="댓글을 입력하세요..."
-              className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
-              value={commentInput}
-              onChange={(e) => setCommentInput(e.target.value)}
-            />
-          </div>
-          <div className="flex justify-end mt-2 p-[10px]">
-            <button
-              onClick={handleCommentSubmit}
-              className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-            >
-              등록
-            </button>
+        </div>
+
+        {/* 댓글 개수 표시 */}
+        <div className="p-[10px] pt-5 rounded mb-4 flex justify-between items-center">
+          <h3 className="font-medium">{comments.length}개의 댓글</h3>
+          <button
+            onClick={() => router.push('/post')}
+            className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+          >
+            목록
+          </button>
+        </div>
+
+        {/* 댓글 컴포넌트와 입력 영역을 감싸는 컨테이너 */}
+        <div className="bg-[#ffffff] rounded border border-[#f9fafb] mb-4 p-[20px] m-[10px]">
+          {/* 댓글 목록 */}
+          {comments.length > 0 ? (
+            <div className="space-y-4 mb-4">
+              {comments.map(comment => (
+                <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#980ffa]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
+                  {editingCommentId === comment.id ? (
+                    // 댓글 수정 모드
+                    <div className="py-[10px] rounded-[10px] bg-purple-50">
+                      <div className="flex items-center mb-2 pl-4">
+                        <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
+                          <span className="material-icons text-white text-[24px]">account_circle</span>
+                        </div>
+                        <span className="font-medium mr-2">{comment.nickname}</span>
+                        <span className="text-purple-600 text-sm font-medium">댓글 수정 중...</span>
+                      </div>
+                      <div className="flex px-4">
+                        <textarea
+                          ref={editCommentRef}
+                          value={editCommentContent}
+                          onChange={(e) => setEditCommentContent(e.target.value)}
+                          placeholder="댓글을 수정하세요..."
+                          className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
+                        />
+                      </div>
+                      <div className="flex justify-end mt-2 p-[10px] space-x-2">
+                        <button
+                          onClick={cancelCommentEdit}
+                          className="bg-gray-200 text-gray-700 py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+                        >
+                          취소
+                        </button>
+                        <button
+                          onClick={submitCommentEdit}
+                          className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+                        >
+                          수정
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // 일반 댓글 표시 모드
+                    <div className={`flex flex-col transition-all duration-300 ${
+                      lastEditedCommentId === comment.id 
+                        ? 'bg-purple-50 border-l-4 border-[#980ffa] px-2 py-1 rounded animate-highlight-fade' 
+                        : ''
+                    }`}>
+                      {/* 1줄: 프로필 이미지, 닉네임, 시간 */}
+                      <div className="flex items-center mb-2">
+                        <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
+                          <span className="material-icons text-white text-[24px]">account_circle</span>
+                        </div>
+                        <span className="font-medium mr-2">{comment.nickname}</span>
+                        <span className="text-gray-500 text-sm m-[5px]">{formatTime(comment.creationTime)}</span>
+                        {lastEditedCommentId === comment.id && (
+                          <span className="text-purple-600 text-xs bg-purple-100 px-2 py-1 rounded-full ml-2 animate-pulse-light">
+                            방금 수정됨
+                          </span>
+                        )}
+                        <div className="relative ml-auto" ref={(el) => {
+                          if (commentMenuRefs.current) {
+                            commentMenuRefs.current[comment.id] = el;
+                          }
+                        }}>
+                          <button
+                            className="text-gray-500 bg-[#ffffff] border-none menu-button"
+                            onClick={(e) => toggleCommentMenu(e, comment.id)}
+                          >
+                            <span className="material-icons">more_horiz</span>
+                          </button>
+
+                          {/* 댓글 드롭다운 메뉴 */}
+                          {showCommentMenu === comment.id && (
+                            <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
+                              <button
+                                className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  console.log('수정 버튼 클릭:', comment.id);
+                                  startCommentEdit(comment.id, comment.content);
+                                }}
+                              >
+                                <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
+                                댓글 수정
+                              </button>
+                              <button
+                                className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
+                                onClick={() => handleCommentDelete(comment.id)}
+                              >
+                                <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
+                                댓글 삭제
+                              </button>
+                              <button
+                                className="flex items-center w-full text-left p-[5px] m-[5px] text-sm m-[5px] hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] menu-item"
+                                onClick={() => handleCommentReport(comment.id)}
+                              >
+                                <span className="material-icons text-gray-500 m-[5px] mr-2">flag</span>
+                                댓글 신고
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 2줄: 댓글 내용 */}
+                      <p className="text-gray-800 mb-2 pl-[10px]">{comment.content}</p>
+
+                      {/* 3줄: 좋아요 표시와 숫자 */}
+                      <div className="flex items-center">
+                        <button
+                          className={`flex items-center text-sm bg-[#ffffff] border-none ${
+                            comment.isLiked ? 'text-pink-500' : 'text-gray-500'
+                          }`}
+                          onClick={() => handleCommentLike(comment.id)}
+                        >
+                          <span className="material-icons text-sm mr-1 m-[5px]">
+                            {comment.isLiked ? 'favorite' : 'favorite_border'}
+                          </span>
+                          <span>{comment.likeCount}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              첫 번째 댓글을 작성해보세요.
+            </div>
+          )}
+
+          {/* 댓글 입력 컴포넌트 */}
+          <div className="py-[10px] rounded-[10px]">
+            <div className="flex">
+              <textarea
+                placeholder="댓글을 입력하세요..."
+                className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
+                value={commentInput}
+                onChange={(e) => setCommentInput(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end mt-2 p-[0px]">
+              <button
+                onClick={handleCommentSubmit}
+                className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+              >
+                등록
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 이미지 정렬 관련 스타일 */}
-      <style jsx global>{`
-        /* 게시글 내용 이미지 기본 스타일 */
-        .post-content img {
-          max-width: 100%;
-          display: block;
-        }
-        
-        /* 이미지 정렬 스타일 */
-        .post-content [data-text-align=center],
-        .post-content [style*="text-align: center"] {
-          text-align: center !important;
-        }
-        
-        .post-content [data-text-align=right],
-        .post-content [style*="text-align: right"] {
-          text-align: right !important;
-        }
-        
-        .post-content [data-text-align=left],
-        .post-content [style*="text-align: left"] {
-          text-align: left !important;
-        }
-        
-        .post-content [data-text-align=center] img {
-          margin-left: auto !important;
-          margin-right: auto !important;
-        }
-        
-        .post-content [data-text-align=right] img {
-          margin-left: auto !important;
-          margin-right: 0 !important;
-        }
-        
-        .post-content [data-text-align=left] img {
-          margin-left: 0 !important;
-          margin-right: auto !important;
-        }
-        
-        /* image-resizer 컨테이너 스타일 */
-        .post-content .image-resizer {
-          display: block;
-          position: relative;
-          margin-top: 0.5em;
-          margin-bottom: 0.5em;
-        }
-      `}</style>
-    </div>
+        {/* 이미지 정렬 관련 스타일 */}
+        <style jsx global>{`
+          /* 게시글 내용 이미지 기본 스타일 */
+          .post-content img {
+            max-width: 100%;
+            display: block;
+          }
+          
+          /* 이미지 정렬 스타일 */
+          .post-content [data-text-align=center],
+          .post-content [style*="text-align: center"] {
+            text-align: center !important;
+          }
+          
+          .post-content [data-text-align=right],
+          .post-content [style*="text-align: right"] {
+            text-align: right !important;
+          }
+          
+          .post-content [data-text-align=left],
+          .post-content [style*="text-align: left"] {
+            text-align: left !important;
+          }
+          
+          .post-content [data-text-align=center] img {
+            margin-left: auto !important;
+            margin-right: auto !important;
+          }
+          
+          .post-content [data-text-align=right] img {
+            margin-left: auto !important;
+            margin-right: 0 !important;
+          }
+          
+          .post-content [data-text-align=left] img {
+            margin-left: 0 !important;
+            margin-right: auto !important;
+          }
+          
+          /* image-resizer 컨테이너 스타일 */
+          .post-content .image-resizer {
+            display: block;
+            position: relative;
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+          }
+          
+          /* 인용구 스타일 */
+          .post-content blockquote {
+            border-left: 3px solid #000000;
+            padding-left: 1em;
+            margin-left: 0;
+          }
+          
+          /* 번호매기기와 글머리 기호 마커 스타일 */
+          .post-content ul li::marker,
+          .post-content ol li::marker {
+            color: #000000 !important;
+          }
+          
+          /* 더 강력한 스타일 적용 */
+          .post-content ul,
+          .post-content ol {
+            color: #000000 !important;
+          }
+          
+          /* 각 항목 자체에도 색상 적용 */
+          .post-content ul li,
+          .post-content ol li {
+            color: #000000 !important;
+          }
+          
+          /* 추가: 모든 가능한 마커 선택자 */
+          .post-content ul li::before,
+          .post-content ol li::before,
+          .post-content ul > li,
+          .post-content ol > li {
+            color: #000000 !important;
+          }
+          
+          /* 특정 리스트 유형에 대한 명시적 스타일 */
+          .post-content ul {
+            list-style-type: disc !important;
+            color: #000000 !important;
+          }
+          
+          .post-content ol {
+            list-style-type: decimal !important;
+            color: #000000 !important;
+          }
+          
+          /* 헤딩 태그 크기 지정 */
+          .post-content h1 {
+            font-size: 28px !important;
+            line-height: 1.2;
+            margin-top: 0.8em;
+            margin-bottom: 0.5em;
+            color: #000000;
+          }
+          
+          .post-content h2 {
+            font-size: 24px !important;
+            line-height: 1.3;
+            margin-top: 0.7em;
+            margin-bottom: 0.5em;
+            color: #000000;
+          }
+          
+          .post-content h3 {
+            font-size: 20px !important;
+            line-height: 1.4;
+            margin-top: 0.6em;
+            margin-bottom: 0.5em;
+            color: #000000;
+          }
+        `}</style>
+      </div>
+    </main>
   );
 }

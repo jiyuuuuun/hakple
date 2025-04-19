@@ -52,8 +52,6 @@ public class BoardServiceImpl implements BoardService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> BoardException.notFound());
 
-
-
         Board board = Board.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
@@ -130,12 +128,11 @@ public class BoardServiceImpl implements BoardService {
             throw BoardException.invalidRequest();
         }
 
-
         if (!StringUtils.hasText(sortType)) {
             sortType = "등록일순";
         }
 
-        return boardRepository.findByAcademyCodeAndStatus(academyCode, Status.ACTIVE, sortType, pageable)
+        return boardRepository.findByAcademyCodeAndStatus(academyCode, Status.ACTIVE, sortType, null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -148,7 +145,7 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
             throw BoardException.invalidRequest();
         }
-        return boardRepository.searchBoards(academyCode, keyword, sortType, pageable)
+        return boardRepository.searchBoards(academyCode, keyword, sortType, null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -167,18 +164,22 @@ public class BoardServiceImpl implements BoardService {
         board.validateStatus();
         board.update(request.getTitle(), request.getContent());
 
-        tagMappingRepository.deleteByBoard(board);
+        board.getTags().clear();
+
+        String academyCode = userRepository.findById(userId)
+                .orElseThrow(() -> BoardException.notFound()).getAcademyId();
 
         if (request.getTags() != null) {
-            for (String tagName : request.getTags()) {
-                if (!StringUtils.hasText(tagName)) continue;
+            List<String> uniqueTags = request.getTags().stream()
+                    .filter(StringUtils::hasText)
+                    .distinct()
+                    .collect(Collectors.toList());
 
-                Hashtag hashtag = hashtagRepository.findByHashtagNameAndAcademyCode(tagName, userRepository.findById(userId)
-                        .orElseThrow(() -> BoardException.notFound()).getAcademyId())
+            for (String tagName : uniqueTags) {
+                Hashtag hashtag = hashtagRepository.findByHashtagNameAndAcademyCode(tagName, academyCode)
                         .orElseGet(() -> hashtagRepository.save(Hashtag.builder()
                                 .hashtagName(tagName)
-                                .academyCode(userRepository.findById(userId)
-                                        .orElseThrow(() -> BoardException.notFound()).getAcademyId())
+                                .academyCode(academyCode)
                                 .build()));
 
                 TagMapping tagMapping = TagMapping.builder()
@@ -186,6 +187,7 @@ public class BoardServiceImpl implements BoardService {
                         .hashtag(hashtag)
                         .build();
 
+                board.getTags().add(tagMapping);
                 tagMappingRepository.save(tagMapping);
             }
         }
@@ -243,7 +245,7 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(tag)) {
             throw BoardException.invalidRequest();
         }
-        return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, pageable)
+        return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -276,6 +278,18 @@ public class BoardServiceImpl implements BoardService {
     @Transactional(readOnly = true)
     public List<TagResponse> getPopularTags(String academyCode) {
         return tagMappingRepository.findTop5PopularTagsByAcademyCode(academyCode)
+                .stream()
+                .map(tag -> TagResponse.builder()
+                        .name(tag.getHashtagName())
+                        .count(tag.getCount())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TagResponse> getPopularTags(String academyCode, Integer minLikes) {
+        return tagMappingRepository.findTop5PopularTagsByAcademyCode(academyCode, minLikes)
                 .stream()
                 .map(tag -> TagResponse.builder()
                         .name(tag.getHashtagName())
@@ -333,23 +347,41 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Pageable pageable) {
+    public Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        return getBoards(academyCode, sortType, pageable);
+        if (academyCode == null) throw BoardException.notFound();
+
+        return boardRepository.findByAcademyCodeAndStatus(academyCode, Status.ACTIVE, sortType, minLikes, pageable)
+                .map(board -> {
+                    Hibernate.initialize(board.getBoardLikes());
+                    return createBoardResponse(board);
+                });
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Pageable pageable) {
+    public Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        return searchBoards(academyCode, keyword, sortType, pageable);
+        if (academyCode == null) throw BoardException.notFound();
+
+        return boardRepository.searchBoards(academyCode, keyword, sortType, minLikes, pageable)
+                .map(board -> {
+                    Hibernate.initialize(board.getBoardLikes());
+                    return createBoardResponse(board);
+                });
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Pageable pageable) {
+    public Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        return getBoardsByTag(academyCode, tag, sortType, pageable);
+        if (academyCode == null) throw BoardException.notFound();
+
+        return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, minLikes, pageable)
+                .map(board -> {
+                    Hibernate.initialize(board.getBoardLikes());
+                    return createBoardResponse(board);
+                });
     }
 
 
@@ -360,6 +392,13 @@ public class BoardServiceImpl implements BoardService {
         return getPopularTags(academyCode);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TagResponse> getPopularTagsByUserId(Long userId, Integer minLikes) {
+        String academyCode = getAcademyCodeByUserId(userId);
+        return getPopularTags(academyCode, minLikes);
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -367,8 +406,13 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword) || !StringUtils.hasText(searchType)) {
             throw BoardException.invalidRequest();
         }
-
-        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, pageable)
+        
+        // 검색 유형이 유효한지 체크
+        if (!searchType.equals("태그") && !searchType.equals("작성자") && !searchType.equals("제목")) {
+            throw BoardException.invalidRequest();
+        }
+        
+        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -378,9 +422,15 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType, Pageable pageable) {
+    public Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType, Integer minLikes, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        return searchBoardsByType(academyCode, searchType, keyword, sortType, pageable);
+        if (academyCode == null) throw BoardException.notFound();
+
+        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, minLikes, pageable)
+                .map(board -> {
+                    Hibernate.initialize(board.getBoardLikes());
+                    return createBoardResponse(board);
+                });
     }
 
     @Override
