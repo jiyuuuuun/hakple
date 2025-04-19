@@ -51,10 +51,13 @@ spring:
       file: docker-compose.yml  # 파일 경로 명시
       lifecycle-management: start-and-stop # Docker Compose 라이프사이클 관리 활성화
       enabled: true
+      skip-in-tests: false # 테스트에서도 Docker Compose 실행
+      start-timeout: 120s # 시작 타임아웃 늘림
   data:
     redis:
-      host: localhost
+      host: hakple-redis # 컨테이너 이름으로 설정
       port: 6379
+      connect-timeout: 10000 # 연결 타임아웃 10초
 
 logging:
   level:

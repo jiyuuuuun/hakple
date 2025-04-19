@@ -15,6 +15,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT b FROM Board b WHERE b.academyCode = :academyCode AND b.status = :status " +
+           "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
            "ORDER BY " +
            "CASE " +
            "   WHEN :sortType = '조회순' THEN b.viewCount " +
@@ -36,12 +37,14 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             @Param("academyCode") String academyCode, 
             @Param("status") Status status,
             @Param("sortType") String sortType,
+            @Param("minLikes") Integer minLikes,
             Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT b FROM Board b WHERE b.academyCode = :academyCode AND b.status = 'ACTIVE' " +
            "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
            "OR LOWER(b.content) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
+           "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
            "ORDER BY " +
            "CASE " +
            "   WHEN :sortType = '조회순' THEN b.viewCount " +
@@ -62,6 +65,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     Page<Board> searchBoards(@Param("academyCode") String academyCode,
                            @Param("keyword") String keyword,
                            @Param("sortType") String sortType,
+                           @Param("minLikes") Integer minLikes,
                            Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
@@ -70,6 +74,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             "WHERE b.academyCode = :academyCode " +
             "AND b.status = 'ACTIVE' " +
             "AND LOWER(t.hashtag.hashtagName) LIKE CONCAT('%', LOWER(:tag), '%') " +
+            "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
             "ORDER BY " +
             "CASE " +
             "   WHEN :sortType = '조회순' THEN b.viewCount " +
@@ -90,6 +95,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     Page<Board> findByTagAndAcademyCode(@Param("academyCode") String academyCode,
                                       @Param("tag") String tag,
                                       @Param("sortType") String sortType,
+                                      @Param("minLikes") Integer minLikes,
                                       Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
@@ -102,6 +108,7 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             "   OR (:searchType = '작성자' AND LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
             "   OR (:searchType = '제목' AND LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
             ") " +
+            "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
             "ORDER BY " +
             "CASE " +
             "   WHEN :sortType = '조회순' THEN b.viewCount " +
@@ -124,5 +131,6 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             @Param("searchType") String searchType,
             @Param("keyword") String keyword,
             @Param("sortType") String sortType,
+            @Param("minLikes") Integer minLikes,
             Pageable pageable);
 }

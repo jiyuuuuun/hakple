@@ -25,10 +25,6 @@ public abstract class BaseEntity {
     private LocalDateTime creationTime; // 생성 시간
 
     private LocalDateTime modificationTime; // 수정 시간
-    
-    @PreUpdate
-    public void onPreUpdate() {
-        this.modificationTime = LocalDateTime.now();
-    }
+
 }
 

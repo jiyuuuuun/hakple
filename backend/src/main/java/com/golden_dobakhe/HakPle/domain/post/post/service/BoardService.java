@@ -13,23 +13,23 @@ public interface BoardService {
 
     BoardResponse getBoard(Long id,  Boolean postView);
 
-    Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Pageable pageable);
+    Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, Pageable pageable);
 
     Page<BoardResponse> getBoards(String academyCode, String sortType, Pageable pageable);
 
-    Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Pageable pageable);
+    Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes, Pageable pageable);
 
     Page<BoardResponse> searchBoards(String academyCode, String keyword, String sortType, Pageable pageable);
 
     Page<BoardResponse> searchBoardsByType(String academyCode, String searchType, String keyword, String sortType, Pageable pageable);
 
-    Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType, Pageable pageable);
+    Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType, Integer minLikes, Pageable pageable);
 
     BoardResponse updateBoard(Long id, BoardRequest request, Long userId);
     void deleteBoard(Long id, Long userId);
     void toggleLike(Long id, Long userId);
 
-    Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Pageable pageable);
+    Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes, Pageable pageable);
 
     Page<BoardResponse> getBoardsByTag(String academyCode, String tag, String sortType, Pageable pageable);
 
@@ -37,7 +37,11 @@ public interface BoardService {
 
     List<TagResponse> getPopularTagsByUserId(Long userId);
 
+    List<TagResponse> getPopularTagsByUserId(Long userId, Integer minLikes);
+
     List<TagResponse> getPopularTags(String academyCode);
+
+    List<TagResponse> getPopularTags(String academyCode, Integer minLikes);
 
     String getAcademyCodeByUserId(Long userId);
 
