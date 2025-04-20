@@ -4,15 +4,21 @@ import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
+import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
+
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
@@ -62,6 +68,20 @@ public class ApiV1AdminController {
         adminService.setCommentPending(id);
         return ResponseEntity.ok().build();
     }
+    @GetMapping("/check")
+    @Operation(summary = "관리자인지 확인",description = "사용자가 관리자 권한을 가지고 있는지 확인합니다")
+    public ResponseEntity<?> checkAdmin(@AuthenticationPrincipal CustomUserDetails principal) {
+
+        boolean isAdmin = principal.getUser().getRoles()
+                .stream()
+                .anyMatch(role -> role.equals(Role.ADMIN));
+
+        log.info(principal.getUser().getRoles().toString());
+
+        return ResponseEntity.ok(isAdmin);
+    }
+
+
 }
 
 
