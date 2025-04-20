@@ -39,7 +39,6 @@ public class JwtAuthenticationProvider {
             throw new RuntimeException("유효하지 않은 토큰입니다", e);
         }
 
-        // 🔥 Redis 연결 실패 시 로그 찍힘
         try {
             if (redisTemplate.hasKey(token)) {
                 log.warn("🚫 블랙리스트 토큰 사용: {}", token);
@@ -51,7 +50,7 @@ public class JwtAuthenticationProvider {
         }
 
         Long userId = extractUserId(claims);
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdWithRoles(userId)
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다"));
 
         if (user.getStatus() != Status.ACTIVE) {
@@ -59,21 +58,14 @@ public class JwtAuthenticationProvider {
             throw new RuntimeException("비활성화된 계정입니다");
         }
 
-        List<String> roleNames = (List<String>) claims.get("roles");
-        Collection<GrantedAuthority> authorities = roleNames.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+        // ✅ 여기서 DB에서 불러온 user의 roles 사용
+        Collection<GrantedAuthority> authorities = user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(Collectors.toList());
 
-        User userForPrincipal = User.builder()
-                .userName(claims.getSubject())
-                .nickName(claims.get("nickname", String.class))
-                .status(Status.valueOf(claims.get("status", String.class)))
-                .password("N/A")
-                .id(userId)
-                .build();
+        log.info("✅ 인증 완료: userId = {}, roles = {}", userId, user.getRoles());
 
-        log.info("✅ 인증 완료: userId = {}", userId);
-        return new JwtAuthenticationToken(authorities, new CustomUserDetails(userForPrincipal), null);
+        return new JwtAuthenticationToken(authorities, new CustomUserDetails(user), null);
     }
 
     private Long extractUserId(Claims claims) {
