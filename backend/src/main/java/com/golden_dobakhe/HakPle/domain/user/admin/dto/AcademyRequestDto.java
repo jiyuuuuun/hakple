@@ -15,10 +15,6 @@ public class AcademyRequestDto {
     @NotBlank(message = "학원 이름은 필수입니다.")
     private String name;
 
-    @Schema(description = "학원 주소", example = "서울특별시 강남구 테헤란로 123")
-    @NotBlank(message = "학원 주소는 필수입니다.")
-    private String address;
-
     @Schema(description = "학원 전화번호", example = "010-1234-5678")
     @NotBlank(message = "전화번호는 필수입니다.")
     @Pattern(
