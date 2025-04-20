@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import { usePathname } from 'next/navigation'
 
 /**
  * 헤더 컴포넌트
@@ -15,14 +16,88 @@ import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 export default function Header() {
     // 모바일에서 메뉴 버튼 클릭 시 상태 관리
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    // 관리자 권한 확인 상태
+    const [isAdmin, setIsAdmin] = useState(false)
+    // 현재 경로 가져오기
+    const pathname = usePathname()
 
     // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
 
+    // 컴포넌트 마운트 시 한 번 관리자 권한 확인
+    useEffect(() => {
+        console.log('Header - 컴포넌트 마운트, 로그인 상태:', isLogin)
+        if (localStorage.getItem('accessToken')) {
+            console.log('Header - 액세스 토큰 존재, 관리자 권한 확인 시작')
+            checkAdminPermission()
+        }
+    }, [])
+
     // 로그인 상태 변경 감지를 위한 효과
     useEffect(() => {
         console.log('Header - 로그인 상태 감지:', isLogin, loginMember)
+        
+        // 로그인 상태일 때 관리자 권한 확인
+        if (isLogin) {
+            console.log('Header - 로그인 상태이므로 관리자 권한 확인 시작')
+            checkAdminPermission()
+        } else {
+            console.log('Header - 로그인되지 않음, 관리자 권한 없음')
+            setIsAdmin(false)
+        }
     }, [isLogin, loginMember])
+    
+    // 현재 경로가 바뀔 때 관리자 권한 다시 확인 (특히 /admin 페이지 방문 시)
+    useEffect(() => {
+        if (pathname && pathname.startsWith('/admin') && isLogin) {
+            console.log('Header - 관리자 페이지 방문, 권한 재확인')
+            checkAdminPermission()
+        }
+    }, [pathname, isLogin])
+    
+    // 관리자 권한 확인 함수
+    const checkAdminPermission = async () => {
+        try {
+            const accessToken = localStorage.getItem('accessToken')
+            console.log('Header - 액세스 토큰 확인:', !!accessToken)
+            
+            if (!accessToken) {
+                setIsAdmin(false)
+                return
+            }
+            
+            console.log('Header - 관리자 권한 확인 API 요청')
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+            })
+            
+            console.log('Header - 관리자 권한 확인 응답 상태:', response.status)
+            if (!response.ok) {
+                setIsAdmin(false)
+                return
+            }
+            
+            // boolean 값으로 응답이 오므로 이를 처리
+            const isAdminResult = await response.json()
+            console.log('Header - 관리자 권한 확인 결과:', isAdminResult)
+            
+            if (isAdminResult === true) {
+                console.log('Header - 관리자 권한 있음')
+                setIsAdmin(true)
+            } else {
+                console.log('Header - 관리자 권한 없음')
+                setIsAdmin(false)
+            }
+        } catch (error) {
+            console.error('관리자 권한 확인 중 오류:', error)
+            setIsAdmin(false)
+        }
+    }
 
     return (
         <header className="bg-[#f2edf4] py-3 sticky top-0 z-10 shadow-sm">
@@ -86,6 +161,16 @@ export default function Header() {
                             >
                                 캘린더
                             </Link>
+                            {/* 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
+                            {isAdmin && (
+                                <Link
+                                    href="/admin"
+                                    className="font-medium text-lg text-red-600 hover:text-red-800 whitespace-nowrap hover:font-semibold transition-all flex items-center"
+                                >
+                                    <span className="mr-1">👑</span>
+                                    관리자
+                                </Link>
+                            )}
                         </nav>
                     </div>
 
@@ -112,6 +197,13 @@ export default function Header() {
                                 placeholder="검색어를 입력하세요"
                                 aria-label="검색"
                             />
+                        </div>
+
+                        {/* 로그인 상태 디버깅 표시 */}
+                        <div className="hidden">
+                            로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'}, 
+                            ID: {loginMember?.id || 'None'}, 
+                            Token: {localStorage.getItem('accessToken') ? '있음' : '없음'}
                         </div>
 
                         {/* 로그인 상태에 따른 버튼 표시 */}
@@ -175,6 +267,16 @@ export default function Header() {
                             >
                                 캘린더
                             </Link>
+                            {/* 모바일 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
+                            {isAdmin && (
+                                <Link
+                                    href="/admin"
+                                    className="font-medium text-base text-red-600 hover:text-red-800 px-2 py-2 rounded-md hover:bg-gray-100 flex items-center"
+                                >
+                                    <span className="mr-1">👑</span>
+                                    관리자
+                                </Link>
+                            )}
                         </nav>
                     </div>
                 )}

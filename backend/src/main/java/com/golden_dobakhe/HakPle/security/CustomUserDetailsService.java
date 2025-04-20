@@ -24,13 +24,13 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository; // 또는 TestRepository
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUserName(username)
-                .orElseThrow(() -> new UsernameNotFoundException(username + " 없어요"));
+    public UserDetails loadUserByUsername(String username) {
+        log.info("loadUserByUsername: {}", username);
+        User user = userRepository.findByUserNameWithRoles(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-      //쓰는 곳이 없어서 일단은 리턴값을 null로 했습니다
-        return null;
-
+        log.info("✅ User loaded: " + user.getUserName() + ", roles = " + user.getRoles());
+        return new com.golden_dobakhe.HakPle.security.CustomUserDetails(user); // 이 시점에 roles가 null이면 안 됨!
     }
 
     //user객체만 가져오는 방식이랑 원하는 부분만 가져오는 방식에서 문제가 생겨서 이렇게 나누었습니다

@@ -9,7 +9,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 @Getter
 public class CustomUserDetails implements UserDetails {
@@ -17,12 +18,17 @@ public class CustomUserDetails implements UserDetails {
 
     public CustomUserDetails(User user) {
         this.user = user;
+        System.out.println("💡 [DEBUG] 유저 생성됨: roles = " + user.getRoles());
     }
-
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        String role = "ROLE_" + user.getStatus().name(); // 예: ROLE_ACTIVE
-        return List.of(new SimpleGrantedAuthority(role));
+        if (user.getRoles() == null) {
+            return Collections.emptyList(); // 혹은 로그 찍고 예외 던져도 됨
+        }
+
+        return user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
+                .collect(Collectors.toSet());
     }
 
     @Override
