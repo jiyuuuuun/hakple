@@ -36,10 +36,17 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                // OAuth2 및 스웨거 API 문서
                                 "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
+                                
+                                // 인증 관련 API
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/logout",
+
+                                
+                                // 관리자 로그인/회원가입
+
                                 "/api/v1/users/userreg",
 
                                 // ✅ 관리자 로그인/회원가입은 열어두기
@@ -47,10 +54,10 @@ public class SecurityConfig {
                                 "/api/v1/admin/register"
                         ).permitAll()
 
-                        // ✅ 그 외 관리자 API는 ADMIN 권한 필요
+                        // 관리자 전용 API
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                        // ✅ 나머지 열어둠 (필요하면 authenticated()로 바꿔도 됨)
+                        // 나머지는 모두 인증 필요
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

@@ -5,6 +5,7 @@ import com.golden_dobakhe.HakPle.domain.post.comment.comment.entity.Comment;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentRepository;
 import com.golden_dobakhe.HakPle.domain.post.comment.exception.CommentException;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikedCommentDto;
+import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikeStatusResponseDto;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.entity.CommentLike;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
@@ -89,6 +90,19 @@ public class LikeService {
             likeRepository.save(commentLike);
             return CommentResult.SUCCESS;
         }
+    }
+
+    // 사용자가 댓글에 좋아요 했는지 확인
+    @Transactional(readOnly = true)
+    public LikeStatusResponseDto isLiked(Long commentId, User user) {
+        // 댓글 존재 여부 확인
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
+        
+        // 좋아요 상태 확인
+        boolean isLiked = likeRepository.findByCommentIdAndUserId(commentId, user.getId()).isPresent();
+        
+        return new LikeStatusResponseDto(isLiked);
     }
 
     //댓글 당 좋아요 수

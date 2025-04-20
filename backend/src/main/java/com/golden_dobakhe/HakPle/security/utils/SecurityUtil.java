@@ -60,6 +60,13 @@ public class SecurityUtil {
     }
 
     /**
+     * 현재 로그인한 사용자의 userId 반환 (Optional 사용)
+     */
+    public static java.util.Optional<Long> getOptionalCurrentUserId() {
+        return java.util.Optional.ofNullable(getCurrentUserId());
+    }
+
+    /**
      * 현재 로그인한 User 엔티티 반환
      */
     public static User getCurrentUser() {

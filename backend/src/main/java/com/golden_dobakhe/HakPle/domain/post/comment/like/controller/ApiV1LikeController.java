@@ -2,6 +2,7 @@ package com.golden_dobakhe.HakPle.domain.post.comment.like.controller;
 
 import com.golden_dobakhe.HakPle.domain.post.comment.CommentResult;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikedCommentDto;
+import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikeStatusResponseDto;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.service.LikeService;
 
 
@@ -50,6 +51,18 @@ public class ApiV1LikeController {
     ) {
         User user = principal.getUser();
         return ResponseEntity.ok(likeService.toggleCommentLike(commentId, user));
+    }
+
+    @Operation(summary = "댓글 좋아요 상태 확인", description = "로그인한 사용자가 특정 댓글에 좋아요를 눌렀는지 확인합니다.")
+    @ApiResponse(responseCode = "200", description = "좋아요 상태 확인 성공")
+    @GetMapping("/comments/{commentId}/status")
+    public ResponseEntity<LikeStatusResponseDto> getLikeStatus(
+            @Parameter(description = "상태를 확인할 댓글 ID", example = "1")
+            @PathVariable(name = "commentId") Long commentId,
+            @AuthenticationPrincipal CustomUserDetails principal
+    ) {
+        User user = principal.getUser();
+        return ResponseEntity.ok(likeService.isLiked(commentId, user));
     }
 
     @Operation(summary = "댓글 좋아요 수 조회", description = "특정 댓글의 좋아요 수를 조회합니다.")

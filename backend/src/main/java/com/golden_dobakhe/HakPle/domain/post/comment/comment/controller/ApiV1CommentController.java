@@ -33,22 +33,27 @@ public class ApiV1CommentController {
 
     private final CommentService commentService;
 
-    @Operation(summary = "게시글 ID별 댓글 목록 조회", description = "특정 게시글에 달린, 상태가 활성화된 모든 댓글을 조회합니다.")
+    @Operation(summary = "게시글별 댓글 목록 조회", description = "특정 게시글의 댓글 목록을 조회합니다. 로그인한 경우 좋아요 상태도 포함됩니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "댓글 목록 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "게시글 없음"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @GetMapping("/by-post/{boardId}")
-    public ResponseEntity<?> getCommentsByPostId(
-            @Parameter(description = "게시글 ID", example = "1")
-            @PathVariable Long boardId) {
-        try {
+    public ResponseEntity<List<CommentResponseDto>> getCommentsByBoardId(
+            @PathVariable(name = "boardId") Long boardId,
+            @AuthenticationPrincipal CustomUserDetails principal
+    ) {
+        // 로그인한 사용자인 경우 좋아요 상태를 포함하여 조회
+        if (principal != null) {
+            Long userId = principal.getUser().getId();
+            List<CommentResponseDto> comments = commentService.getCommentsByBoardId(boardId, userId);
+            return ResponseEntity.ok(comments);
+        } else {
+            // 로그인하지 않은 경우 기본 조회
             List<CommentResponseDto> comments = commentService.getCommentsByBoardId(boardId);
             return ResponseEntity.ok(comments);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("댓글 목록 조회 실패: " + e.getMessage());
         }
     }
 

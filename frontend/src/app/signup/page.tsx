@@ -118,6 +118,7 @@ export default function Signup() {
             }
 
             // 오류 응답인 경우에만 JSON 파싱 시도
+            /*
             try {
                 const data = await response.json()
                 setErrorMessage(data.message || '회원가입 처리 중 오류가 발생했습니다.')
@@ -125,6 +126,33 @@ export default function Signup() {
                 console.error('응답 파싱 오류:', parseError)
                 setErrorMessage('회원가입 처리 중 오류가 발생했습니다.')
             }
+            */
+            
+            // JSON 파싱 오류 개선 - 텍스트로 먼저 받은 후 처리
+            try {
+                const responseText = await response.text();
+                
+                // 빈 응답인지 확인
+                if (!responseText.trim()) {
+                    setErrorMessage('서버에서 응답이 없습니다.');
+                    return;
+                }
+                
+                // JSON으로 파싱 시도
+                try {
+                    const data = JSON.parse(responseText);
+                    setErrorMessage(data.message || '회원가입 처리 중 오류가 발생했습니다.');
+                } catch (jsonError) {
+                    // JSON 파싱 실패 시 텍스트 그대로 표시
+                    console.error('JSON 파싱 오류:', jsonError);
+                    console.log('원본 응답:', responseText);
+                    setErrorMessage(responseText || '회원가입 처리 중 오류가 발생했습니다.');
+                }
+            } catch (textError) {
+                console.error('응답 텍스트 추출 오류:', textError);
+                setErrorMessage('회원가입 처리 중 오류가 발생했습니다.');
+            }
+            //
         } catch (error) {
             console.error('API 요청 중 오류 발생:', error)
             setErrorMessage('서버 연결 중 오류가 발생했습니다.')
