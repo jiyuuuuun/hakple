@@ -75,25 +75,25 @@ public class ApiV1LikeController {
         return ResponseEntity.ok(likeService.likeCount(commentId));
     }
 
-    @Operation(summary = "내가 좋아요 누른 댓글 목록", description = "로그인한 사용자가 좋아요한 댓글 목록을 조회합니다.")
-    @ApiResponse(responseCode = "200", description = "목록 조회 성공")
-    @GetMapping("/my/comments")
-    public ResponseEntity<List<LikedCommentDto>> getMyLikedComments(
-            @AuthenticationPrincipal CustomUserDetails principal
-    ) {
-        User user = principal.getUser();
-        return ResponseEntity.ok(likeService.userLikedComments(user.getId()));
-    }
-
-    @Operation(summary = "내가 좋아요 누른 댓글 수", description = "로그인한 사용자가 좋아요한 댓글 수를 조회합니다.")
-    @ApiResponse(responseCode = "200", description = "카운트 조회 성공")
-    @GetMapping("/my/comments/count")
-    public ResponseEntity<Integer> getMyLikedCommentCount(
-            @AuthenticationPrincipal CustomUserDetails principal
-    ) {
-        User user = principal.getUser();
-        return ResponseEntity.ok(likeService.countUserLikedComments(user.getId()));
-    }
+//    @Operation(summary = "내가 좋아요 누른 댓글 목록", description = "로그인한 사용자가 좋아요한 댓글 목록을 조회합니다.")
+//    @ApiResponse(responseCode = "200", description = "목록 조회 성공")
+//    @GetMapping("/my/comments")
+//    public ResponseEntity<List<LikedCommentDto>> getMyLikedComments(
+//            @AuthenticationPrincipal CustomUserDetails principal
+//    ) {
+//        User user = principal.getUser();
+//        return ResponseEntity.ok(likeService.userLikedComments(user.getId()));
+//    }
+//
+//    @Operation(summary = "내가 좋아요 누른 댓글 수", description = "로그인한 사용자가 좋아요한 댓글 수를 조회합니다.")
+//    @ApiResponse(responseCode = "200", description = "카운트 조회 성공")
+//    @GetMapping("/my/comments/count")
+//    public ResponseEntity<Integer> getMyLikedCommentCount(
+//            @AuthenticationPrincipal CustomUserDetails principal
+//    ) {
+//        User user = principal.getUser();
+//        return ResponseEntity.ok(likeService.countUserLikedComments(user.getId()));
+//    }
 
     @DeleteMapping("/comments/{commentId}")
     @Operation(summary = "댓글 좋아요 취소", description = "이미 좋아요 누른 댓글만 취소 가능")

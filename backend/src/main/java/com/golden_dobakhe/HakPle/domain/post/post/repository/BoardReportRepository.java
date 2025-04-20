@@ -19,11 +19,14 @@ public interface BoardReportRepository extends JpaRepository<BoardReport, Long> 
             "JOIN FETCH b.user u")
     List<BoardReport> findAllWithUserAndBoard();
 
-    @Query(value = "SELECT br FROM BoardReport br " +
-            "JOIN FETCH br.board b " +
-            "JOIN FETCH b.user u",
-            countQuery = "SELECT count(br) FROM BoardReport br")
+    @Query("""
+    SELECT br FROM BoardReport br
+    JOIN FETCH br.board b
+    JOIN FETCH br.user u
+    WHERE b.status = 'INACTIVE'
+    """) //INACTIVE 조건 추가
     Page<BoardReport> findAllWithUserAndBoard(Pageable pageable);
+
 
     int countByBoardId(Long boardId);
 }
