@@ -114,23 +114,23 @@ public class LikeService {
         return comment.getLikeCount();
     }
 
-    //회원 별 좋아요 누른 댓글
-    public List<LikedCommentDto> userLikedComments(Long userId) {
-        return userRepository.findById(userId)
-                .map(user -> likeRepository.findByUserId(user.getId()).stream()
-                        .map(CommentLike::getComment)
-                        .map(comment -> new LikedCommentDto(
-                                comment.getId(),
-                                comment.getContent()
-                        ))
-                        .collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
-    }
-
-    //회원 별 좋아요 누른 댓글 갯수
-    public int countUserLikedComments(Long userId) {
-        return userRepository.findById(userId)
-                .map(user ->  likeRepository.findByUserId(user.getId()).size())
-                .orElse(0);
-    }
+//    //회원 별 좋아요 누른 댓글
+//    public List<LikedCommentDto> userLikedComments(Long userId) {
+//        return userRepository.findById(userId)
+//                .map(user -> likeRepository.findByUserId(user.getId()).stream()
+//                        .map(CommentLike::getComment)
+//                        .map(comment -> new LikedCommentDto(
+//                                comment.getId(),
+//                                comment.getContent()
+//                        ))
+//                        .collect(Collectors.toList()))
+//                .orElse(Collections.emptyList());
+//    }
+//
+//    //회원 별 좋아요 누른 댓글 갯수
+//    public int countUserLikedComments(Long userId) {
+//        return userRepository.findById(userId)
+//                .map(user ->  likeRepository.findByUserId(user.getId()).size())
+//                .orElse(0);
+//    }
 }
