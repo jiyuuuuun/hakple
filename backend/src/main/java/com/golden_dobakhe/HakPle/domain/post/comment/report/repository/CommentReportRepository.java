@@ -15,14 +15,6 @@ import java.util.List;
 public interface CommentReportRepository extends JpaRepository<CommentReport, Long> {
 
     boolean existsByCommentAndReporter(Comment comment, User reporter);
-
-
-    @Query(value = "SELECT cr FROM CommentReport cr " +
-            "JOIN FETCH cr.comment c " +
-            "JOIN FETCH c.user u",
-            countQuery = "SELECT count(cr) FROM CommentReport cr")
-    Page<CommentReport> findAllWithUserAndComment(Pageable pageable);
-
     @Query("SELECT br FROM BoardReport br " +
             "JOIN FETCH br.board b " +
             "JOIN FETCH b.user u " +
@@ -30,4 +22,13 @@ public interface CommentReportRepository extends JpaRepository<CommentReport, Lo
     List<BoardReport> findAllOrderedByReportedCount();
 
     int countByCommentId(Long commentId);
+
+    @Query("""
+    SELECT cr FROM CommentReport cr
+    JOIN FETCH cr.comment c
+    JOIN FETCH cr.reporter u
+    WHERE c.status = 'INACTIVE'
+    """)//INACTIVE 조건 추가
+    Page<CommentReport> findAllWithUserAndComment(Pageable pageable);
+
 }
