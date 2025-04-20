@@ -10,6 +10,7 @@ import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import com.golden_dobakhe.HakPle.global.Status;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,9 +32,6 @@ public class CommentReportService {
 
         User user=userRepository.findById(comment.getUser().getId()).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-        user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
-        log.info("UserReportCount : {}", user.getReportedCount());
-
 
         User reporter = userRepository.findById(userId)
                 .orElseThrow(() -> new CommentException(CommentResult.USER_NOT_FOUND));
@@ -48,6 +46,11 @@ public class CommentReportService {
                 .comment(comment)
                 .reporter(reporter)
                 .build();
+
+        user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
+        log.info("UserReportCount : {}", user.getReportedCount());
+
+        comment.setStatus(Status.INACTIVE); //대기 상태로 변경
 
         reportRepository.save(report);
     }

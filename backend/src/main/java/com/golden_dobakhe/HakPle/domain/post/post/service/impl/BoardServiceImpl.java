@@ -267,10 +267,6 @@ public class BoardServiceImpl implements BoardService {
 
         User user=userRepository.findById(board.getUser().getId()).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-        user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
-
-
-
         if (boardReportRepository.findByBoardIdAndUserId(boardId, userId).isPresent()) {
             throw BoardException.invalidRequest();
         }
@@ -281,6 +277,10 @@ public class BoardServiceImpl implements BoardService {
                 .user(userRepository.findById(userId)
                         .orElseThrow(() -> BoardException.notFound()))
                 .build();
+
+        user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
+        board.setStatus(Status.INACTIVE); //대기 상태로 변경
+
 
         boardReportRepository.save(boardReport);
     }
