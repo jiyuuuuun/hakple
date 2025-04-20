@@ -20,8 +20,8 @@ public class AuthService {
     private final JwtTokenizer jwtTokenizer;
 
     //일단 간단하게 있는지 없는지 체크
-    public User findByUserName(LoginDto dto) {
-        return userRepository.findByUserName(dto.getUsername()).get();
+    public User findByUserName(String userName) {
+        return userRepository.findByUserName(userName).get();
     }
 
     public Optional<User> findById(Long userId) {

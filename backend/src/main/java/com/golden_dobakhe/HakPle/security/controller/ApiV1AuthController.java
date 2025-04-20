@@ -61,7 +61,7 @@ public class ApiV1AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDto req, HttpServletResponse response) {
-        User user= authService.findByUserName(req);
+        User user= authService.findByUserName(req.getUsername());
         //일단은 유저가 있는지 없는지 확인
         //없으면 나가리
         if (user == null)
