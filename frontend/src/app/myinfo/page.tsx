@@ -128,10 +128,17 @@ export default function MyInfoPage() {
             return
         }
 
-        // 로컬 스토리지에서 학원 이름 확인
+        // 로컬 스토리지에서 학원 정보 확인
         let storedAcademyName = ''
+        let storedAcademyCode = ''
         if (typeof window !== 'undefined') {
             storedAcademyName = localStorage.getItem('academyName') || ''
+            storedAcademyCode = localStorage.getItem('academyCode') || ''
+
+            console.log('마이페이지 - 저장된 학원 정보:', {
+                academyName: storedAcademyName,
+                academyCode: storedAcademyCode,
+            })
         }
 
         console.log('myinfo - 사용자 정보 요청 시작')
@@ -150,12 +157,46 @@ export default function MyInfoPage() {
             .then((data) => {
                 console.log('myinfo - 사용자 정보 데이터:', data)
 
-                // academyName 필드 추가 처리
+                // 백엔드에서 받은 학원 정보 처리
+                let finalAcademyName = storedAcademyName
+                let finalAcademyCode = storedAcademyCode
+
+                // 1. 백엔드에 학원코드가 있는 경우 우선 사용
+                if (data.academyCode) {
+                    finalAcademyCode = data.academyCode
+
+                    // 2. 백엔드에 학원이름도 있는 경우 그대로 사용
+                    if (data.academyName) {
+                        finalAcademyName = data.academyName
+                    }
+                    // 3. 백엔드에 학원코드만 있는 경우
+                    else if (storedAcademyName && storedAcademyCode === data.academyCode) {
+                        // 로컬에 저장된 학원코드가 백엔드와 일치하면 로컬 학원이름 사용
+                        finalAcademyName = storedAcademyName
+                    } else {
+                        // 그 외의 경우 기본값 사용
+                        finalAcademyName = getAcademyNameFromCode(data.academyCode)
+                    }
+
+                    // 로컬 스토리지 업데이트
+                    localStorage.setItem('academyCode', finalAcademyCode)
+                    localStorage.setItem('academyName', finalAcademyName)
+                }
+                // 4. 백엔드에 학원코드가
+                else if (storedAcademyCode) {
+                    // 백엔드에 학원 정보가 없는데 로컬에 있으면 로컬 정보 초기화
+                    console.log('백엔드에 학원 정보가 없어서 로컬 스토리지 초기화')
+                    localStorage.removeItem('academyCode')
+                    localStorage.removeItem('academyName')
+                    finalAcademyCode = ''
+                    finalAcademyName = ''
+                }
+
+                // 최종 사용자 정보 업데이트
                 const userInfoData: MyInfo = {
                     ...data,
-                    // 백엔드에서 academyName이 오면 그것을 사용, 아니면 로컬 스토리지에서 가져온 값 사용
-                    academyName:
-                        data.academyName || storedAcademyName || getAcademyNameFromCode(data.academyCode || ''),
+                    academyCode: finalAcademyCode,
+                    academyName: finalAcademyName,
                 }
 
                 setUserInfo(userInfoData)
