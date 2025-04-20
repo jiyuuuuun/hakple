@@ -4,7 +4,9 @@ import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 import java.util.Map;
 
 
@@ -79,6 +83,20 @@ public class ApiV1AdminController {
         log.info(principal.getUser().getRoles().toString());
 
         return ResponseEntity.ok(isAdmin);
+    }
+
+    @Operation(summary = "학원 전체 조회", description = "등록된 모든 학원 목록을 조회합니다.")
+    @GetMapping("/academies")
+    public ResponseEntity<List<Academy>> getAcademies() {
+        List<Academy> academies = adminService.getAcademys();
+        return ResponseEntity.ok(academies);
+    }
+
+    @Operation(summary = "관리자 권한 유저 목록 조회", description = "권한이 ADMIN인 유저만 조회합니다.")
+    @GetMapping("/admins")
+    public ResponseEntity<List<User>> getAdminUsers() {
+        List<User> adminUsers = adminService.getAdminUsers();
+        return ResponseEntity.ok(adminUsers);
     }
 
 
