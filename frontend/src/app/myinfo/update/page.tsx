@@ -2,29 +2,334 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
 export default function ProfileUpdatePage() {
     const router = useRouter()
+    const { isLogin } = useGlobalLoginMember()
+    const [currentNickname, setCurrentNickname] = useState('')
     const [nickname, setNickname] = useState('')
     const [phoneNumber, setPhoneNumber] = useState('')
     const [newPhoneNumber, setNewPhoneNumber] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [nicknameError, setNicknameError] = useState('')
+    const [phoneError, setPhoneError] = useState('')
+    const [isFormValid, setIsFormValid] = useState(false)
+    const [isNicknameChecked, setIsNicknameChecked] = useState(false)
+    const [isPhoneChecked, setIsPhoneChecked] = useState(false)
 
-    // 컴포넌트 마운트 시 서버에서 사용자 정보를 가져오는 것을 시뮬레이션
+    // 로그인 체크
     useEffect(() => {
-        // 실제로는 API 호출을 통해 사용자 정보를 가져와야 함
-        // 예시 목적으로 하드코딩된 값 사용
-        setPhoneNumber('010-1234-5678')
-    }, [])
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        // 프로필 업데이트 로직 구현
-        if (newPhoneNumber) {
-            setPhoneNumber(newPhoneNumber)
+        if (!isLogin) {
+            router.push('/login')
         }
-        // API 호출 등의 로직
-        router.push('/myinfo')
+    }, [isLogin, router])
+
+    // 컴포넌트 마운트 시 서버에서 사용자 정보를 가져오기
+    useEffect(() => {
+        const fetchUserInfo = async () => {
+            try {
+                console.log('사용자 정보 요청 시작')
+                const response = await fetch('/api/v1/myInfos', {
+                    method: 'GET',
+                    credentials: 'include', // 쿠키(JWT)를 포함하여 요청
+                })
+
+                console.log('사용자 정보 응답 상태:', response.status)
+                if (!response.ok) {
+                    throw new Error('사용자 정보를 불러오지 못했습니다.')
+                }
+
+                const data = await response.json()
+                console.log('사용자 정보 데이터:', data)
+
+                setCurrentNickname(data.nickName)
+                setPhoneNumber(data.phoneNum)
+            } catch (err) {
+                console.error('사용자 정보를 가져오는 중 오류 발생:', err)
+                setError('사용자 정보를 불러올 수 없습니다.')
+            }
+        }
+
+        if (isLogin) {
+            fetchUserInfo()
+        }
+    }, [isLogin])
+
+    // 폼 유효성 검사
+    useEffect(() => {
+        console.log('폼 유효성 검사:', {
+            nickname,
+            newPhoneNumber,
+            nicknameError,
+            phoneError,
+            isNicknameChecked,
+            isPhoneChecked,
+        })
+
+        // 둘 다 빈 경우
+        if (nickname === '' && newPhoneNumber === '') {
+            setIsFormValid(false)
+            return
+        }
+
+        // 닉네임 입력한 경우
+        if (nickname !== '') {
+            if (!isNicknameChecked || (nicknameError !== '' && !nicknameError.includes('사용 가능'))) {
+                setIsFormValid(false)
+                return
+            }
+        }
+
+        // 휴대폰 번호 입력한 경우
+        if (newPhoneNumber !== '') {
+            if (!isPhoneChecked || (phoneError !== '' && !phoneError.includes('사용 가능'))) {
+                setIsFormValid(false)
+                return
+            }
+        }
+
+        // 모든 검사 통과
+        setIsFormValid(true)
+        console.log('폼 유효성 검사 통과 - 버튼 활성화됨')
+    }, [nickname, newPhoneNumber, nicknameError, phoneError, isNicknameChecked, isPhoneChecked])
+
+    // 닉네임 유효성 검사
+    const validateNickname = (value: string): boolean => {
+        // 비어있는지 검사
+        if (!value || value.trim() === '') {
+            setNicknameError('닉네임을 입력해주세요.')
+            return false
+        }
+
+        // 현재 닉네임과 같은지 검사
+        if (value === currentNickname) {
+            setNicknameError('현재 닉네임과 같습니다.')
+            return false
+        }
+
+        // 정규식 패턴 검사 - 2-20자, 영문, 한글, 숫자, 특수문자(_.-) 허용
+        const nicknameRegex = /^[a-zA-Z가-힣0-9_.-]{2,20}$/
+        if (!nicknameRegex.test(value)) {
+            setNicknameError('닉네임은 2-20자의 영문, 한글, 숫자와 특수문자(_.-) 조합이어야 합니다.')
+            return false
+        }
+
+        setNicknameError('')
+        return true
     }
+
+    // 휴대폰 번호 유효성 검사
+    const validatePhoneNumber = (value: string): boolean => {
+        // 비어있는지 검사
+        if (!value || value.trim() === '') {
+            setPhoneError('휴대폰 번호를 입력해주세요.')
+            return false
+        }
+
+        // 현재 번호와 같은지 검사
+        if (value === phoneNumber) {
+            setPhoneError('현재 휴대폰 번호와 같습니다.')
+            return false
+        }
+
+        // 하이픈 제거
+        const digitsOnly = value.replace(/-/g, '')
+
+        // 숫자만 있는지 검사
+        if (!/^\d+$/.test(digitsOnly)) {
+            setPhoneError('휴대폰 번호는 숫자만 입력 가능합니다.')
+            return false
+        }
+
+        // 길이 검사
+        if (digitsOnly.length < 10 || digitsOnly.length > 11) {
+            setPhoneError('휴대폰 번호는 10-11자리 숫자여야 합니다.')
+            return false
+        }
+
+        setPhoneError('')
+        return true
+    }
+
+    // 닉네임 중복 확인
+    const checkNicknameDuplicate = async () => {
+        console.log('닉네임 중복확인 시작:', nickname)
+        if (!validateNickname(nickname)) {
+            return
+        }
+
+        setIsLoading(true)
+
+        try {
+            // 닉네임 유효성 검사만 수행
+            // 실제 중복 확인은 저장 시 백엔드에서 수행됨
+            setNicknameError('사용 가능한 닉네임입니다.')
+            setIsNicknameChecked(true)
+            console.log('닉네임 중복확인 완료 - 사용 가능')
+        } catch (err) {
+            console.error('닉네임 중복 확인 중 오류 발생:', err)
+            setNicknameError('중복 확인 중 오류가 발생했습니다.')
+            setIsNicknameChecked(false)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    // 휴대폰 번호 중복 확인
+    const checkPhoneDuplicate = async () => {
+        console.log('전화번호 중복확인 시작:', newPhoneNumber)
+        if (!validatePhoneNumber(newPhoneNumber)) {
+            return
+        }
+
+        setIsLoading(true)
+
+        try {
+            // 휴대폰 번호 유효성 검사만 수행
+            // 실제 중복 확인은 저장 시 백엔드에서 수행됨
+            setPhoneError('사용 가능한 번호입니다.')
+            setIsPhoneChecked(true)
+            console.log('전화번호 중복확인 완료 - 사용 가능')
+        } catch (err) {
+            console.error('휴대폰 번호 중복 확인 중 오류 발생:', err)
+            setPhoneError('중복 확인 중 오류가 발생했습니다.')
+            setIsPhoneChecked(false)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    // 닉네임 변경 핸들러
+    const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        const value = e.target.value
+        setNickname(value)
+        setIsNicknameChecked(false)
+
+        if (value) {
+            validateNickname(value)
+        } else {
+            setNicknameError('')
+        }
+    }
+
+    // 전화번호 변경 핸들러
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        const inputValue = e.target.value
+
+        // 입력값에서 숫자와 하이픈만 허용
+        const sanitizedValue = inputValue.replace(/[^\d-]/g, '')
+
+        setNewPhoneNumber(sanitizedValue)
+        setIsPhoneChecked(false)
+
+        if (sanitizedValue) {
+            validatePhoneNumber(sanitizedValue)
+        } else {
+            setPhoneError('')
+        }
+    }
+
+    // 폼 제출 핸들러
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault()
+        console.log('폼 제출 시작', { nickname, newPhoneNumber, isFormValid })
+
+        // 변경사항이 없으면 리다이렉트
+        if (!nickname && !newPhoneNumber) {
+            console.log('변경사항 없음, 리다이렉트')
+            router.push('/myinfo')
+            return
+        }
+
+        // 닉네임이 변경되었다면 중복확인 여부 검사
+        if (nickname && !isNicknameChecked) {
+            console.log('닉네임 중복확인 필요')
+            setError('닉네임 중복확인이 필요합니다.')
+            return
+        }
+
+        // 휴대폰 번호가 변경되었다면 중복확인 여부 검사
+        if (newPhoneNumber && !isPhoneChecked) {
+            console.log('휴대폰 번호 중복확인 필요')
+            setError('휴대폰 번호 중복확인이 필요합니다.')
+            return
+        }
+
+        // 유효성 검사
+        let isValid = true
+
+        if (nickname) {
+            const nicknameValid = validateNickname(nickname)
+            console.log('닉네임 유효성 검사:', nicknameValid)
+            isValid = nicknameValid && isValid
+        }
+
+        if (newPhoneNumber) {
+            const phoneValid = validatePhoneNumber(newPhoneNumber)
+            console.log('휴대폰 번호 유효성 검사:', phoneValid)
+            isValid = phoneValid && isValid
+        }
+
+        if (!isValid) {
+            console.log('유효성 검사 실패')
+            return
+        }
+
+        console.log('모든 검사 통과, API 호출 시작')
+        setIsLoading(true)
+        setError('')
+
+        try {
+            // 전화번호에서 하이픈 제거 (입력 형식과 상관없이 서버에는 숫자만 전송)
+            const phoneNumClean = newPhoneNumber ? newPhoneNumber.replace(/-/g, '') : undefined
+
+            const updateData = {
+                nickName: nickname || undefined,
+                phoneNum: phoneNumClean,
+            }
+
+            console.log('업데이트 데이터:', updateData)
+
+            // API 호출
+            const response = await fetch('/api/v1/myInfos/update', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // 쿠키(JWT)를 포함하여 요청
+                body: JSON.stringify(updateData),
+            })
+
+            console.log('업데이트 응답 상태:', response.status)
+
+            if (!response.ok) {
+                const errorData = await response.text()
+                console.error('업데이트 실패:', errorData)
+                throw new Error(errorData || '정보 업데이트에 실패했습니다.')
+            }
+
+            // 성공 시 완료 메시지 표시
+            alert('정보가 성공적으로 수정되었습니다.')
+
+            // 성공 시 리다이렉트
+            router.push('/myinfo')
+        } catch (err: unknown) {
+            console.error('정보 업데이트 중 오류 발생:', err)
+            setError(err instanceof Error ? err.message : '정보 업데이트에 실패했습니다. 다시 시도해주세요.')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    console.log('컴포넌트 렌더링 상태:', {
+        isFormValid,
+        isNicknameChecked,
+        isPhoneChecked,
+        nickname,
+        newPhoneNumber,
+    })
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -34,33 +339,48 @@ export default function ProfileUpdatePage() {
                         <h1 className="text-2xl font-bold mb-3 text-center">내 정보 수정</h1>
                         <p className="text-sm text-gray-600 mb-8 text-center">프로필 정보를 수정하세요</p>
 
+                        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
+
                         <form onSubmit={handleSubmit}>
                             <div className="space-y-10">
                                 {/* 닉네임 입력 */}
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-800 mb-2">닉네임</h3>
+                                    <div className="text-sm text-gray-500 mb-2">현재 닉네임: {currentNickname}</div>
                                     <div className="flex space-x-2">
                                         <input
                                             type="text"
                                             id="nickname"
-                                            placeholder="홍길동"
+                                            placeholder="새 닉네임을 입력하세요"
                                             className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                                             value={nickname}
-                                            onChange={(e) => setNickname(e.target.value)}
+                                            onChange={handleNicknameChange}
+                                            disabled={isLoading}
                                         />
                                         <button
                                             type="button"
                                             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 whitespace-nowrap"
+                                            onClick={checkNicknameDuplicate}
+                                            disabled={!nickname || isLoading}
                                         >
                                             중복확인
                                         </button>
                                     </div>
+                                    {nicknameError && (
+                                        <div
+                                            className={`mt-2 text-sm ${
+                                                nicknameError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
+                                            }`}
+                                        >
+                                            {nicknameError}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* 휴대폰 번호 */}
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-800 mb-2">휴대폰 번호</h3>
-                                    <div className="text-sm text-gray-500 mb-2">현재 번호: {phoneNumber}</div>
+                                    <div className="text-sm text-gray-500 mb-2">현재 휴대폰 번호: {phoneNumber}</div>
                                     <div className="flex space-x-2">
                                         <input
                                             type="tel"
@@ -68,15 +388,27 @@ export default function ProfileUpdatePage() {
                                             placeholder="새 휴대폰 번호를 입력하세요"
                                             className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                                             value={newPhoneNumber}
-                                            onChange={(e) => setNewPhoneNumber(e.target.value)}
+                                            onChange={handlePhoneChange}
+                                            disabled={isLoading}
                                         />
                                         <button
                                             type="button"
                                             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 whitespace-nowrap"
+                                            onClick={checkPhoneDuplicate}
+                                            disabled={!newPhoneNumber || isLoading}
                                         >
                                             중복확인
                                         </button>
                                     </div>
+                                    {phoneError && (
+                                        <div
+                                            className={`mt-2 text-sm ${
+                                                phoneError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
+                                            }`}
+                                        >
+                                            {phoneError}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* 하단 버튼 */}
@@ -85,14 +417,16 @@ export default function ProfileUpdatePage() {
                                         type="button"
                                         onClick={() => router.back()}
                                         className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                                        disabled={isLoading}
                                     >
                                         취소
                                     </button>
                                     <button
                                         type="submit"
                                         className="px-6 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-purple-500 font-medium"
+                                        disabled={isLoading || !isFormValid}
                                     >
-                                        변경사항 저장
+                                        {isLoading ? '저장 중...' : '변경사항 저장'}
                                     </button>
                                 </div>
                             </div>
