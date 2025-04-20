@@ -43,11 +43,13 @@ public class SecurityConfig {
                                 // 인증 관련 API
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/logout",
-                                
-                                // 회원가입
-                                "/api/v1/users/userreg",
+
                                 
                                 // 관리자 로그인/회원가입
+
+                                "/api/v1/users/userreg",
+
+                                // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",
                                 "/api/v1/admin/register"
                         ).permitAll()
