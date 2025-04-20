@@ -17,42 +17,18 @@ export default function AcademyRegister() {
 
         try {
             // API 요청을 통해 학원 코드 검증 및 등록
-            const dummyUserName = 'user7' // 실제로는 로그인 정보에서 가져와야 함
-
-            // 방법 1: 요청 본문에 userName과 academyCode를 함께 전송
             const response = await axios.post(
                 `/api/v1/academies/register`,
                 {
-                    userName: dummyUserName,
                     academyCode: academyCode,
                 },
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        // 필요하다면 인증 토큰 추가
-                        // 'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    timeout: 10000,
-                    withCredentials: true, // 쿠키 포함하여 요청
+                    withCredentials: true, // 쿠키 포함하여 요청 (JWT 인증)
                 },
             )
-
-            /* 
-            // 방법 2: 요청 파라미터로 전달 (백엔드가 이 방식을 지원하는 경우)
-            const response = await axios.post(
-                `/api/v1/academies/register?userName=${dummyUserName}`,
-                {
-                    academyCode: academyCode
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 10000,
-                    withCredentials: true
-                }
-            )
-            */
 
             // 학원 등록 성공 시
             console.log('응답 데이터:', response.data)
@@ -95,18 +71,6 @@ export default function AcademyRegister() {
         } finally {
             setIsLoading(false)
         }
-    }
-
-    // 테스트용 더미 등록 함수 (백엔드 연결 전 테스트용)
-    const handleTestRegister = () => {
-        setError('')
-        setIsLoading(true)
-
-        // 3초 후 성공한 것처럼 처리
-        setTimeout(() => {
-            localStorage.setItem('academyName', '테스트 학원')
-            router.push('/myinfo')
-        }, 2000)
     }
 
     return (
@@ -153,19 +117,6 @@ export default function AcademyRegister() {
                                         {isLoading ? '처리 중...' : '확인'}
                                     </button>
                                 </div>
-
-                                {/* 개발/테스트용 버튼 - 백엔드 연결 전 테스트할 때 사용 */}
-                                {process.env.NODE_ENV === 'development' && (
-                                    <div className="mt-8 pt-4 border-t border-gray-200">
-                                        <button
-                                            type="button"
-                                            onClick={handleTestRegister}
-                                            className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
-                                        >
-                                            테스트용: 학원 등록 성공 시뮬레이션
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         </form>
                     </div>

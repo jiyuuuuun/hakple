@@ -4,6 +4,29 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
+// 휴대폰 번호 형식화 함수 (하이픈 추가)
+const formatPhoneNumber = (phoneNum: string): string => {
+    if (!phoneNum) return ''
+
+    // 이미 하이픈이 있는 경우 일단 제거
+    const digitsOnly = phoneNum.replace(/-/g, '')
+
+    // 길이에 따라 다른 형식 적용
+    if (digitsOnly.length === 11) {
+        // 010-1234-5678 형식
+        return digitsOnly.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+    } else if (digitsOnly.length === 10) {
+        // 010-123-4567 형식 또는 02-1234-5678 형식
+        if (digitsOnly.startsWith('02')) {
+            return digitsOnly.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3')
+        }
+        return digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')
+    } else {
+        // 그 외의 경우 원본 반환
+        return phoneNum
+    }
+}
+
 export default function ProfileUpdatePage() {
     const router = useRouter()
     const { isLogin } = useGlobalLoginMember()
@@ -163,11 +186,58 @@ export default function ProfileUpdatePage() {
         setIsLoading(true)
 
         try {
-            // 닉네임 유효성 검사만 수행
-            // 실제 중복 확인은 저장 시 백엔드에서 수행됨
-            setNicknameError('사용 가능한 닉네임입니다.')
-            setIsNicknameChecked(true)
-            console.log('닉네임 중복확인 완료 - 사용 가능')
+            // 현재 닉네임과 다른지 확인
+            if (nickname.trim() === currentNickname.trim()) {
+                setNicknameError('현재 사용 중인 닉네임과 동일합니다.')
+                setIsNicknameChecked(false)
+                console.log('닉네임 검사 - 현재 값과 동일')
+                setIsLoading(false)
+                return
+            }
+
+            // 백엔드에 실제 중복 여부 확인 요청
+            // update API를 활용해 중복 확인만 수행
+            const response = await fetch('/api/v1/myInfos/update', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    nickName: nickname,
+                    // 중복 확인만 위한 요청임을 표시하는 필드 추가 (백엔드에서 무시됨)
+                    _checkOnly: true,
+                }),
+            })
+
+            if (response.ok) {
+                // 성공 시 사용 가능한 닉네임
+                setNicknameError('사용 가능한 닉네임입니다.')
+                setIsNicknameChecked(true)
+                console.log('닉네임 중복확인 완료 - 사용 가능')
+            } else {
+                // 에러 응답 분석
+                const errorText = await response.text()
+                console.log('닉네임 중복확인 실패 응답:', errorText)
+
+                // 백엔드 MyInfoErrorCode에 맞게 오류 메시지 처리
+                if (errorText.includes('닉네임을 이미 사용 중입니다') || errorText.includes('NICKNAME_DUPLICATE')) {
+                    setNicknameError('닉네임을 이미 사용 중입니다.')
+                    setIsNicknameChecked(false)
+                } else if (errorText.includes('닉네임은 한글/영문 2~20자') || errorText.includes('NICKNAME_INVALID')) {
+                    setNicknameError('닉네임은 한글/영문 2~20자, 공백 없이 특수 기호는 _, -, . 만 사용 가능합니다.')
+                    setIsNicknameChecked(false)
+                } else if (errorText.includes('기존과 동일합니다') || errorText.includes('SAME_AS_CURRENT')) {
+                    setNicknameError('현재 사용 중인 닉네임과 동일합니다.')
+                    setIsNicknameChecked(false)
+                } else if (errorText.includes('필수 작성 항목입니다') || errorText.includes('REQUIRED')) {
+                    setNicknameError('닉네임은 필수 입력 항목입니다.')
+                    setIsNicknameChecked(false)
+                } else {
+                    setNicknameError('중복 확인 중 오류가 발생했습니다: ' + errorText)
+                    setIsNicknameChecked(false)
+                }
+            }
         } catch (err) {
             console.error('닉네임 중복 확인 중 오류 발생:', err)
             setNicknameError('중복 확인 중 오류가 발생했습니다.')
@@ -187,11 +257,62 @@ export default function ProfileUpdatePage() {
         setIsLoading(true)
 
         try {
-            // 휴대폰 번호 유효성 검사만 수행
-            // 실제 중복 확인은 저장 시 백엔드에서 수행됨
-            setPhoneError('사용 가능한 번호입니다.')
-            setIsPhoneChecked(true)
-            console.log('전화번호 중복확인 완료 - 사용 가능')
+            // 하이픈 제거
+            const digitsOnly = newPhoneNumber.replace(/-/g, '')
+            const currentPhoneClean = phoneNumber.replace(/-/g, '')
+
+            // 현재 전화번호와 다른지 확인
+            if (digitsOnly === currentPhoneClean) {
+                setPhoneError('현재 사용 중인 전화번호와 동일합니다.')
+                setIsPhoneChecked(false)
+                console.log('전화번호 검사 - 현재 값과 동일')
+                setIsLoading(false)
+                return
+            }
+
+            // 백엔드에 실제 중복 여부 확인 요청
+            // update API를 활용해 중복 확인만 수행
+            const response = await fetch('/api/v1/myInfos/update', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    phoneNum: digitsOnly,
+                    // 중복 확인만 위한 요청임을 표시하는 필드 추가 (백엔드에서 무시됨)
+                    _checkOnly: true,
+                }),
+            })
+
+            if (response.ok) {
+                // 성공 시 사용 가능한 번호
+                setPhoneError('사용 가능한 번호입니다.')
+                setIsPhoneChecked(true)
+                console.log('전화번호 중복확인 완료 - 사용 가능')
+            } else {
+                // 에러 응답 분석
+                const errorText = await response.text()
+                console.log('전화번호 중복확인 실패 응답:', errorText)
+
+                // 백엔드 MyInfoErrorCode에 맞게 오류 메시지 처리
+                if (errorText.includes('전화번호를 이미 사용 중입니다') || errorText.includes('PHONENUM_DUPLICATE')) {
+                    setPhoneError('전화번호를 이미 사용 중입니다.')
+                    setIsPhoneChecked(false)
+                } else if (errorText.includes('전화번호는 숫자만 포함') || errorText.includes('PHONENUM_INVALID')) {
+                    setPhoneError('전화번호는 숫자만 포함하며, 10~11자리여야 합니다.')
+                    setIsPhoneChecked(false)
+                } else if (errorText.includes('기존과 동일합니다') || errorText.includes('SAME_AS_CURRENT')) {
+                    setPhoneError('현재 사용 중인 전화번호와 동일합니다.')
+                    setIsPhoneChecked(false)
+                } else if (errorText.includes('필수 작성 항목입니다') || errorText.includes('REQUIRED')) {
+                    setPhoneError('전화번호는 필수 입력 항목입니다.')
+                    setIsPhoneChecked(false)
+                } else {
+                    setPhoneError('중복 확인 중 오류가 발생했습니다: ' + errorText)
+                    setIsPhoneChecked(false)
+                }
+            }
         } catch (err) {
             console.error('휴대폰 번호 중복 확인 중 오류 발생:', err)
             setPhoneError('중복 확인 중 오류가 발생했습니다.')
@@ -305,9 +426,32 @@ export default function ProfileUpdatePage() {
             console.log('업데이트 응답 상태:', response.status)
 
             if (!response.ok) {
-                const errorData = await response.text()
-                console.error('업데이트 실패:', errorData)
-                throw new Error(errorData || '정보 업데이트에 실패했습니다.')
+                let errorMessage = '정보 업데이트에 실패했습니다.'
+                try {
+                    const errorData = await response.text()
+                    console.error('업데이트 실패 응답:', errorData)
+
+                    // 백엔드 MyInfoErrorCode에 맞게 오류 메시지 처리
+                    if (errorData.includes('닉네임을 이미 사용 중입니다')) {
+                        errorMessage = '닉네임을 이미 사용 중입니다.'
+                    } else if (errorData.includes('전화번호를 이미 사용 중입니다')) {
+                        errorMessage = '전화번호를 이미 사용 중입니다.'
+                    } else if (errorData.includes('닉네임은 한글/영문 2~20자')) {
+                        errorMessage = '닉네임은 한글/영문 2~20자, 공백 없이 특수 기호는 _, -, . 만 사용 가능합니다.'
+                    } else if (errorData.includes('전화번호는 숫자만 포함')) {
+                        errorMessage = '전화번호는 숫자만 포함하며, 10~11자리여야 합니다.'
+                    } else if (errorData.includes('기존과 동일합니다')) {
+                        errorMessage = '변경할 내용이 기존과 동일합니다.'
+                    } else if (errorData.includes('필수 작성 항목입니다')) {
+                        errorMessage = '필수 작성 항목이 누락되었습니다.'
+                    } else if (errorData) {
+                        errorMessage = errorData
+                    }
+                } catch (parseError) {
+                    console.error('응답 파싱 오류:', parseError)
+                }
+
+                throw new Error(errorMessage)
             }
 
             // 성공 시 완료 메시지 표시
@@ -359,9 +503,9 @@ export default function ProfileUpdatePage() {
                                         />
                                         <button
                                             type="button"
-                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 whitespace-nowrap"
+                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-[#9C50D4] hover:text-white transition duration-200"
                                             onClick={checkNicknameDuplicate}
-                                            disabled={!nickname || isLoading}
+                                            disabled={isLoading}
                                         >
                                             중복확인
                                         </button>
@@ -380,7 +524,9 @@ export default function ProfileUpdatePage() {
                                 {/* 휴대폰 번호 */}
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-800 mb-2">휴대폰 번호</h3>
-                                    <div className="text-sm text-gray-500 mb-2">현재 휴대폰 번호: {phoneNumber}</div>
+                                    <div className="text-sm text-gray-500 mb-2">
+                                        현재 휴대폰 번호: {phoneNumber ? formatPhoneNumber(phoneNumber) : '없음'}
+                                    </div>
                                     <div className="flex space-x-2">
                                         <input
                                             type="tel"
@@ -393,9 +539,9 @@ export default function ProfileUpdatePage() {
                                         />
                                         <button
                                             type="button"
-                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 whitespace-nowrap"
+                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-[#9C50D4] hover:text-white transition duration-200"
                                             onClick={checkPhoneDuplicate}
-                                            disabled={!newPhoneNumber || isLoading}
+                                            disabled={isLoading}
                                         >
                                             중복확인
                                         </button>

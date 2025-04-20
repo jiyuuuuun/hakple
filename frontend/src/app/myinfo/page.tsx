@@ -70,9 +70,38 @@ const formatDate = (dateString: string): string => {
 
 // 학원 이름 찾기 함수 (학원 코드로부터)
 const getAcademyNameFromCode = (code: string): string => {
-    // 실제로는 학원 코드를 바탕으로 이름을 조회하는 로직이 필요
-    // 현재는 임시로 코드를 그대로 사용
-    return code || ''
+    if (typeof window !== 'undefined') {
+        // 로컬 스토리지에서 학원 이름 확인 (academyRegister 페이지에서 저장한 값)
+        const storedAcademyName = localStorage.getItem('academyName')
+        if (storedAcademyName) {
+            return storedAcademyName
+        }
+    }
+    // 코드가 있지만 이름이 없는 경우 '등록된 학원'으로 표시
+    return code ? '등록된 학원' : ''
+}
+
+// 휴대폰 번호 형식화 함수 (하이픈 추가)
+const formatPhoneNumber = (phoneNum: string): string => {
+    if (!phoneNum) return ''
+
+    // 이미 하이픈이 있는 경우 일단 제거
+    const digitsOnly = phoneNum.replace(/-/g, '')
+
+    // 길이에 따라 다른 형식 적용
+    if (digitsOnly.length === 11) {
+        // 010-1234-5678 형식
+        return digitsOnly.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+    } else if (digitsOnly.length === 10) {
+        // 010-123-4567 형식 또는 02-1234-5678 형식
+        if (digitsOnly.startsWith('02')) {
+            return digitsOnly.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3')
+        }
+        return digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')
+    } else {
+        // 그 외의 경우 원본 반환
+        return phoneNum
+    }
 }
 
 export default function MyInfoPage() {
@@ -99,32 +128,40 @@ export default function MyInfoPage() {
             return
         }
 
-        console.log('마이인포 - 사용자 정보 요청 시작')
+        // 로컬 스토리지에서 학원 이름 확인
+        let storedAcademyName = ''
+        if (typeof window !== 'undefined') {
+            storedAcademyName = localStorage.getItem('academyName') || ''
+        }
+
+        console.log('myinfo - 사용자 정보 요청 시작')
         // JWT 토큰에서 사용자 정보를 추출하므로 별도의 파라미터 없이 요청
         fetch('/api/v1/myInfos', {
             method: 'GET',
             credentials: 'include', // 쿠키(JWT)를 포함하여 요청
         })
             .then((res) => {
-                console.log('마이인포 - 응답 상태:', res.status)
+                console.log('myinfo - 응답 상태:', res.status)
                 if (!res.ok) {
                     throw new Error('사용자 정보를 불러오지 못했습니다.')
                 }
                 return res.json()
             })
             .then((data) => {
-                console.log('마이인포 - 사용자 정보 데이터:', data)
+                console.log('myinfo - 사용자 정보 데이터:', data)
 
                 // academyName 필드 추가 처리
                 const userInfoData: MyInfo = {
                     ...data,
-                    academyName: getAcademyNameFromCode(data.academyCode || ''),
+                    // 백엔드에서 academyName이 오면 그것을 사용, 아니면 로컬 스토리지에서 가져온 값 사용
+                    academyName:
+                        data.academyName || storedAcademyName || getAcademyNameFromCode(data.academyCode || ''),
                 }
 
                 setUserInfo(userInfoData)
             })
             .catch((err) => {
-                console.error('마이인포 - 에러:', err)
+                console.error('myinfo - 에러:', err)
                 setError(err.message)
             })
     }, [isLogin])
@@ -156,8 +193,8 @@ export default function MyInfoPage() {
                     )}
 
                     {/* 프로필 섹션 */}
-                    <div className="relative h-56 bg-[#f2edf4] rounded-t-lg mt-4 mx-1">
-                        <div className="absolute left-8 bottom-0 transform translate-y-[55%]">
+                    <div className="relative h-56 bg-[#f2edf4] rounded-t-lg mt-4 mx-4">
+                        <div className="absolute left-8 bottom-0 translate-y-23">
                             <div className="relative">
                                 <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white bg-white">
                                     <Image
@@ -173,14 +210,14 @@ export default function MyInfoPage() {
                                     />
                                 </div>
                             </div>
-                            <div className="mt-6 text-left pl-1">
+                            <div className="mt-5 text-left pl-1">
                                 <h1 className="text-2xl font-semibold text-[#9C50D4]">{combinedUserInfo.nickName}</h1>
                             </div>
                         </div>
                     </div>
 
                     {/* 흰색 배경 컨테이너 시작 */}
-                    <div className="bg-white mx-1 rounded-b-2xl shadow-sm pb-6 mt-0 pt-20">
+                    <div className="bg-white mx-4 rounded-b-2xl shadow-sm pb-6 mt-0 pt-20">
                         {/* 정보 섹션 - 그리드 레이아웃으로 변경 */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mx-4 mt-6">
                             {/* 기본 정보 카드 */}
@@ -194,9 +231,11 @@ export default function MyInfoPage() {
                                     </div>
 
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">휴대폰번호</span>
+                                        <span className="text-gray-500">휴대폰 번호</span>
                                         <span className="text-gray-900">
-                                            {combinedUserInfo.phoneNum || '등록된 번호가 없습니다'}
+                                            {combinedUserInfo.phoneNum
+                                                ? formatPhoneNumber(combinedUserInfo.phoneNum)
+                                                : '등록된 번호가 없습니다'}
                                         </span>
                                     </div>
 
@@ -224,7 +263,7 @@ export default function MyInfoPage() {
                                                     href="/myinfo/academyRegister"
                                                     className="text-[#9C50D4] hover:underline"
                                                 >
-                                                    {combinedUserInfo.academyName || combinedUserInfo.academyCode}
+                                                    {combinedUserInfo.academyName || '등록된 학원'}
                                                 </Link>
                                             ) : (
                                                 <Link
@@ -298,7 +337,7 @@ export default function MyInfoPage() {
                                     </div>
                                 </Link>
 
-                                <Link href="/favorites" className="flex items-center justify-between p-6">
+                                <Link href="/my-likes" className="flex items-center justify-between p-6">
                                     <div className="flex items-center">
                                         <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
                                         <span className="text-gray-700">좋아요한 게시글</span>
