@@ -92,6 +92,9 @@ export function useLoginMember() {
             method: 'DELETE',
             credentials: 'include',
         }).then(() => {
+            // 로그아웃 시 액세스 토큰 제거
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
             removeLoginMember()
             callback()
         })

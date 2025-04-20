@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import axios, { AxiosError } from 'axios'
 
 export default function AcademyRegister() {
     const [academyCode, setAcademyCode] = useState('')
@@ -19,50 +18,45 @@ export default function AcademyRegister() {
             // API 요청을 통해 학원 코드 검증 및 등록
             const dummyUserName = 'user7' // 실제로는 로그인 정보에서 가져와야 함
 
-            // 방법 1: 요청 본문에 userName과 academyCode를 함께 전송
-            const response = await axios.post(
-                `/api/v1/academies/register`,
-                {
+            // axios 대신 fetch API 사용
+            const response = await fetch(`/api/v1/academies/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // 필요하다면 인증 토큰 추가
+                    // 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                },
+                credentials: 'include', // 쿠키 포함하여 요청
+                body: JSON.stringify({
                     userName: dummyUserName,
                     academyCode: academyCode,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // 필요하다면 인증 토큰 추가
-                        // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    timeout: 10000,
-                    withCredentials: true, // 쿠키 포함하여 요청
-                },
-            )
+                }),
+            });
 
-            /* 
-            // 방법 2: 요청 파라미터로 전달 (백엔드가 이 방식을 지원하는 경우)
-            const response = await axios.post(
-                `/api/v1/academies/register?userName=${dummyUserName}`,
-                {
-                    academyCode: academyCode
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 10000,
-                    withCredentials: true
+            if (!response.ok) {
+                // HTTP 에러 상태 코드에 따른 처리
+                if (response.status === 400) {
+                    throw new Error('유효하지 않은 학원 코드입니다.');
+                } else if (response.status === 404) {
+                    throw new Error('등록된 학원이 아닙니다.');
+                } else if (response.status === 500) {
+                    throw new Error('서버 내부 오류가 발생했습니다. 서버 로그를 확인해주세요.');
+                } else {
+                    throw new Error('학원 등록 중 오류가 발생했습니다.');
                 }
-            )
-            */
+            }
+
+            const data = await response.json();
 
             // 학원 등록 성공 시
-            console.log('응답 데이터:', response.data)
+            console.log('응답 데이터:', data)
             let academyName = '등록된 학원'
 
             // 응답 형식에 따라 학원 이름 추출 방법 조정
-            if (typeof response.data === 'string' && response.data.includes(':')) {
-                academyName = response.data.split(': ')[1]
-            } else if (response.data && response.data.academyName) {
-                academyName = response.data.academyName
+            if (typeof data === 'string' && data.includes(':')) {
+                academyName = data.split(': ')[1]
+            } else if (data && data.academyName) {
+                academyName = data.academyName
             }
 
             // 로컬 스토리지에 저장하고 이동
@@ -70,28 +64,8 @@ export default function AcademyRegister() {
             router.push('/myinfo')
         } catch (error) {
             console.error('API 오류:', error)
-            // 오류 응답 처리
-            const axiosError = error as AxiosError
-
-            if (axiosError.code === 'ECONNREFUSED') {
-                setError('서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.')
-            } else if (axiosError.response) {
-                if (axiosError.response.status === 400) {
-                    setError('유효하지 않은 학원 코드입니다.')
-                } else if (axiosError.response.status === 404) {
-                    setError('등록된 학원이 아닙니다.')
-                } else if (axiosError.response.status === 500) {
-                    setError('서버 내부 오류가 발생했습니다. 서버 로그를 확인해주세요.')
-                    console.error('서버 오류 응답:', axiosError.response.data)
-                } else {
-                    setError('학원 등록 중 오류가 발생했습니다.')
-                }
-            } else if (axiosError.request) {
-                // 요청은 전송되었지만 응답을 받지 못함
-                setError('서버로부터 응답이 없습니다. 잠시 후 다시 시도해주세요.')
-            } else {
-                setError('서버 연결에 실패했습니다. 나중에 다시 시도해주세요.')
-            }
+            // 에러 메시지 설정
+            setError(error instanceof Error ? error.message : '서버 연결에 실패했습니다. 나중에 다시 시도해주세요.')
         } finally {
             setIsLoading(false)
         }

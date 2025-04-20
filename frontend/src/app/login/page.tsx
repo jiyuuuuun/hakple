@@ -42,6 +42,17 @@ export default function LoginPage() {
             const data = await response.json()
             console.log('로그인 성공 데이터:', data)
 
+            // 응답 데이터에서 토큰 추출 및 저장
+            if (data.accessToken) {
+                localStorage.setItem('accessToken', data.accessToken)
+                console.log('액세스 토큰 저장 완료')
+            }
+            
+            if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken)
+                console.log('리프레시 토큰 저장 완료')
+            }
+
             //라우터로 보내면 레이아웃이 갱신이 안됨
             window.location.href = '/'
 
