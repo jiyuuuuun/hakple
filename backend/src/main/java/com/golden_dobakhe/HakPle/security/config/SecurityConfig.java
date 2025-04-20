@@ -40,6 +40,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/logout",
+                                "/api/v1/users/userreg",
 
                                 // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",

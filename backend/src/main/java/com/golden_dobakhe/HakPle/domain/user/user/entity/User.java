@@ -50,7 +50,7 @@ public class User extends BaseEntity {
     @Column(name = "role", nullable = false)
     private Set<Role> roles = new HashSet<>();
 
-    @Column(length = 255)
+    @Column(length = 512)
     private String refreshToken; // JWT 리프레시 토큰
 
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
