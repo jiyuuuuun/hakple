@@ -46,6 +46,7 @@ public class SecurityConfig {
                                 // 관리자 로그인/회원가입
 
                                 "/api/v1/users/userreg",
+                                "/api/v1/users/check-duplicate",
 
                                 // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",
