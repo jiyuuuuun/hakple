@@ -7,7 +7,7 @@ import Link from 'next/link'
 export default function ForgotUsername() {
     const router = useRouter()
     const [formData, setFormData] = useState({
-        name: '',
+        nickName: '',
         phone: '',
     })
     const [isLoading, setIsLoading] = useState(false)
@@ -20,8 +20,8 @@ export default function ForgotUsername() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!formData.name || !formData.phone) {
-            alert('이름과 휴대폰 번호를 모두 입력해주세요.')
+        if (!formData.nickName || !formData.phone) {
+            alert('닉네임과 휴대폰 번호를 모두 입력해주세요.')
             return
         }
 
@@ -32,18 +32,19 @@ export default function ForgotUsername() {
         let apiError = false
         try {
             console.log('아이디 찾기 요청 데이터:', {
-                name: formData.name,
+                nickName: formData.nickName,
                 phoneNum: formData.phone,
             })
 
             // API 요청
             const response = await fetch('http://localhost:8090/api/v1/usernames/find-username', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    name: formData.name,
+                    nickName: formData.nickName,
                     phoneNum: formData.phone,
                 }),
             })
@@ -97,17 +98,19 @@ export default function ForgotUsername() {
 
             // 테스트 데이터베이스
             const userDatabase = [
-                { name: '홍길동', phone: '01012345678', user_name: 'hong123' },
-                { name: '김철수', phone: '01098765432', user_name: 'kim_cs' },
-                { name: '이영희', phone: '01011112222', user_name: 'lee_younghee' },
-                { name: '박지민', phone: '01033334444', user_name: 'jimin_park' },
-                { name: '최수진', phone: '01055556666', user_name: 'soojin_choi' },
-                { name: '관리자', phone: '01099998888', user_name: 'admin' },
-                { name: '테스트', phone: '01000001111', user_name: 'tester' },
+                { nickName: '홍길동', phone: '01012345678', user_name: 'hong123' },
+                { nickName: '김철수', phone: '01098765432', user_name: 'kim_cs' },
+                { nickName: '이영희', phone: '01011112222', user_name: 'lee_younghee' },
+                { nickName: '박지민', phone: '01033334444', user_name: 'jimin_park' },
+                { nickName: '최수진', phone: '01055556666', user_name: 'soojin_choi' },
+                { nickName: '관리자', phone: '01099998888', user_name: 'admin' },
+                { nickName: '테스트', phone: '01000001111', user_name: 'tester' },
             ]
 
             // 입력한 정보로 회원 찾기
-            foundUser = userDatabase.find((user) => user.name === formData.name && user.phone === formData.phone)
+            foundUser = userDatabase.find(
+                (user) => user.nickName === formData.nickName && user.phone === formData.phone,
+            )
 
             console.log('테스트 데이터베이스 검색 결과:', foundUser || '일치하는 회원 없음')
         }
@@ -132,14 +135,14 @@ export default function ForgotUsername() {
 
                 <form onSubmit={handleSubmit}>
                     <div className="mb-6">
-                        <h2 className="text-lg font-medium mb-2">이름</h2>
+                        <h2 className="text-lg font-medium mb-2">닉네임</h2>
                         <div className="mb-4">
                             <input
                                 type="text"
-                                name="name"
-                                value={formData.name}
+                                name="nickName"
+                                value={formData.nickName}
                                 onChange={handleChange}
-                                placeholder="이름을 입력하세요"
+                                placeholder="닉네임을 입력하세요"
                                 className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>

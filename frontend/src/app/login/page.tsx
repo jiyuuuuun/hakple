@@ -135,9 +135,14 @@ export default function LoginPage() {
                         <label htmlFor="remember" className="ml-3 text-base text-gray-600">
                             로그인 상태 유지
                         </label>
-                        <Link href="/forgot-password" className="ml-auto text-base text-gray-600 hover:text-purple-600">
-                            비밀번호를 잊으셨나요?
-                        </Link>
+                        <div className="ml-auto flex space-x-4">
+                            <Link href="/forgot-username" className="text-base text-gray-600 hover:text-purple-600">
+                                아이디 찾기
+                            </Link>
+                            <Link href="/forgot-password" className="text-base text-gray-600 hover:text-purple-600">
+                                비밀번호 찾기
+                            </Link>
+                        </div>
                     </div>
 
                     <button
