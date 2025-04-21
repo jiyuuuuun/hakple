@@ -8,6 +8,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
@@ -158,9 +159,8 @@ public class AdminService {
         return userRepository.findAllByRole(Role.ADMIN);
     }
 
-
-    //등록되어 있는 학원 조회
-    public List<Academy> getAcademys(){
-        return academyRepository.findAll();
+    //등록되어 있는 학원 조회, 학원 별 사용 자 수
+    public List<AcademyWithUserCountDto> getAcademyListWithUserCounts() {
+        return academyRepository.findAllAcademiesWithUserCount();
     }
 }

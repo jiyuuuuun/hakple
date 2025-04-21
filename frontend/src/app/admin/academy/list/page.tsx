@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 interface Academy {
-  id: number;
-  name: string;           // academyName
-  phone: string;          // phoneNum
-  code: string;           // academyCode
-  createdAt: string;      // creationTime
-  memberCount?: number;   // 없음
+  id?: number;             // 백엔드에서 제공할 수도 있음
+  name: string;            // academyName
+  phone: string;           // phoneNum
+  code: string;            // academyCode
+  userCount: number;       // 소속 유저 수
+  creationTime: string;    // 생성 시간
 }
 
 export default function AcademyListPage() {
@@ -154,8 +154,8 @@ export default function AcademyListPage() {
         name: item.academyName || '이름 없음',
         phone: item.phoneNum || '',
         code: item.academyCode || '',
-        createdAt: item.creationTime || '',
-        memberCount: 0 // 멤버 수 정보가 없음
+        userCount: item.userCount || 0,
+        creationTime: item.creationTime || item.createdAt || ''
       }));
       
       console.log('매핑된 학원 데이터:', mappedData);
@@ -194,15 +194,22 @@ export default function AcademyListPage() {
   };
 
   // 날짜 포맷
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
     
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '-';
+      
+      return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } catch (e) {
+      console.error('날짜 변환 오류:', e);
+      return '-';
+    }
   };
 
   if (loading) {
@@ -274,17 +281,14 @@ export default function AcademyListPage() {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       등록일
                     </th>
-                    {/* 회원 수 정보가 있는 경우 표시 */}
-                    {filteredAcademies.some(a => a.memberCount !== undefined) && (
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        회원 수
-                      </th>
-                    )}
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      회원 수
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredAcademies.map((academy) => (
-                    <tr key={academy.id} className="hover:bg-gray-50">
+                  {filteredAcademies.map((academy, index) => (
+                    <tr key={academy.code || `academy-${index}`} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{academy.name}</div>
                       </td>
@@ -295,14 +299,11 @@ export default function AcademyListPage() {
                         <div className="text-sm text-gray-500">{academy.phone || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{formatDate(academy.createdAt)}</div>
+                        <div className="text-sm text-gray-500">{formatDate(academy.creationTime)}</div>
                       </td>
-                      {/* 회원 수 정보가 있는 경우 표시 */}
-                      {filteredAcademies.some(a => a.memberCount !== undefined) && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{academy.memberCount || 0}</div>
-                        </td>
-                      )}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-500">{academy.userCount || 0}</div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
