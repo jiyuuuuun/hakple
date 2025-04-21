@@ -18,6 +18,7 @@ interface Post {
   modificationTime?: string;
   isReported?: boolean;
   isLiked?: boolean;
+  isOwner?: boolean;
 }
 
 interface Comment {
@@ -28,6 +29,8 @@ interface Comment {
   likeCount: number;
   userId: number;
   isLiked?: boolean;
+  isReported?: boolean;
+  isOwner?: boolean;
 }
 
 export default function PostDetailPage() {
@@ -206,6 +209,27 @@ export default function PostDetailPage() {
               setIsReported(false);
             }),
             
+            // 게시글 작성자 여부 확인
+            fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}/is-owner`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include', // 쿠키 인증 사용
+            }).then(async res => {
+              if (res.ok) {
+                const ownerData = await res.json();
+                setPost(prev => prev ? { ...prev, isOwner: ownerData.isOwner } : null);
+                console.log('게시글 작성자 여부:', ownerData.isOwner);
+              } else {
+                console.log('게시글 작성자 확인 실패:', await res.text());
+                setPost(prev => prev ? { ...prev, isOwner: false } : null);
+              }
+            }).catch(err => {
+              console.log('게시글 작성자 확인 중 오류:', err);
+              setPost(prev => prev ? { ...prev, isOwner: false } : null);
+            }),
+            
             // 댓글 목록 조회
             fetchComments(postData.id).then(commentsData => {
               setComments(commentsData);
@@ -275,6 +299,33 @@ export default function PostDetailPage() {
     }
   };
 
+  // 게시글 메뉴 토글
+  const togglePostMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPostMenu(!showPostMenu);
+    setShowCommentMenu(null);
+  };
+
+  // 게시글 수정 페이지로 이동
+  const handleEdit = () => {
+    if (!post) return;
+    
+    // 로그인 여부 확인
+    if (!isLogin) {
+      alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+    
+    // 작성자 여부 확인
+    if (!post.isOwner) {
+      alert('자신의 게시글만 수정할 수 있습니다.');
+      return;
+    }
+    
+    router.push(`/post/${post.id}/edit`);
+    setShowPostMenu(false);
+  };
+
   // 게시글 삭제 기능
   const handleDelete = async () => {
     if (!post || !confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
@@ -282,6 +333,12 @@ export default function PostDetailPage() {
     // 로그인 여부 확인
     if (!isLogin) {
       alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+    
+    // 작성자 여부 확인
+    if (!post.isOwner) {
+      alert('자신의 게시글만 삭제할 수 있습니다.');
       return;
     }
     
@@ -303,27 +360,6 @@ export default function PostDetailPage() {
     }
   };
 
-  // 게시글 메뉴 토글
-  const togglePostMenu = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowPostMenu(!showPostMenu);
-    setShowCommentMenu(null);
-  };
-
-  // 게시글 수정 페이지로 이동
-  const handleEdit = () => {
-    if (!post) return;
-    
-    // 로그인 여부 확인
-    if (!isLogin) {
-      alert('로그인이 필요한 기능입니다.');
-      return;
-    }
-    
-    router.push(`/post/${post.id}/edit`);
-    setShowPostMenu(false);
-  };
-
   // 게시글 신고 기능
   const handleReport = async (id: number) => {
     if (!post || isReported || isReporting) return;
@@ -331,6 +367,13 @@ export default function PostDetailPage() {
     // 로그인 여부 확인
     if (!isLogin) {
       alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+    
+    // 자신의 게시글인지 확인
+    if (post.isOwner) {
+      alert('자신의 게시글은 신고할 수 없습니다.');
+      setShowPostMenu(false);
       return;
     }
     
@@ -409,7 +452,6 @@ export default function PostDetailPage() {
           commentsData = JSON.parse(commentsText);
           console.log('댓글 목록 조회 성공:', commentsData);
           
-          // 백엔드에서 isLiked를 liked로 변환하는 코드 제거 (이제 필요 없음)
           if (commentsData && commentsData.length > 0) {
             const firstComment = commentsData[0];
             console.log('첫 번째 댓글 객체 구조:', Object.keys(firstComment));
@@ -426,22 +468,52 @@ export default function PostDetailPage() {
           return [];
         }
         
-        // 각 댓글의 isLiked 상태 로깅 (디버깅용)
-        commentsData.forEach((comment: Comment) => {
-          console.log(`댓글 ID ${comment.id}, 작성자: ${comment.nickname}, 내용: ${comment.content.substring(0, 15)}..., 좋아요 수: ${comment.likeCount}, 좋아요 상태: ${comment.isLiked}`);
+        // 각 댓글의 신고 상태와 본인 작성 여부 확인 (병렬 처리)
+        const commentStatusPromises = commentsData.map(async (comment: Comment) => {
+          try {
+            // 1. 신고 상태 확인
+            const reportStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/status`, {
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (reportStatusResponse.ok) {
+              const reportStatus = await reportStatusResponse.json();
+              comment.isReported = reportStatus.isReported;
+            } else {
+              comment.isReported = false;
+            }
+            
+            // 2. 본인 작성 여부 확인
+            const ownerStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/is-owner`, {
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (ownerStatusResponse.ok) {
+              const ownerStatus = await ownerStatusResponse.json();
+              comment.isOwner = ownerStatus.isOwner;
+            } else {
+              comment.isOwner = false;
+            }
+            
+          } catch (error) {
+            console.error(`댓글 ID ${comment.id}의 상태 확인 중 오류:`, error);
+            comment.isReported = false;
+            comment.isOwner = false;
+          }
+          return comment;
         });
         
-        // isLiked가 없거나 undefined인 댓글이 있는지 확인
-        const commentsWithoutLikeStatus = commentsData.filter((comment: Comment) => comment.isLiked === undefined);
-        if (commentsWithoutLikeStatus.length > 0) {
-          console.warn('좋아요 상태가 없는 댓글:', commentsWithoutLikeStatus.length, '개');
-          commentsWithoutLikeStatus.forEach((comment: Comment) => {
-            console.warn(`- 댓글 ID ${comment.id}, 전체 객체:`, comment);
-          });
-        }
+        // 모든 댓글의 상태를 기다림
+        const commentsWithStatus = await Promise.all(commentStatusPromises);
         
-        console.log('댓글 목록과 좋아요 상태 로드 완료:', commentsData);
-        return commentsData;
+        console.log('댓글 목록과 상태 로드 완료:', commentsWithStatus);
+        return commentsWithStatus;
         
       } catch (error) {
         console.error('댓글 정보 로드 중 오류:', error);
@@ -512,6 +584,17 @@ export default function PostDetailPage() {
   // 댓글 수정 버튼 클릭 이벤트 핸들러 수정
   const startCommentEdit = (commentId: number, content: string) => {
     console.log('댓글 수정 시작:', commentId, content);
+    
+    // 댓글 찾기
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+    
+    // 작성자 여부 확인
+    if (!comment.isOwner) {
+      alert('자신의 댓글만 수정할 수 있습니다.');
+      setShowCommentMenu(null);
+      return;
+    }
     
     // 이미 수정 중인 댓글이 있고 내용이 변경된 경우, 변경 사항 저장 여부 확인
     if (editingCommentId !== null && editCommentContent !== '' && editingCommentId !== commentId) {
@@ -612,6 +695,17 @@ export default function PostDetailPage() {
 
   // 댓글 삭제
   const handleCommentDelete = async (commentId: number) => {
+    // 댓글 찾기
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+    
+    // 작성자 여부 확인
+    if (!comment.isOwner) {
+      alert('자신의 댓글만 삭제할 수 있습니다.');
+      setShowCommentMenu(null);
+      return;
+    }
+    
     if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) return;
     
     // 로그인 여부 확인
@@ -724,6 +818,24 @@ export default function PostDetailPage() {
       return;
     }
     
+    // 댓글 찾기
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+    
+    // 자신의 댓글인지 확인
+    if (comment.isOwner) {
+      alert('자신의 댓글은 신고할 수 없습니다.');
+      setShowCommentMenu(null);
+      return;
+    }
+    
+    // 이미 신고한 댓글인지 확인
+    if (comment.isReported) {
+      alert('이미 신고한 댓글입니다.');
+      setShowCommentMenu(null);
+      return;
+    }
+    
     try {
       // 백엔드 댓글 신고 API 호출
       console.log('댓글 신고 요청:', commentId);
@@ -740,6 +852,13 @@ export default function PostDetailPage() {
         const errorText = await response.text();
         throw new Error(`댓글 신고 실패: ${errorText}`);
       }
+      
+      // 신고 성공 시 해당 댓글의 신고 상태 업데이트
+      setComments(prev => prev.map(c => 
+        c.id === commentId 
+          ? { ...c, isReported: true } 
+          : c
+      ));
       
       alert('댓글을 신고했습니다.');
       setShowCommentMenu(null);
@@ -858,27 +977,31 @@ export default function PostDetailPage() {
               {/* 게시글 드롭다운 메뉴 */}
               {showPostMenu && (
                 <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
+                  {post.isOwner && (
+                    <>
+                      <button 
+                        className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
+                        onClick={handleEdit}
+                      >
+                        <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
+                        글 수정
+                      </button>
+                      <button 
+                        className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
+                        onClick={handleDelete}
+                      >
+                        <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
+                        글 삭제
+                      </button>
+                    </>
+                  )}
                   <button 
-                    className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                    onClick={handleEdit}
-                  >
-                    <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
-                    글 수정
-                  </button>
-                  <button 
-                    className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
-                    onClick={handleDelete}
-                  >
-                    <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
-                    글 삭제
-                  </button>
-                  <button 
-                    className="flex items-center w-full text-left p-[5px] m-[5px] text-sm m-[5px] hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] menu-item"
+                    className={`flex items-center w-full text-left p-[5px] m-[5px] text-sm hover:${isReported || post?.isOwner ? 'bg-gray-50' : 'bg-gray-100'} border-none bg-[#ffffff] m-[5px] menu-item`}
                     onClick={() => handleReport(post.id)}
-                    disabled={isReported}
+                    disabled={isReported || post?.isOwner}
                   >
-                    <span className={`material-icons ${isReported ? 'text-gray-400' : 'text-gray-500'} m-[5px] mr-2`}>flag</span>
-                    {isReported ? '신고 완료' : '글 신고'}
+                    <span className={`material-icons ${isReported || post?.isOwner ? 'text-gray-400' : 'text-gray-500'} m-[5px] mr-2`}>flag</span>
+                    {isReported ? '신고 완료' : post?.isOwner ? '본인 게시글' : '글 신고'}
                   </button>
                 </div>
               )}
@@ -1029,31 +1152,36 @@ export default function PostDetailPage() {
                         {/* 댓글 드롭다운 메뉴 */}
                         {showCommentMenu === comment.id && (
                           <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
+                            {comment.isOwner && (
+                              <>
+                                <button 
+                                  className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    console.log('수정 버튼 클릭:', comment.id);
+                                    startCommentEdit(comment.id, comment.content);
+                                  }}
+                                >
+                                  <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
+                                  댓글 수정
+                                </button>
+                                <button 
+                                  className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
+                                  onClick={() => handleCommentDelete(comment.id)}
+                                >
+                                  <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
+                                  댓글 삭제
+                                </button>
+                              </>
+                            )}
                             <button 
-                              className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                console.log('수정 버튼 클릭:', comment.id);
-                                startCommentEdit(comment.id, comment.content);
-                              }}
-                            >
-                              <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
-                              댓글 수정
-                            </button>
-                            <button 
-                              className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
-                              onClick={() => handleCommentDelete(comment.id)}
-                            >
-                              <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
-                              댓글 삭제
-                            </button>
-                            <button 
-                              className="flex items-center w-full text-left p-[5px] m-[5px] text-sm m-[5px] hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] menu-item"
+                              className={`flex items-center w-full text-left p-[5px] m-[5px] text-sm hover:${comment.isReported || comment.isOwner ? 'bg-gray-50' : 'bg-gray-100'} border-none bg-[#ffffff] m-[5px] menu-item`}
                               onClick={() => handleCommentReport(comment.id)}
+                              disabled={comment.isReported || comment.isOwner}
                             >
-                              <span className="material-icons text-gray-500 m-[5px] mr-2">flag</span>
-                              댓글 신고
+                              <span className={`material-icons m-[5px] mr-2 ${comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-500'}`}>flag</span>
+                              {comment.isReported ? '신고 완료' : comment.isOwner ? '본인 댓글' : '댓글 신고'}
                             </button>
                           </div>
                         )}

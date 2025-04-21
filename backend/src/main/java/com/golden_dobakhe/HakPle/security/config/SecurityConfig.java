@@ -36,7 +36,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 // OAuth2 및 스웨거 API 문서
-                                "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
+//                                "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
 
                                 // 인증 관련 API
@@ -46,6 +46,7 @@ public class SecurityConfig {
                                 // 관리자 로그인/회원가입
 
                                 "/api/v1/users/userreg",
+                                "/api/v1/users/check-duplicate",
 
                                 // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",

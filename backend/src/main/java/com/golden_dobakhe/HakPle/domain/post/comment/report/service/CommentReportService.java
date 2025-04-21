@@ -32,9 +32,13 @@ public class CommentReportService {
 
         User user=userRepository.findById(comment.getUser().getId()).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
 
-
         User reporter = userRepository.findById(userId)
                 .orElseThrow(() -> new CommentException(CommentResult.USER_NOT_FOUND));
+                
+        // 자신의 댓글 신고 방지
+        if (comment.getUser().getId().equals(userId)) {
+            throw new CommentException(CommentResult.CANNOT_REPORT_OWN_COMMENT);
+        }
 
         // 중복 신고 방지
         boolean alreadyReported = reportRepository.existsByCommentAndReporter(comment,reporter);
@@ -50,9 +54,27 @@ public class CommentReportService {
         user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
         log.info("UserReportCount : {}", user.getReportedCount());
 
-        comment.setStatus(Status.INACTIVE); //대기 상태로 변경
-
         reportRepository.save(report);
     }
-
+    
+    // 사용자가 댓글을 신고했는지 확인하는 메서드
+    @Transactional(readOnly = true)
+    public boolean isReportedByUser(Long commentId, Long userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
+                
+        User reporter = userRepository.findById(userId)
+                .orElseThrow(() -> new CommentException(CommentResult.USER_NOT_FOUND));
+                
+        return reportRepository.existsByCommentAndReporter(comment, reporter);
+    }
+    
+    // 작성자와 로그인 사용자가 같은지 확인하는 메서드
+    @Transactional(readOnly = true)
+    public boolean isCommentOwner(Long commentId, Long userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
+                
+        return comment.getUser().getId().equals(userId);
+    }
 }
