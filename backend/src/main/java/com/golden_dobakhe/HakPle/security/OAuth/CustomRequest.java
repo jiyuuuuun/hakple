@@ -72,6 +72,7 @@ public class CustomRequest {
                 .path("/")
                 .domain("localhost")
                 .sameSite("Strict")
+                //애 부분은 https부분에서 먹히도록 한 것이라고 한다
                 //.secure(true)
                 .httpOnly(true)
                 .build();

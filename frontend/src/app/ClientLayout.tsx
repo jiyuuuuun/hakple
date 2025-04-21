@@ -20,34 +20,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         logoutAndHome,
     }
 
-    // // URL 쿼리 파라미터에서 토큰 확인
-    // useEffect(() => {
-    //     if (typeof window !== 'undefined') {
-    //         // URL 쿼리 파라미터 파싱
-    //         const urlParams = new URLSearchParams(window.location.search);
-    //         const accessToken = urlParams.get('accessToken');
-    //         const refreshToken = urlParams.get('refreshToken');
-
-    //         // URL에 토큰이 있으면 저장
-    //         if (accessToken) {
-    //             console.log('URL에서 액세스 토큰 발견, 저장합니다');
-    //             localStorage.setItem('accessToken', accessToken);
-    //         }
-
-    //         if (refreshToken) {
-    //             console.log('URL에서 리프레시 토큰 발견, 저장합니다');
-    //             localStorage.setItem('refreshToken', refreshToken);
-    //         }
-
-    //         // 토큰이 있었다면 현재 URL에서 토큰 파라미터 제거 (보안상 이유로)
-    //         if (accessToken || refreshToken) {
-    //             // 현재 URL에서 토큰 쿼리 파라미터를 제거하고 히스토리에 추가하지 않음
-    //             const cleanUrl = window.location.pathname + window.location.hash;
-    //             window.history.replaceState({}, document.title, cleanUrl);
-    //         }
-    //     }
-    // }, []);
-
     //[]최초 요청시 api를 보낸다, 요청시에도 저게 돌아간다고 한다
     useEffect(() => {
         console.log('ClientLayout - 로그인 상태 확인 시작')
