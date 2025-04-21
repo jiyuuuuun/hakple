@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
 
 // API 기본 URL
 const API_BASE_URL = 'http://localhost:8090' // 실제 서버 URL로 변경 필요
@@ -145,109 +147,114 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="max-w-screen-lg mx-auto pt-10 pb-10">
-                <div className="bg-white rounded-lg shadow-sm mx-4 md:mx-auto max-w-2xl mt-8">
-                    <div className="p-6">
-                        <h1 className="text-3xl font-bold mb-4 text-center mt-3">비밀번호 찾기</h1>
-                        <p className="text-base text-gray-600 mb-8 text-center">
-                            가입 시 등록한 휴대폰 번호로 인증 후 비밀번호를 재설정할 수 있습니다
-                        </p>
-
-                        {errorMessage && (
-                            <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
-                                <p className="text-red-600 font-medium">{errorMessage}</p>
-                            </div>
-                        )}
-
-                        <form className="space-y-8">
-                            <div>
-                                <h3 className="text-lg font-medium text-gray-800 mb-2">휴대폰 번호</h3>
-                                <div className="flex space-x-2">
-                                    <input
-                                        id="phoneNumber"
-                                        type="text"
-                                        value={phoneNumber}
-                                        onChange={(e) => {
-                                            setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))
-                                            setErrorMessage('')
-                                        }}
-                                        placeholder="휴대폰 번호를 입력하세요"
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#9C50D4]"
-                                        disabled={isLoading}
-                                    />
-                                    <button
-                                        onClick={handleSendVerification}
-                                        className={`px-4 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-[#8a45bc] transition-colors ${
-                                            isLoading ? 'opacity-70 cursor-not-allowed' : ''
-                                        }`}
-                                        disabled={isLoading}
-                                        type="button"
-                                    >
-                                        {isLoading ? '처리 중...' : isSent && isExpired ? '재전송' : '인증번호 발송'}
-                                    </button>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">숫자만 입력해주세요</p>
-                            </div>
-
-                            {isSent && (
-                                <div className={`${isExpired ? 'opacity-80' : ''}`}>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h3 className="text-lg font-medium text-gray-800">인증번호</h3>
-                                        {isTimerActive && !isExpired && (
-                                            <span className="text-red-500 font-medium">{formatTime()}</span>
-                                        )}
-                                        {isExpired && <span className="text-red-500 font-medium">만료됨</span>}
-                                    </div>
-                                    <input
-                                        id="verificationCode"
-                                        type="text"
-                                        value={verificationCode}
-                                        onChange={(e) => {
-                                            setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))
-                                            setErrorMessage('')
-                                        }}
-                                        placeholder="인증번호 6자리 입력"
-                                        className={`w-full px-4 py-2 border ${
-                                            isExpired ? 'border-red-300' : 'border-gray-300'
-                                        } rounded-md focus:outline-none focus:ring-2 focus:ring-[#9C50D4]`}
-                                        maxLength={6}
-                                        inputMode="numeric"
-                                        disabled={isExpired || isLoading}
-                                    />
-                                    {isExpired && (
-                                        <p className="text-red-500 text-xs mt-1">
-                                            인증번호가 만료되었습니다. 인증번호를 재전송해주세요.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-
-                            <div className="flex justify-end space-x-3 pt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => router.push('/login')}
-                                    className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 shadow-sm"
-                                >
-                                    취소
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleVerify}
-                                    disabled={!isSent || isExpired || isLoading}
-                                    className={`px-6 py-2 ${
-                                        !isSent || isExpired || isLoading
-                                            ? 'bg-gray-300 cursor-not-allowed'
-                                            : 'bg-[#9C50D4] hover:bg-[#8a45bc]'
-                                    } text-white rounded-md shadow-sm font-medium`}
-                                >
-                                    {isLoading ? '확인 중...' : '다음'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+        <div className="min-h-screen flex items-center justify-center bg-[#FAF9FE] px-4 pt-0">
+            <div className="w-full max-w-[600px] bg-white rounded-3xl p-12 shadow-lg mt-[-200px]">
+                <div className="flex flex-col items-center mb-10 mt-[-10px]">
+                    <Link href="/" className="cursor-pointer">
+                        <Image src="/logo.png" alt="Hakple 로고" width={120} height={120} className="mb-2" />
+                    </Link>
+                    <h1 className="text-4xl font-bold text-center">
+                        <span className="text-[#9C50D4]">비밀번호</span>
+                        <span className="text-black"> 찾기</span>
+                    </h1>
+                    <p className="text-base text-gray-600 mt-2 text-center">
+                        가입 시 등록한 휴대폰 번호로 인증 후 비밀번호를 재설정할 수 있습니다
+                    </p>
                 </div>
-            </main>
+
+                {errorMessage && (
+                    <div className="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+                        <p>{errorMessage}</p>
+                    </div>
+                )}
+
+                <form className="space-y-6">
+                    <div className="space-y-3">
+                        <label htmlFor="phoneNumber" className="block text-gray-700 text-lg">
+                            휴대폰 번호
+                        </label>
+                        <div className="flex space-x-2">
+                            <input
+                                id="phoneNumber"
+                                type="text"
+                                value={phoneNumber}
+                                onChange={(e) => {
+                                    setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))
+                                    setErrorMessage('')
+                                }}
+                                placeholder="휴대폰 번호를 입력하세요"
+                                className="flex-1 px-5 py-4 text-lg text-black rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                disabled={isLoading}
+                            />
+                            <button
+                                onClick={handleSendVerification}
+                                className={`px-4 py-2 text-lg bg-[#9C50D4] text-white rounded-lg hover:bg-[#8a45bc] transition-colors ${
+                                    isLoading ? 'opacity-70 cursor-not-allowed' : ''
+                                }`}
+                                disabled={isLoading}
+                                type="button"
+                            >
+                                {isLoading ? '처리 중...' : isSent && isExpired ? '재전송' : '인증번호 발송'}
+                            </button>
+                        </div>
+                        <p className="text-sm text-gray-500">숫자만 입력해주세요</p>
+                    </div>
+
+                    {isSent && (
+                        <div className={`space-y-3 ${isExpired ? 'opacity-80' : ''}`}>
+                            <div className="flex justify-between items-center">
+                                <label htmlFor="verificationCode" className="block text-gray-700 text-lg">
+                                    인증번호
+                                </label>
+                                {isTimerActive && !isExpired && (
+                                    <span className="text-red-500 font-medium">{formatTime()}</span>
+                                )}
+                                {isExpired && <span className="text-red-500 font-medium">만료됨</span>}
+                            </div>
+                            <input
+                                id="verificationCode"
+                                type="text"
+                                value={verificationCode}
+                                onChange={(e) => {
+                                    setVerificationCode(e.target.value.replace(/[^0-9]/g, ''))
+                                    setErrorMessage('')
+                                }}
+                                placeholder="인증번호 6자리 입력"
+                                className={`w-full px-5 py-4 text-lg text-black rounded-lg border ${
+                                    isExpired ? 'border-red-300' : 'border-gray-300'
+                                } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
+                                maxLength={6}
+                                inputMode="numeric"
+                                disabled={isExpired || isLoading}
+                            />
+                            {isExpired && (
+                                <p className="text-red-500 text-sm mt-1">
+                                    인증번호가 만료되었습니다. 인증번호를 재전송해주세요.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    <button
+                        type="button"
+                        onClick={handleVerify}
+                        disabled={!isSent || isExpired || isLoading}
+                        className={`w-full py-4 text-lg ${
+                            !isSent || isExpired || isLoading
+                                ? 'bg-gray-300 cursor-not-allowed'
+                                : 'bg-[#9C50D4] hover:bg-[#8a45bc]'
+                        } text-white rounded-lg transition-colors mt-6`}
+                    >
+                        {isLoading ? '확인 중...' : '다음'}
+                    </button>
+
+                    <div className="text-center mt-4">
+                        <Link href="/login" className="text-base text-gray-600 hover:text-purple-600">
+                            로그인 페이지로 돌아가기
+                        </Link>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }
