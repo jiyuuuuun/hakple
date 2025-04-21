@@ -57,6 +57,7 @@ public class AdminService {
                 .phoneNum(dto.getPhoneNumber())
                 .roles(new HashSet<>(Set.of(Role.ADMIN)))
                 .status(Status.ACTIVE)
+                .academyId("ADMIN") //관리자 학원코드 임의로 넣기 게시물 보려면 학원 코드 있어야함  , null 만 아니면 되므로
                 .build();
 
         userRepository.save(admin);
