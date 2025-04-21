@@ -299,6 +299,33 @@ export default function PostDetailPage() {
     }
   };
 
+  // 게시글 메뉴 토글
+  const togglePostMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowPostMenu(!showPostMenu);
+    setShowCommentMenu(null);
+  };
+
+  // 게시글 수정 페이지로 이동
+  const handleEdit = () => {
+    if (!post) return;
+    
+    // 로그인 여부 확인
+    if (!isLogin) {
+      alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+    
+    // 작성자 여부 확인
+    if (!post.isOwner) {
+      alert('자신의 게시글만 수정할 수 있습니다.');
+      return;
+    }
+    
+    router.push(`/post/${post.id}/edit`);
+    setShowPostMenu(false);
+  };
+
   // 게시글 삭제 기능
   const handleDelete = async () => {
     if (!post || !confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
@@ -306,6 +333,12 @@ export default function PostDetailPage() {
     // 로그인 여부 확인
     if (!isLogin) {
       alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+    
+    // 작성자 여부 확인
+    if (!post.isOwner) {
+      alert('자신의 게시글만 삭제할 수 있습니다.');
       return;
     }
     
@@ -325,27 +358,6 @@ export default function PostDetailPage() {
       console.error('게시글 삭제 중 오류:', err);
       alert(err instanceof Error ? err.message : '게시글 삭제에 실패했습니다.');
     }
-  };
-
-  // 게시글 메뉴 토글
-  const togglePostMenu = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowPostMenu(!showPostMenu);
-    setShowCommentMenu(null);
-  };
-
-  // 게시글 수정 페이지로 이동
-  const handleEdit = () => {
-    if (!post) return;
-    
-    // 로그인 여부 확인
-    if (!isLogin) {
-      alert('로그인이 필요한 기능입니다.');
-      return;
-    }
-    
-    router.push(`/post/${post.id}/edit`);
-    setShowPostMenu(false);
   };
 
   // 게시글 신고 기능
@@ -573,6 +585,17 @@ export default function PostDetailPage() {
   const startCommentEdit = (commentId: number, content: string) => {
     console.log('댓글 수정 시작:', commentId, content);
     
+    // 댓글 찾기
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+    
+    // 작성자 여부 확인
+    if (!comment.isOwner) {
+      alert('자신의 댓글만 수정할 수 있습니다.');
+      setShowCommentMenu(null);
+      return;
+    }
+    
     // 이미 수정 중인 댓글이 있고 내용이 변경된 경우, 변경 사항 저장 여부 확인
     if (editingCommentId !== null && editCommentContent !== '' && editingCommentId !== commentId) {
       if (!confirm('다른 댓글 수정 중입니다. 변경 사항을 저장하지 않고 계속하시겠습니까?')) {
@@ -672,6 +695,17 @@ export default function PostDetailPage() {
 
   // 댓글 삭제
   const handleCommentDelete = async (commentId: number) => {
+    // 댓글 찾기
+    const comment = comments.find(c => c.id === commentId);
+    if (!comment) return;
+    
+    // 작성자 여부 확인
+    if (!comment.isOwner) {
+      alert('자신의 댓글만 삭제할 수 있습니다.');
+      setShowCommentMenu(null);
+      return;
+    }
+    
     if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) return;
     
     // 로그인 여부 확인
@@ -943,20 +977,24 @@ export default function PostDetailPage() {
               {/* 게시글 드롭다운 메뉴 */}
               {showPostMenu && (
                 <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
-                  <button 
-                    className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                    onClick={handleEdit}
-                  >
-                    <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
-                    글 수정
-                  </button>
-                  <button 
-                    className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
-                    onClick={handleDelete}
-                  >
-                    <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
-                    글 삭제
-                  </button>
+                  {post.isOwner && (
+                    <>
+                      <button 
+                        className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
+                        onClick={handleEdit}
+                      >
+                        <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
+                        글 수정
+                      </button>
+                      <button 
+                        className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
+                        onClick={handleDelete}
+                      >
+                        <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
+                        글 삭제
+                      </button>
+                    </>
+                  )}
                   <button 
                     className={`flex items-center w-full text-left p-[5px] m-[5px] text-sm hover:${isReported || post?.isOwner ? 'bg-gray-50' : 'bg-gray-100'} border-none bg-[#ffffff] m-[5px] menu-item`}
                     onClick={() => handleReport(post.id)}
@@ -1114,25 +1152,29 @@ export default function PostDetailPage() {
                         {/* 댓글 드롭다운 메뉴 */}
                         {showCommentMenu === comment.id && (
                           <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
-                            <button 
-                              className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                console.log('수정 버튼 클릭:', comment.id);
-                                startCommentEdit(comment.id, comment.content);
-                              }}
-                            >
-                              <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
-                              댓글 수정
-                            </button>
-                            <button 
-                              className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
-                              onClick={() => handleCommentDelete(comment.id)}
-                            >
-                              <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
-                              댓글 삭제
-                            </button>
+                            {comment.isOwner && (
+                              <>
+                                <button 
+                                  className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    console.log('수정 버튼 클릭:', comment.id);
+                                    startCommentEdit(comment.id, comment.content);
+                                  }}
+                                >
+                                  <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
+                                  댓글 수정
+                                </button>
+                                <button 
+                                  className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
+                                  onClick={() => handleCommentDelete(comment.id)}
+                                >
+                                  <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
+                                  댓글 삭제
+                                </button>
+                              </>
+                            )}
                             <button 
                               className={`flex items-center w-full text-left p-[5px] m-[5px] text-sm hover:${comment.isReported || comment.isOwner ? 'bg-gray-50' : 'bg-gray-100'} border-none bg-[#ffffff] m-[5px] menu-item`}
                               onClick={() => handleCommentReport(comment.id)}

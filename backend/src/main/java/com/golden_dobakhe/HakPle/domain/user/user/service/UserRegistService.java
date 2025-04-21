@@ -90,5 +90,14 @@ public class UserRegistService {
         }
     }
 
+    // 사용자 이름 중복 확인
+    public boolean isUserNameDuplicate(String userName) {
+        return userRepository.existsByUserName(userName);
+    }
+
+    // 닉네임 중복 확인
+    public boolean isNickNameDuplicate(String nickName) {
+        return userRepository.existsByNickName(nickName);
+    }
 
 }
