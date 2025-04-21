@@ -6,8 +6,16 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-    const { loginMember, setLoginMember, setNoLoginMember, isLoginMemberPending, isLogin, logout, logoutAndHome } =
-        useLoginMember()
+    const { 
+        loginMember, 
+        setLoginMember, 
+        setNoLoginMember, 
+        isLoginMemberPending, 
+        isLogin, 
+        logout, 
+        logoutAndHome,
+        checkAdminAndRedirect 
+    } = useLoginMember()
 
     //전역 Store등록, context api기술을 썼다고 함
     const loginMemberContextValue = {
@@ -18,6 +26,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         isLogin,
         logout,
         logoutAndHome,
+        checkAdminAndRedirect
     }
 
     //[]최초 요청시 api를 보낸다, 요청시에도 저게 돌아간다고 한다
@@ -34,7 +43,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
 
         // 로그인 상태 체크 API 호출
-        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/me`, {
+        fetch(`http://localhost:8090/api/v1/auth/me`, {
             credentials: 'include',
         })
             .then((res) => {

@@ -12,7 +12,7 @@ const redirectUrlAfterSocialLogin = 'http://localhost:3000'
 
 export default function LoginPage() {
     const router = useRouter()
-    const { setLoginMember } = useGlobalLoginMember()
+    const { setLoginMember, checkAdminAndRedirect } = useGlobalLoginMember()
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -52,12 +52,18 @@ export default function LoginPage() {
                 localStorage.setItem('refreshToken', data.refreshToken)
                 console.log('리프레시 토큰 저장 완료')
             }
-
-            //라우터로 보내면 레이아웃이 갱신이 안됨
-            window.location.href = '/home'
-
-            // 홈 페이지로 이동
-            router.push('/home')
+            
+            // 관리자 권한 확인
+            const isAdmin = await checkAdminAndRedirect();
+            
+            // 관리자인 경우 관리자 페이지로, 일반 사용자인 경우 홈 페이지로 이동
+            if (isAdmin) {
+                console.log('관리자로 로그인 - 관리자 페이지로 이동');
+                window.location.href = '/admin';
+            } else {
+                console.log('일반 사용자로 로그인 - 홈 페이지로 이동');
+                window.location.href = '/home';
+            }
         } catch (error) {
             console.error('로그인 에러:', error)
             setError(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.')

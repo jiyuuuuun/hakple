@@ -32,6 +32,7 @@ export const LoginMemberContext = createContext<{
     isLogin: boolean
     logout: (callback: () => void) => void
     logoutAndHome: () => void
+    checkAdminAndRedirect: () => Promise<boolean>
 }>({
     loginMember: createEmptyMember(),
     setLoginMember: () => {},
@@ -40,6 +41,7 @@ export const LoginMemberContext = createContext<{
     isLogin: false,
     logout: () => {},
     logoutAndHome: () => {},
+    checkAdminAndRedirect: async () => false,
 })
 
 //나머지들은 메서드를 블록화
@@ -106,15 +108,44 @@ export function useLoginMember() {
         logout(() => router.replace('/'))
     }
 
+    // 관리자 권한 확인 함수
+    const checkAdminAndRedirect = async () => {
+        try {
+            const accessToken = localStorage.getItem('accessToken')
+            if (!accessToken) {
+                return false
+            }
+            
+            const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+            })
+            
+            if (!response.ok) {
+                return false
+            }
+            
+            const isAdmin = await response.json()
+            return isAdmin === true
+        } catch (error) {
+            console.error('관리자 권한 확인 중 오류:', error)
+            return false
+        }
+    }
+
     return {
         loginMember,
         setLoginMember,
         isLoginMemberPending,
         setNoLoginMember,
         isLogin,
-
         logout,
         logoutAndHome,
+        checkAdminAndRedirect,
     }
 }
 
