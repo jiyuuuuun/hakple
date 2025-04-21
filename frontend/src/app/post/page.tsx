@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 
@@ -45,6 +45,8 @@ export default function PostPage() {
   const [filterType, setFilterType] = useState('태그');
   const [minLikes, setMinLikes] = useState<string | null>(null);
   const [academyCodeChecked, setAcademyCodeChecked] = useState(false);
+  const [academyAlertShown, setAcademyAlertShown] = useState(false);
+  const academyAlertRef = useRef(false);
 
   // 1. 컴포넌트 마운트 시 클라이언트 사이드 렌더링 활성화
   useEffect(() => {
@@ -102,56 +104,29 @@ export default function PostPage() {
     }
   }, [isLogin, router]);
 
-  // 아카데미 코드 확인 및 리다이렉트
+  // 처음 로드 시 설정
   useEffect(() => {
-    // 로그인 상태이고 컴포넌트가 마운트된 상태일 때만 실행
-    if (isLogin && isMounted && !academyCodeChecked) {
-      // 로그인 멤버 정보 확인
-      console.log('게시판 - 로그인 멤버 정보:', loginMember);
-      
-      // JWT 토큰에서 직접 academyId 확인
-      let academyIdFromToken = null;
-      const token = localStorage.getItem('accessToken');
-      
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('게시판 - JWT 페이로드:', payload);
-          academyIdFromToken = payload.academyId;
-          console.log('게시판 - 토큰에서 추출한 아카데미 코드:', academyIdFromToken);
-        } catch (e) {
-          console.error('게시판 - 토큰 파싱 중 오류:', e);
-        }
-      }
-      
-      // loginMember에서 academyCode 확인 + 토큰에서 추출한 academyId도 함께 확인
-      const academyCodeFromMember = loginMember?.academyCode;
-      console.log('게시판 - loginMember에서 가져온 academyCode:', academyCodeFromMember);
-      
-      // 수정된 확인 로직: 두 값 모두 null 또는 undefined가 아닌지 확인
-      // academyCode가 undefined이고 토큰에서도 academyId가 없는 경우에만 알림창 표시
-      const hasAcademyCodeFromMember = academyCodeFromMember !== undefined && academyCodeFromMember !== null;
-      const hasAcademyIdFromToken = academyIdFromToken !== undefined && academyIdFromToken !== null;
-      const hasAcademyCode = hasAcademyCodeFromMember || hasAcademyIdFromToken;
-      
-      console.log('게시판 - 멤버에서 아카데미 코드 확인:', hasAcademyCodeFromMember);
-      console.log('게시판 - 토큰에서 아카데미 코드 확인:', hasAcademyIdFromToken);
-      console.log('게시판 - 아카데미 코드 존재 여부:', hasAcademyCode);
-      
-      if (!hasAcademyCode) {
-        // 알림창 표시
-        alert('먼저 아카데미 코드를 등록해주시길 바랍니다');
-        // 홈으로 리다이렉트
-        router.push('/');
-      }
-      
+    if (isMounted && isLogin && !academyCodeChecked) {
+      // 해당 로직 제거: 백엔드가 토큰에서 userId로 academyCode를 직접 찾기 때문에 체크가 필요 없음
+      // 로그인 상태만 확인하고 항상 true로 설정
+      console.log('게시판 - 사용자 로그인됨, ID:', loginMember?.id);
       setAcademyCodeChecked(true);
     }
-  }, [isLogin, isMounted, loginMember, router, academyCodeChecked]);
+  }, [isLogin, isMounted, loginMember, academyCodeChecked]);
+
+  // 학원 등록 알림 표시 함수
+  const showAcademyAlert = () => {
+    if (!academyAlertRef.current) {
+      academyAlertRef.current = true;
+      setAcademyAlertShown(true);
+      alert('먼저 학원을 등록해주세요');
+      router.push('/home');
+    }
+  };
 
   // 2. 게시물 데이터 가져오는 함수
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string, minLikesParam?: string | null) => {
-    if (!isMounted) return; // 클라이언트에서만 실행
+    if (!isMounted || academyAlertRef.current) return; // 이미 알림이 표시되었으면 API 호출 중단
     
     setLoading(true);
     try {
@@ -204,6 +179,13 @@ export default function PostPage() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
+          
+          // academyCode 관련 오류 확인
+          if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') || 
+              errorMessage.includes('먼저 학원을 등록해주세요')) {
+            showAcademyAlert();
+            return;
+          }
         } catch (e) {
           errorMessage = `API 에러: ${response.status} ${response.statusText}`;
         }
@@ -255,7 +237,7 @@ export default function PostPage() {
 
   // 12. 인기 태그 불러오기 함수
   const fetchPopularTags = async () => {
-    if (!isMounted) return;
+    if (!isMounted || academyAlertShown) return; // 학원 등록 알림이 이미 표시된 경우 API 호출 중단
     
     setTagsLoading(true);
     try {
@@ -279,7 +261,21 @@ export default function PostPage() {
       });
       
       if (!response.ok) {
-        throw new Error('인기 태그를 불러오는데 실패했습니다.');
+        try {
+          const errorData = await response.json();
+          const errorMessage = errorData.message || '인기 태그를 불러오는데 실패했습니다.';
+          
+          // academyCode 관련 오류 확인
+          if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') || 
+              errorMessage.includes('먼저 학원을 등록해주세요')) {
+            showAcademyAlert();
+            return;
+          }
+          
+          throw new Error(errorMessage);
+        } catch (error) {
+          throw new Error('인기 태그를 불러오는데 실패했습니다.');
+        }
       }
       
       const data = await response.json();
@@ -311,15 +307,20 @@ export default function PostPage() {
   // 13. 의존성 변경 시 게시물 데이터 다시 불러오기
   useEffect(() => {
     if (isMounted) {
-      // 페이지, 페이지 크기, 정렬 방식, 검색어, 태그, minLikes 중 하나라도 변경되면 게시물 다시 불러옴
-      fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
+      // academyAlertRef가 true인 경우 API 호출 방지
+      if (!academyAlertRef.current) {
+        fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
+      }
     }
-  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted]); // minLikes 추가
+  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted]);
 
   // 14. 컴포넌트 마운트 시 인기 태그 불러오기
   useEffect(() => {
     if (isMounted) {
-      fetchPopularTags();
+      // academyAlertRef가 true인 경우 API 호출 방지
+      if (!academyAlertRef.current) {
+        fetchPopularTags();
+      }
     }
   }, [isMounted, minLikes]);
 

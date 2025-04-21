@@ -49,9 +49,8 @@ public class ApiV1AuthController {
         Claims claims = jwtTokenizer.parseAccessToken(cookie);
         
         Object userId = claims.get("userId");
-        Object academyId = claims.get("academyId");
         
-        log.info("me API - JWT claims 내용: userId={}, academyId={}", userId, academyId);
+        log.info("me API - JWT claims 내용: userId={}", userId);
 
         if (userId == null) {
             log.warn("JWT에 userId가 없습니다!");
