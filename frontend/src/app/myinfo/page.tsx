@@ -108,6 +108,7 @@ export default function MyInfoPage() {
     const [userInfo, setUserInfo] = useState<MyInfo | null>(null)
     const [error, setError] = useState<string | null>(null)
     const { isLogin, loginMember } = useGlobalLoginMember()
+    const [isAdmin, setIsAdmin] = useState(false)
 
     // 백엔드에서 가져온 데이터와 전역 상태의 데이터를 합친 최종 사용자 정보
     const combinedUserInfo = {
@@ -127,6 +128,46 @@ export default function MyInfoPage() {
             setError('로그인이 필요합니다.')
             return
         }
+
+        // 관리자 권한 확인
+        const checkAdminPermission = async () => {
+            try {
+                const accessToken = localStorage.getItem('accessToken')
+                
+                if (!accessToken) {
+                    setIsAdmin(false)
+                    return
+                }
+                
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                })
+                
+                if (!response.ok) {
+                    setIsAdmin(false)
+                    return
+                }
+                
+                const isAdminResult = await response.json()
+                
+                if (isAdminResult === true) {
+                    console.log('MyInfo - 관리자 권한 있음')
+                    setIsAdmin(true)
+                } else {
+                    setIsAdmin(false)
+                }
+            } catch (error) {
+                console.error('관리자 권한 확인 중 오류:', error)
+                setIsAdmin(false)
+            }
+        }
+
+        checkAdminPermission();
 
         // 로컬 스토리지에서 학원 정보 확인
         let storedAcademyName = ''
@@ -296,26 +337,28 @@ export default function MyInfoPage() {
                                         </span>
                                     </div>
 
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">등록된 학원</span>
-                                        <span className="text-gray-900">
-                                            {combinedUserInfo.academyCode ? (
-                                                <Link
-                                                    href="/myinfo/academyRegister"
-                                                    className="text-[#9C50D4] hover:underline"
-                                                >
-                                                    {combinedUserInfo.academyName}
-                                                </Link>
-                                            ) : (
-                                                <Link
-                                                    href="/myinfo/academyRegister"
-                                                    className="text-[#9C50D4] hover:underline"
-                                                >
-                                                    학원 등록하러 가기
-                                                </Link>
-                                            )}
-                                        </span>
-                                    </div>
+                                    {!isAdmin && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-500">등록된 학원</span>
+                                            <span className="text-gray-900">
+                                                {combinedUserInfo.academyCode ? (
+                                                    <Link
+                                                        href="/myinfo/academyRegister"
+                                                        className="text-[#9C50D4] hover:underline"
+                                                    >
+                                                        {combinedUserInfo.academyName}
+                                                    </Link>
+                                                ) : (
+                                                    <Link
+                                                        href="/myinfo/academyRegister"
+                                                        className="text-[#9C50D4] hover:underline"
+                                                    >
+                                                        학원 등록하러 가기
+                                                    </Link>
+                                                )}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -351,45 +394,47 @@ export default function MyInfoPage() {
                             </div>
                         </div>
 
-                        {/* 최근 활동 카드 */}
-                        <div className="mx-4 mt-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-medium text-gray-800 p-6 pb-2">최근 활동</h2>
+                        {/* 최근 활동 카드 - 관리자가 아닐 때만 표시 */}
+                        {!isAdmin && (
+                            <div className="mx-4 mt-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                                <h2 className="text-lg font-medium text-gray-800 p-6 pb-2">최근 활동</h2>
 
-                            <div>
-                                <Link href="/my-posts" className="flex items-center justify-between p-6">
-                                    <div className="flex items-center">
-                                        <PencilIcon className="h-5 w-5 text-gray-400 mr-3" />
-                                        <span className="text-gray-700">내가 쓴 게시글</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="text-gray-400 mr-2">{combinedUserInfo.postCount}개</span>
-                                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </Link>
+                                <div>
+                                    <Link href="/my-posts" className="flex items-center justify-between p-6">
+                                        <div className="flex items-center">
+                                            <PencilIcon className="h-5 w-5 text-gray-400 mr-3" />
+                                            <span className="text-gray-700">내가 쓴 게시글</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="text-gray-400 mr-2">{combinedUserInfo.postCount}개</span>
+                                            <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                    </Link>
 
-                                <Link href="/my-comments" className="flex items-center justify-between p-6">
-                                    <div className="flex items-center">
-                                        <ChatBubbleLeftIcon className="h-5 w-5 text-gray-400 mr-3" />
-                                        <span className="text-gray-700">내가 쓴 댓글</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="text-gray-400 mr-2">{combinedUserInfo.commentCount}개</span>
-                                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </Link>
+                                    <Link href="/my-comments" className="flex items-center justify-between p-6">
+                                        <div className="flex items-center">
+                                            <ChatBubbleLeftIcon className="h-5 w-5 text-gray-400 mr-3" />
+                                            <span className="text-gray-700">내가 쓴 댓글</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="text-gray-400 mr-2">{combinedUserInfo.commentCount}개</span>
+                                            <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                    </Link>
 
-                                <Link href="/my-likes" className="flex items-center justify-between p-6">
-                                    <div className="flex items-center">
-                                        <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
-                                        <span className="text-gray-700">좋아요한 게시글</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="text-gray-400 mr-2">{combinedUserInfo.likeCount}개</span>
-                                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </Link>
+                                    <Link href="/my-likes" className="flex items-center justify-between p-6">
+                                        <div className="flex items-center">
+                                            <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
+                                            <span className="text-gray-700">좋아요한 게시글</span>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="text-gray-400 mr-2">{combinedUserInfo.likeCount}개</span>
+                                            <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                    </Link>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </main>
             </div>
