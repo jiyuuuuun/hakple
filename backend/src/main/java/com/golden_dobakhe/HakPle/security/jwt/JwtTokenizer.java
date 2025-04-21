@@ -40,12 +40,6 @@ public class JwtTokenizer {
         claims.put("status", status);
         claims.put("userId",id); //userId 추가
         claims.put("roles",roles);
-        
-        // academyId 및 관련 필드 추가 (로그 추가)
-        log.info("JWT 토큰 생성 - academyId 추가: {}", academyId);
-        claims.put("academyId", academyId); // academyId 추가
-        claims.put("academyCode", academyId); // academyCode도 추가 (동일한 값을 다른 필드명으로 추가)
-        claims.put("academy_code", academyId); // snake_case 형식으로도 추가
 
         //토큰에 그 요소들을 넣기
         return Jwts.builder()
@@ -54,7 +48,6 @@ public class JwtTokenizer {
                 .setExpiration(new Date(new Date().getTime()+expire))
                 .signWith(getSignKey(secretKey))
                 .compact();
-
     }
 
     //access, refresh토큰 각각만들기
