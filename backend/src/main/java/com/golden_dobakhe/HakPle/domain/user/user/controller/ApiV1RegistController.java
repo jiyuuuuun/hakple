@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -73,6 +74,42 @@ public class ApiV1RegistController {
             case USER_NOT_FOUND -> ResponseEntity.status(HttpStatus.NOT_FOUND).body("존재하지 않는 사용자입니다");
             case WRONG_PASSWORD -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("비밀번호가 일치하지 않습니다");
         };
+    }
+
+    // 중복 확인 (닉네임/아이디)
+    @Operation(summary = "중복 확인", description = "닉네임 또는 아이디의 중복 여부를 확인합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "사용 가능"),
+            @ApiResponse(responseCode = "409", description = "중복됨")
+    })
+    @PostMapping("/check-duplicate")
+    public ResponseEntity<?> checkDuplicate(@RequestBody Map<String, String> request) {
+        String field = request.get("field");
+        String value = request.get("value");
+        
+        // 필드와 값이 없는 경우 처리
+        if (field == null || value == null) {
+            return ResponseEntity.badRequest().body("필드와 값을 모두 입력해주세요.");
+        }
+        
+        boolean isDuplicate = false;
+        
+        switch (field) {
+            case "userName":
+                isDuplicate = userRegistService.isUserNameDuplicate(value);
+                break;
+            case "nickName":
+                isDuplicate = userRegistService.isNickNameDuplicate(value);
+                break;
+            default:
+                return ResponseEntity.badRequest().body("지원하지 않는 필드입니다.");
+        }
+        
+        if (isDuplicate) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("DUPLICATE");
+        }
+        
+        return ResponseEntity.ok().build();
     }
 
     // 로그아웃
