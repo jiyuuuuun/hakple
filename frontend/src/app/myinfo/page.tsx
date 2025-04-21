@@ -131,13 +131,13 @@ const AcademyInfo = ({ academyCode, academyName }: { academyCode: string, academ
 };
 
 // RecentActivity 컴포넌트 - 최근 활동 카드
-const RecentActivity = ({ 
-    postCount = 0, 
-    commentCount = 0, 
-    likeCount = 0 
-}: { 
-    postCount?: number, 
-    commentCount?: number, 
+const RecentActivity = ({
+    postCount = 0,
+    commentCount = 0,
+    likeCount = 0
+}: {
+    postCount?: number,
+    commentCount?: number,
     likeCount?: number
 }) => {
     return (
@@ -214,18 +214,18 @@ export default function MyInfoPage() {
             setAdminChecking(true)
             try {
                 const accessToken = localStorage.getItem('accessToken')
-                
+
                 if (!accessToken) {
                     console.log('토큰이 없어 관리자 권한 확인 불가')
                     setIsAdmin(false)
                     setAdminChecking(false)
                     return
                 }
-                
+
                 // 네트워크 타임아웃 설정 (5초)
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), 5000)
-                
+
                 try {
                     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
                         method: 'GET',
@@ -236,26 +236,26 @@ export default function MyInfoPage() {
                         },
                         signal: controller.signal
                     })
-                    
+
                     clearTimeout(timeoutId) // 타임아웃 취소
-                    
+
                     if (response.status === 401 || response.status === 403) {
                         console.log('인증 오류: 권한이 없음 (상태 코드:', response.status, ')')
                         setIsAdmin(false)
                         setAdminChecking(false)
                         return
                     }
-                    
+
                     if (!response.ok) {
                         console.error('서버 오류: 관리자 권한 확인 실패 (상태 코드:', response.status, ')')
                         setIsAdmin(false)
                         setAdminChecking(false)
                         return
                     }
-                    
+
                     const isAdminResult = await response.json()
                     console.log('MyInfo - 관리자 권한 확인 결과:', isAdminResult)
-                    
+
                     setIsAdmin(isAdminResult === true)
                 } catch (fetchError: any) {
                     if (fetchError.name === 'AbortError') {
@@ -325,6 +325,22 @@ export default function MyInfoPage() {
                         finalAcademyName = getAcademyNameFromCode(data.academyCode)
                     }
 
+                // 토큰에서 academyId 추출
+                let academyIdFromToken = null;
+                const token = localStorage.getItem('accessToken');
+
+                if (token) {
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        console.log('JWT 페이로드:', payload);
+                        academyIdFromToken = payload.academyId;
+                        console.log('토큰에서 추출한 아카데미 코드:', academyIdFromToken);
+                    } catch (e) {
+                        console.error('토큰 파싱 중 오류:', e);
+                    }
+                }
+
+                // academyName 필드 추가 처리
                     // 로컬 스토리지 업데이트
                     localStorage.setItem('academyCode', finalAcademyCode)
                     localStorage.setItem('academyName', finalAcademyName)
@@ -345,6 +361,8 @@ export default function MyInfoPage() {
                     academyCode: finalAcademyCode,
                     academyName: finalAcademyName,
                 }
+
+
 
                 setUserInfo(userInfoData)
             })
@@ -369,7 +387,7 @@ export default function MyInfoPage() {
             </div>
         )
     }
-    
+
     // 관리자 권한 확인 중인 경우 로딩 표시
     if (adminChecking) {
         return (

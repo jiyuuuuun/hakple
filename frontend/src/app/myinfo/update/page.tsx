@@ -41,6 +41,7 @@ export default function ProfileUpdatePage() {
     const [isFormValid, setIsFormValid] = useState(false)
     const [isNicknameChecked, setIsNicknameChecked] = useState(false)
     const [isPhoneChecked, setIsPhoneChecked] = useState(false)
+    const [isKakaoUser, setIsKakaoUser] = useState(false)
 
     // 로그인 체크
     useEffect(() => {
@@ -69,6 +70,11 @@ export default function ProfileUpdatePage() {
 
                 setCurrentNickname(data.nickName)
                 setPhoneNumber(data.phoneNum)
+
+                // 카카오 소셜 로그인 사용자 확인
+                if (data.userName && data.userName.startsWith('kakao_')) {
+                    setIsKakaoUser(true)
+                }
             } catch (err) {
                 console.error('사용자 정보를 가져오는 중 오류 발생:', err)
                 setError('사용자 정보를 불러올 수 없습니다.')
@@ -337,6 +343,9 @@ export default function ProfileUpdatePage() {
 
     // 전화번호 변경 핸들러
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        // 카카오 사용자는 전화번호 변경 불가
+        if (isKakaoUser) return
+
         const inputValue = e.target.value
 
         // 입력값에서 숫자와 하이픈만 허용
@@ -371,8 +380,8 @@ export default function ProfileUpdatePage() {
             return
         }
 
-        // 휴대폰 번호가 변경되었다면 중복확인 여부 검사
-        if (newPhoneNumber && !isPhoneChecked) {
+        // 휴대폰 번호가 변경되었다면 중복확인 여부 검사 (카카오 사용자는 체크하지 않음)
+        if (newPhoneNumber && !isPhoneChecked && !isKakaoUser) {
             console.log('휴대폰 번호 중복확인 필요')
             setError('휴대폰 번호 중복확인이 필요합니다.')
             return
@@ -404,7 +413,8 @@ export default function ProfileUpdatePage() {
 
         try {
             // 전화번호에서 하이픈 제거 (입력 형식과 상관없이 서버에는 숫자만 전송)
-            const phoneNumClean = newPhoneNumber ? newPhoneNumber.replace(/-/g, '') : undefined
+            // 카카오 사용자는 전화번호 변경 불가
+            const phoneNumClean = !isKakaoUser && newPhoneNumber ? newPhoneNumber.replace(/-/g, '') : undefined
 
             const updateData = {
                 nickName: nickname || undefined,
@@ -527,33 +537,43 @@ export default function ProfileUpdatePage() {
                                     <div className="text-sm text-gray-500 mb-2">
                                         현재 휴대폰 번호: {phoneNumber ? formatPhoneNumber(phoneNumber) : '없음'}
                                     </div>
-                                    <div className="flex space-x-2">
-                                        <input
-                                            type="tel"
-                                            id="phone"
-                                            placeholder="새 휴대폰 번호를 입력하세요"
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            value={newPhoneNumber}
-                                            onChange={handlePhoneChange}
-                                            disabled={isLoading}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-[#9C50D4] hover:text-white transition duration-200"
-                                            onClick={checkPhoneDuplicate}
-                                            disabled={isLoading}
-                                        >
-                                            중복확인
-                                        </button>
-                                    </div>
-                                    {phoneError && (
-                                        <div
-                                            className={`mt-2 text-sm ${
-                                                phoneError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
-                                            }`}
-                                        >
-                                            {phoneError}
+                                    {isKakaoUser ? (
+                                        <div className="mt-2 mb-4 p-3 bg-yellow-50 text-amber-700 rounded-md">
+                                            카카오 소셜 로그인 사용자는 휴대폰 번호를 수정할 수 없습니다.
                                         </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex space-x-2">
+                                                <input
+                                                    type="tel"
+                                                    id="phone"
+                                                    placeholder="새 휴대폰 번호를 입력하세요"
+                                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    value={newPhoneNumber}
+                                                    onChange={handlePhoneChange}
+                                                    disabled={isLoading || isKakaoUser}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-[#9C50D4] hover:text-white transition duration-200"
+                                                    onClick={checkPhoneDuplicate}
+                                                    disabled={isLoading || isKakaoUser}
+                                                >
+                                                    중복확인
+                                                </button>
+                                            </div>
+                                            {phoneError && (
+                                                <div
+                                                    className={`mt-2 text-sm ${
+                                                        phoneError.includes('사용 가능')
+                                                            ? 'text-green-600'
+                                                            : 'text-red-600'
+                                                    }`}
+                                                >
+                                                    {phoneError}
+                                                </div>
+                                            )}
+                                        </>
                                     )}
                                 </div>
 

@@ -13,6 +13,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import lombok.RequiredArgsConstructor;
@@ -44,14 +45,12 @@ public class CommentService {
     // 게시글 ID로 댓글 목록 조회 (좋아요 상태 포함)
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getCommentsByBoardId(Long boardId) {
-        // 게시글 존재 여부 확인
+        
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new RuntimeException("게시글이 존재하지 않습니다."));
 
-        // 게시글에 연결된 모든 댓글 조회
         List<Comment> comments = board.getComments();
 
-        // 활성 상태인 댓글만 필터링하고 DTO로 변환
         return comments.stream()
                 .filter(comment -> comment.getStatus() == Status.ACTIVE)
                 .map(CommentResponseDto::fromEntity)
@@ -119,15 +118,15 @@ public class CommentService {
     //댓글 저장
     public Comment commentSave(CommentRequestDto commentRequestDto,Long userId) {
        Board board=boardRepository.findById(commentRequestDto.getBoardId()).orElse(null);
-       if(board==null){ //게시판이 존재 X
+       if(board==null){ 
            throw  new CommentException(CommentResult.BOARD_NOT_FOUND);
        }
        User user=userRepository.findById(userId).orElse(null);
-       if(user==null){ //유저 존재 X
+       if(user==null){ 
            throw  new CommentException(CommentResult.USER_NOT_FOUND);
        }
        if(commentRequestDto.getContent() == null || commentRequestDto.getContent().trim().isEmpty()) {
-            // 비어 있는 문자열
+           
            throw  new CommentException(CommentResult.EMPTY);
        }
 
@@ -144,44 +143,54 @@ public class CommentService {
 
 
     //댓글 수정
-    public CommentResult commentUpdate(CommentRequestDto commentRequestDto,Long userId) {
-        User user=userRepository.findById(userId).orElse(null);
-        if(user==null){ //유저 존재 X
+    public CommentResult commentUpdate(CommentRequestDto commentRequestDto, Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if(user == null) { 
             return CommentResult.USER_NOT_FOUND;
         }
+        
         if(commentRequestDto.getContent() == null || commentRequestDto.getContent().trim().isEmpty()) {
-            // 비어 있는 문자열
+            
             return CommentResult.EMPTY;
         }
-        Comment comment=commentRepository.findById(commentRequestDto.getCommenterId()).orElse(null);
-        if(comment==null){ //없는 댓글
+        
+        Comment comment = commentRepository.findById(commentRequestDto.getCommenterId()).orElse(null);
+        if(comment == null) { 
             return CommentResult.COMMENT_NOT_FOUND;
         }
-        if(comment.getUser().getId()==userId) {
+        
+        
+        boolean isAdmin = user.getRoles().contains(Role.ADMIN);
+        
+       
+        if(comment.getUser().getId() == userId || isAdmin) {
             comment.setContent(commentRequestDto.getContent());
             log.info(comment.toString());
             return CommentResult.SUCCESS;
-        }else{
+        } else{
             return CommentResult.UNAUTHORIZED;
         }
-
     }
 
     //댓글 삭제
-    public CommentResult commentDelete(Long commentId,Long userId) {
-        User user=userRepository.findById(userId).orElse(null);
-        if(user==null){ //유저 존재 X
+    public CommentResult commentDelete(Long commentId, Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if(user == null) { 
             return CommentResult.USER_NOT_FOUND;
         }
-        Comment comment=commentRepository.findById(commentId).orElse(null);
-        if(comment==null){ //없는 댓글
+        
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        if(comment == null) { 
             return CommentResult.COMMENT_NOT_FOUND;
         }
-        if(comment.getUser().getId()==userId) {
+        
+        boolean isAdmin = user.getRoles().contains(Role.ADMIN);
+        
+        if(comment.getUser().getId() == userId || isAdmin) {
             comment.setStatus(Status.INACTIVE);
             log.info(comment.toString());
             return CommentResult.SUCCESS;
-        }else{
+        } else {
             return CommentResult.UNAUTHORIZED;
         }
     }

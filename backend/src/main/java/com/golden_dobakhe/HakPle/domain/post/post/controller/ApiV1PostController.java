@@ -164,6 +164,20 @@ public class ApiV1PostController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "게시물 작성자 확인", description = "현재 사용자가 게시물 작성자인지 확인합니다.")
+    @GetMapping("/{id}/is-owner")
+    public ResponseEntity<Map<String, Boolean>> checkBoardOwner(
+            @PathVariable("id") Long id
+    ) {
+        Long userId = getCurrentUserId();
+        
+        boolean isOwner = boardService.isBoardOwner(id, userId);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isOwner", isOwner);
+        
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "게시물 좋아요 상태 확인", description = "현재 사용자가 특정 게시물을 좋아요했는지 확인합니다.")
     @GetMapping("/{id}/like-status")
     public ResponseEntity<Map<String, Boolean>> checkBoardLikeStatus(
