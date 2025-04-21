@@ -26,7 +26,7 @@ interface Tag {
 }
 
 export default function PostPage() {
-  const { isLogin } = useGlobalLoginMember();
+  const { isLogin, loginMember } = useGlobalLoginMember();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
@@ -44,23 +44,54 @@ export default function PostPage() {
   const [tagsLoading, setTagsLoading] = useState(false);
   const [filterType, setFilterType] = useState('태그');
   const [minLikes, setMinLikes] = useState<string | null>(null);
+  const [academyCodeChecked, setAcademyCodeChecked] = useState(false);
 
   // 1. 컴포넌트 마운트 시 클라이언트 사이드 렌더링 활성화
   useEffect(() => {
     setIsMounted(true);
-    if (searchParams && searchParams.has('minLikes')) {
-      setMinLikes(searchParams.get('minLikes'));
-    } else {
-      setMinLikes(null);
-      // 게시판 메뉴 클릭 시 태그 선택 상태 초기화
-      setSelectedTag(null);
-      // 태그 활성화 상태도 초기화
-      setPopularTags(prevTags => 
-        prevTags.map(tag => ({
-          ...tag,
-          isActive: false
-        }))
-      );
+    
+    // URL 파라미터 처리
+    if (searchParams) {
+      // minLikes 파라미터 처리
+      if (searchParams.has('minLikes')) {
+        setMinLikes(searchParams.get('minLikes'));
+      } else {
+        setMinLikes(null);
+        // 태그 선택 상태 초기화
+        setSelectedTag(null);
+        // 태그 활성화 상태도 초기화
+        setPopularTags(prevTags => 
+          prevTags.map(tag => ({
+            ...tag,
+            isActive: false
+          }))
+        );
+      }
+      
+      // 헤더에서 전달된 검색 파라미터 처리
+      if (searchParams.has('keyword')) {
+        const keyword = searchParams.get('keyword');
+        if (keyword) {
+          setSearchKeyword(keyword);
+          setSearchMode(true);
+        }
+      }
+      
+      // 정렬 타입 파라미터 처리
+      if (searchParams.has('sortType')) {
+        const sort = searchParams.get('sortType');
+        if (sort) {
+          setSortType(sort);
+        }
+      }
+      
+      // 필터 타입 파라미터 처리
+      if (searchParams.has('filterType')) {
+        const filter = searchParams.get('filterType');
+        if (filter) {
+          setFilterType(filter);
+        }
+      }
     }
   }, [searchParams]);
 
@@ -70,6 +101,53 @@ export default function PostPage() {
       router.push('/login');
     }
   }, [isLogin, router]);
+
+  // 아카데미 코드 확인 및 리다이렉트
+  useEffect(() => {
+    // 로그인 상태이고 컴포넌트가 마운트된 상태일 때만 실행
+    if (isLogin && isMounted && !academyCodeChecked) {
+      // 로그인 멤버 정보 확인
+      console.log('게시판 - 로그인 멤버 정보:', loginMember);
+      
+      // JWT 토큰에서 직접 academyId 확인
+      let academyIdFromToken = null;
+      const token = localStorage.getItem('accessToken');
+      
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('게시판 - JWT 페이로드:', payload);
+          academyIdFromToken = payload.academyId;
+          console.log('게시판 - 토큰에서 추출한 아카데미 코드:', academyIdFromToken);
+        } catch (e) {
+          console.error('게시판 - 토큰 파싱 중 오류:', e);
+        }
+      }
+      
+      // loginMember에서 academyCode 확인 + 토큰에서 추출한 academyId도 함께 확인
+      const academyCodeFromMember = loginMember?.academyCode;
+      console.log('게시판 - loginMember에서 가져온 academyCode:', academyCodeFromMember);
+      
+      // 수정된 확인 로직: 두 값 모두 null 또는 undefined가 아닌지 확인
+      // academyCode가 undefined이고 토큰에서도 academyId가 없는 경우에만 알림창 표시
+      const hasAcademyCodeFromMember = academyCodeFromMember !== undefined && academyCodeFromMember !== null;
+      const hasAcademyIdFromToken = academyIdFromToken !== undefined && academyIdFromToken !== null;
+      const hasAcademyCode = hasAcademyCodeFromMember || hasAcademyIdFromToken;
+      
+      console.log('게시판 - 멤버에서 아카데미 코드 확인:', hasAcademyCodeFromMember);
+      console.log('게시판 - 토큰에서 아카데미 코드 확인:', hasAcademyIdFromToken);
+      console.log('게시판 - 아카데미 코드 존재 여부:', hasAcademyCode);
+      
+      if (!hasAcademyCode) {
+        // 알림창 표시
+        alert('먼저 아카데미 코드를 등록해주시길 바랍니다');
+        // 홈으로 리다이렉트
+        router.push('/');
+      }
+      
+      setAcademyCodeChecked(true);
+    }
+  }, [isLogin, isMounted, loginMember, router, academyCodeChecked]);
 
   // 2. 게시물 데이터 가져오는 함수
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string, minLikesParam?: string | null) => {

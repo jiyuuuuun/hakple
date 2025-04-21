@@ -53,4 +53,6 @@ public interface BoardService {
     boolean isReportedByUser(Long boardId, Long userId);
 
     boolean isLikedByUser(Long boardId, Long userId);
+
+    boolean isBoardOwner(Long boardId, Long userId);
 }

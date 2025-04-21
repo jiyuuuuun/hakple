@@ -33,10 +33,26 @@ public class AuthService {
     }
 
     public String genAccessToken(User user) {
-        return jwtTokenizer.createAccessToken(user.getId(), user.getUserName(), user.getNickName(),user.getPhoneNum(), user.getStatus(),user.getRoles());
+        return jwtTokenizer.createAccessToken(
+            user.getId(), 
+            user.getUserName(), 
+            user.getNickName(), 
+            user.getPhoneNum(), 
+            user.getStatus(), 
+            user.getRoles(),
+            user.getAcademyId()
+        );
     }
     public String genRefreshToken(User user) {
-        return jwtTokenizer.createRefreshToken(user.getId(), user.getUserName(), user.getNickName(),user.getPhoneNum(), user.getStatus(),user.getRoles());
+        return jwtTokenizer.createRefreshToken(
+            user.getId(), 
+            user.getUserName(), 
+            user.getNickName(), 
+            user.getPhoneNum(), 
+            user.getStatus(), 
+            user.getRoles(),
+            user.getAcademyId()
+        );
     }
 
     public void addRefreshToken(User user, String refreshToken) {
