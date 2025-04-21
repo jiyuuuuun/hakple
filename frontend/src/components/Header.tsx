@@ -137,30 +137,34 @@ export default function Header() {
 
                         {/* 데스크탑 메뉴 */}
                         <nav className="hidden md:flex space-x-5 lg:space-x-8">
-                            <Link
-                                href="/home"
-                                className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
-                            >
-                                홈
-                            </Link>
-                            <Link
-                                href="/post"
-                                className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
-                            >
-                                게시판
-                            </Link>
-                            <Link
-                                href="/post?minLikes=10"
-                                className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
-                            >
-                                인기글
-                            </Link>
-                            <Link
-                                href="/community"
-                                className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
-                            >
-                                캘린더
-                            </Link>
+                            {!isAdmin && (
+                                <>
+                                    <Link
+                                        href="/home"
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                    >
+                                        홈
+                                    </Link>
+                                    <Link
+                                        href="/post"
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                    >
+                                        게시판
+                                    </Link>
+                                    <Link
+                                        href="/post?minLikes=10"
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                    >
+                                        인기글
+                                    </Link>
+                                    <Link
+                                        href="/community"
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                    >
+                                        캘린더
+                                    </Link>
+                                </>
+                            )}
                             {/* 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
                             {isAdmin && (
                                 <Link
@@ -176,28 +180,30 @@ export default function Header() {
 
                     {/* 오른쪽: 검색과 로그인/로그아웃 */}
                     <div className="flex items-center space-x-2 md:space-x-3">
-                        {/* 검색 입력창 */}
-                        <div className="relative w-full max-w-[180px] md:max-w-[220px]">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg
-                                    className="w-4 h-4 md:w-5 md:h-5 text-gray-400"
-                                    fill="none"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
+                        {/* 검색 입력창 - 관리자가 아닐 때만 표시 */}
+                        {!isAdmin && (
+                            <div className="relative w-full max-w-[180px] md:max-w-[220px]">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg
+                                        className="w-4 h-4 md:w-5 md:h-5 text-gray-400"
+                                        fill="none"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+                                <input
+                                    type="search"
+                                    className="block w-full pl-8 md:pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
+                                    placeholder="검색어를 입력하세요"
+                                    aria-label="검색"
+                                />
                             </div>
-                            <input
-                                type="search"
-                                className="block w-full pl-8 md:pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
-                                placeholder="검색어를 입력하세요"
-                                aria-label="검색"
-                            />
-                        </div>
+                        )}
 
                         {/* 로그인 상태 디버깅 표시 */}
                         <div className="hidden">
@@ -243,30 +249,34 @@ export default function Header() {
                 {isMenuOpen && (
                     <div className="mt-3 md:hidden">
                         <nav className="flex flex-col space-y-2 py-2">
-                            <Link
-                                href="/home"
-                                className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
-                            >
-                                홈
-                            </Link>
-                            <Link
-                                href="/post"
-                                className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
-                            >
-                                게시판
-                            </Link>
-                            <Link
-                                href="/boad"
-                                className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
-                            >
-                                인기글
-                            </Link>
-                            <Link
-                                href="/community"
-                                className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
-                            >
-                                캘린더
-                            </Link>
+                            {!isAdmin && (
+                                <>
+                                    <Link
+                                        href="/home"
+                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                    >
+                                        홈
+                                    </Link>
+                                    <Link
+                                        href="/post"
+                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                    >
+                                        게시판
+                                    </Link>
+                                    <Link
+                                        href="/boad"
+                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                    >
+                                        인기글
+                                    </Link>
+                                    <Link
+                                        href="/community"
+                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                    >
+                                        캘린더
+                                    </Link>
+                                </>
+                            )}
                             {/* 모바일 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
                             {isAdmin && (
                                 <Link
