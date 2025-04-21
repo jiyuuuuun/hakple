@@ -127,10 +127,13 @@ public class CustomRequest {
     public String makeAuthCookies(User user) {
         //대충 서비스에서 토큰을 생성하는 메서드를 생성
         String accessToken = authService.genAccessToken(user);
+        String refreshToken = authService.genRefreshToken(user);
+        authService.addRefreshToken(user, refreshToken);
+
 
         //api키는 없이 토큰만 있다고 칩시다
         //setCookie("apiKey", member.getApiKey());
-        setCookie("accessToken", accessToken);
+        //setCookie("accessToken", accessToken);
 
         return accessToken;
     }
