@@ -152,7 +152,7 @@ export default function HomePage() {
             // API 요청 URL 구성 (size=5로 최신 5개 게시글만 가져옴)
             const url = `${
                 process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
-            }/api/v1/posts?page=0&size=5&sortType=creationTime,desc`
+            }/api/v1/posts?page=1&size=5&sortType=creationTime,desc`
 
             // API 요청
             const response = await fetch(url, {
