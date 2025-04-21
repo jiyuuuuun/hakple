@@ -96,9 +96,6 @@ export function useLoginMember() {
             method: 'DELETE',
             credentials: 'include',
         }).then(() => {
-            // 로그아웃 시 액세스 토큰 제거
-            localStorage.removeItem('accessToken')
-            localStorage.removeItem('refreshToken')
             removeLoginMember()
             callback()
         })
@@ -111,17 +108,11 @@ export function useLoginMember() {
     // 관리자 권한 확인 함수
     const checkAdminAndRedirect = async () => {
         try {
-            const accessToken = localStorage.getItem('accessToken')
-            if (!accessToken) {
-                return false
-            }
-            
             const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
+                    'Content-Type': 'application/json'
                 },
             })
             

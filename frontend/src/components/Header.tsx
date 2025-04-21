@@ -71,21 +71,12 @@ export default function Header() {
     // 관리자 권한 확인 함수
     const checkAdminPermission = async () => {
         try {
-            const accessToken = localStorage.getItem('accessToken')
-            console.log('Header - 액세스 토큰 확인:', !!accessToken)
-            
-            if (!accessToken) {
-                setIsAdmin(false)
-                return
-            }
-            
             console.log('Header - 관리자 권한 확인 API 요청')
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+            const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
+                    'Content-Type': 'application/json'
                 },
             })
             
