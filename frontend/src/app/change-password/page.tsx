@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-
-// API 기본 URL
-const API_BASE_URL = 'http://localhost:8090' // 실제 서버 URL로 변경 필요
+import axios, { AxiosError } from 'axios'
 
 export default function ChangePasswordPage() {
     const router = useRouter()
@@ -84,27 +82,20 @@ export default function ChangePasswordPage() {
         setConfirmError('')
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/usernames/change-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`, // JWT 토큰 헤더에 추가
-                },
-                body: JSON.stringify({
+            await axios.post(
+                '/api/v1/usernames/change-password',
+                {
                     currentPassword: currentPassword,
                     newPassword: newPassword,
                     newPasswordConfirm: confirmPassword,
-                }),
-            })
-
-            if (response.status === 401) {
-                setPasswordError('현재 비밀번호가 올바르지 않습니다.')
-                return
-            }
-
-            if (!response.ok) {
-                throw new Error('비밀번호 변경에 실패했습니다.')
-            }
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    withCredentials: true, // 쿠키 포함하여 요청 (JWT 인증)
+                },
+            )
 
             // 비밀번호 변경 성공 메시지 표시
             setSuccessMessage('비밀번호가 성공적으로 변경되었습니다.')
@@ -116,11 +107,24 @@ export default function ChangePasswordPage() {
 
             // 3초 후 메인 페이지로 이동
             setTimeout(() => {
-                router.push('/')
+                router.push('/myinfo')
             }, 3000)
         } catch (error) {
             console.error('비밀번호 변경 오류:', error)
-            setPasswordError('비밀번호 변경에 실패했습니다. 다시 시도해주세요.')
+
+            const axiosError = error as AxiosError
+
+            if (axiosError.response) {
+                if (axiosError.response.status === 401) {
+                    setPasswordError('현재 비밀번호가 올바르지 않습니다.')
+                } else if (axiosError.response.status === 400) {
+                    setPasswordError('비밀번호 변경 요청이 올바르지 않습니다.')
+                } else {
+                    setPasswordError('비밀번호 변경에 실패했습니다. 다시 시도해주세요.')
+                }
+            } else {
+                setPasswordError('서버 연결에 문제가 발생했습니다. 나중에 다시 시도해주세요.')
+            }
         } finally {
             setIsLoading(false)
         }
@@ -139,7 +143,7 @@ export default function ChangePasswordPage() {
                         {successMessage && (
                             <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
                                 <p className="text-green-600 font-medium">{successMessage}</p>
-                                <p className="text-green-600 text-sm mt-1">잠시 후 메인 페이지로 이동합니다...</p>
+                                <p className="text-green-600 text-sm mt-1">잠시 후 내 정보 페이지로 이동합니다...</p>
                             </div>
                         )}
 

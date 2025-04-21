@@ -304,7 +304,7 @@ export default function MyInfoPage() {
                                                     href="/myinfo/academyRegister"
                                                     className="text-[#9C50D4] hover:underline"
                                                 >
-                                                    {combinedUserInfo.academyName || '등록된 학원'}
+                                                    {combinedUserInfo.academyName}
                                                 </Link>
                                             ) : (
                                                 <Link
