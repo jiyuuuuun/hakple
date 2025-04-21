@@ -4,8 +4,10 @@ import com.golden_dobakhe.HakPle.domain.post.comment.CommentResult;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.entity.Comment;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentRepository;
 import com.golden_dobakhe.HakPle.domain.post.comment.exception.CommentException;
+import com.golden_dobakhe.HakPle.domain.post.post.dto.TotalBoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
+import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardReportRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
@@ -22,6 +24,8 @@ import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -166,4 +170,22 @@ public class AdminService {
     public List<AcademyWithUserCountDto> getAcademyListWithUserCounts() {
         return academyRepository.findAllAcademiesWithUserCount();
     }
+
+    public Page<TotalBoardResponse> getBoardsByFilterNullable(Status status, String academyCode, Pageable pageable) {
+        Page<Board> boards;
+
+        if (status != null && academyCode != null) {
+            boards = boardRepository.findByStatusAndAcademyCode(status, academyCode, pageable);
+        } else if (status != null) {
+            boards = boardRepository.findByStatus(status, pageable);
+        } else if (academyCode != null) {
+            boards = boardRepository.findByAcademyCode(academyCode, pageable);
+        } else {
+            boards = boardRepository.findAll(pageable); // 전체 조회
+        }
+
+        return boards.map(TotalBoardResponse::from);
+    }
+
+
 }
