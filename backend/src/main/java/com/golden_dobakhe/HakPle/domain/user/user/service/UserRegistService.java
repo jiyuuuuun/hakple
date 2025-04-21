@@ -8,6 +8,9 @@ import com.golden_dobakhe.HakPle.domain.user.user.dto.UserRegistRequestDTO;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import com.golden_dobakhe.HakPle.domain.user.user.validator.NickNameValidator;
+import com.golden_dobakhe.HakPle.domain.user.user.validator.PhoneNumValidator;
+import com.golden_dobakhe.HakPle.domain.user.user.validator.UserNameValidator;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import java.util.HashSet;
@@ -30,20 +33,10 @@ public class UserRegistService {
 
     // 회원가입 로직 (중복 확인 포함)
     public void register(UserRegistRequestDTO userRegistRequestDTO) {
-        // 사용자 이름 중복 확인
-        if (userRepository.existsByUserName(userRegistRequestDTO.getUserName())) {
-            throw new UserException(UserErrorCode.USERNAME_DUPLICATE);
-        }
-
-        // 닉네임 중복 확인
-        if (userRepository.existsByNickName(userRegistRequestDTO.getNickName())) {
-            throw new UserException(UserErrorCode.NICKNAME_DUPLICATE);
-        }
-
-        // 전화번호 중복 확인
-        if (userRepository.existsByPhoneNum(userRegistRequestDTO.getPhoneNum())) {
-            throw new UserException(UserErrorCode.PHONENUM_DUPLICATE);
-        }
+        // 아이디, 닉네임, 전화번호 각각 밸리데이터 분리
+        UserNameValidator.validateUserName(userRegistRequestDTO.getUserName(), userRepository);
+        NickNameValidator.validateNickName(userRegistRequestDTO.getNickName(), userRepository);
+        PhoneNumValidator.validatePhoneNum(userRegistRequestDTO.getPhoneNum(), userRepository);
 
         // User 엔티티로 변환 및 저장
         User user = User.builder()
