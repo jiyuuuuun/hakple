@@ -65,14 +65,14 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#FAF9FE] px-4">
-            <div className="w-full max-w-[600px] bg-white rounded-3xl p-12 shadow-lg">
-                <div className="flex flex-col items-center mb-12">
+        <div className="min-h-screen flex items-center justify-center bg-[#FAF9FE] px-4 pt-0">
+            <div className="w-full max-w-[600px] bg-white rounded-3xl p-12 shadow-lg mt-[-100px]">
+                <div className="flex flex-col items-center mb-12 mt-[-10px]">
                     <Link href="/" className="cursor-pointer">
-                        <Image src="/logo.png" alt="Hakple 로고" width={60} height={60} className="mb-6" />
+                        <Image src="/logo.png" alt="Hakple 로고" width={120} height={120} className="mb-3" />
                     </Link>
                     <h1 className="text-4xl font-bold">
-                        <span className="text-[#8C4FF2]">Hakple</span>
+                        <span className="text-[#9C50D4]">Hakple</span>
                         <span className="text-black">에 오신 것을 환영합니다</span>
                     </h1>
                 </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-3">
                         <label htmlFor="username" className="block text-gray-700 text-lg">
                             아이디
@@ -98,7 +98,7 @@ export default function LoginPage() {
                         />
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-3 mb-4">
                         <label htmlFor="password" className="block text-gray-700 text-lg">
                             비밀번호
                         </label>
@@ -126,7 +126,7 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center">
+                    <div className="flex items-center mb-8">
                         <input
                             type="checkbox"
                             id="remember"
@@ -142,21 +142,42 @@ export default function LoginPage() {
 
                     <button
                         type="submit"
-                        className="w-full py-4 text-lg bg-[#8C4FF2] text-white rounded-lg hover:bg-[#7340C2] transition-colors"
+                        className="w-full py-4 text-lg bg-[#9C50D4] text-white rounded-lg hover:bg-[#8a45bc] transition-colors mb-1"
                     >
                         로그인
                     </button>
+
+                    <div className="flex items-center my-2">
+                        <div className="flex-grow h-px bg-gray-300"></div>
+                        <span className="px-3 text-gray-500 text-sm">또는</span>
+                        <div className="flex-grow h-px bg-gray-300"></div>
+                    </div>
 
                     <Link
                         href={`${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
                         className="w-full py-4 text-lg bg-[#FFE500] text-black rounded-lg hover:bg-[#FFD700] transition-colors flex items-center justify-center"
                     >
-                        카카오 계정으로 로그인
+                        <svg
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="mr-2"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                clipRule="evenodd"
+                                d="M12 2.14282C6.5812 2.14282 2.14282 5.65702 2.14282 9.99282C2.14282 12.8316 3.98042 15.2388 6.76902 16.7292L5.91062 20.1952C5.87342 20.3144 5.92542 20.4412 6.03662 20.4928C6.09302 20.5196 6.15902 20.5232 6.21902 20.504L10.3268 17.9128C10.8688 17.9896 11.4264 18.0296 12 18.0296C17.4188 18.0296 21.8572 14.5154 21.8572 9.99282C21.8572 5.65702 17.4188 2.14282 12 2.14282Z"
+                                fill="black"
+                            />
+                        </svg>
+                        카카오톡으로 1초만에 시작하기
                     </Link>
 
                     <p className="text-center text-base text-gray-600">
                         아직 회원이 아니신가요?{' '}
-                        <Link href="/signup" className="text-[#8C4FF2] hover:underline">
+                        <Link href="/signup" className="text-[#9C50D4] hover:underline">
                             회원가입
                         </Link>
                     </p>
