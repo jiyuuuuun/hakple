@@ -115,44 +115,12 @@ export default function Header() {
             return
         }
 
-        // 아카데미 코드 체크
-        console.log('헤더 검색 - 로그인 멤버 정보:', loginMember);
+        // POST API에서 토큰으로 userId를 추출해서 academyCode를 조회하기 때문에
+        // 프론트엔드에서 별도로 academyCode를 체크할 필요가 없음
+        console.log('검색 시작 - 로그인된 사용자 ID:', loginMember?.id)
         
-        // JWT 토큰에서 직접 academyId 확인
-        let academyIdFromToken = null;
-        const token = localStorage.getItem('accessToken');
-        
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                console.log('헤더 검색 - JWT 페이로드:', payload);
-                academyIdFromToken = payload.academyId;
-                console.log('헤더 검색 - 토큰에서 추출한 아카데미 코드:', academyIdFromToken);
-            } catch (e) {
-                console.error('헤더 검색 - 토큰 파싱 중 오류:', e);
-            }
-        }
-        
-        // loginMember에서 academyCode 확인 + 토큰에서 추출한 academyId도 함께 확인
-        const academyCodeFromMember = loginMember?.academyCode;
-        console.log('헤더 검색 - loginMember에서 가져온 academyCode:', academyCodeFromMember);
-        
-        // 수정된 확인 로직: 두 값 모두 null 또는 undefined가 아닌지 확인
-        const hasAcademyCodeFromMember = academyCodeFromMember !== undefined && academyCodeFromMember !== null;
-        const hasAcademyIdFromToken = academyIdFromToken !== undefined && academyIdFromToken !== null;
-        const hasAcademyCode = hasAcademyCodeFromMember || hasAcademyIdFromToken;
-        
-        console.log('헤더 검색 - 멤버에서 아카데미 코드 확인:', hasAcademyCodeFromMember);
-        console.log('헤더 검색 - 토큰에서 아카데미 코드 확인:', hasAcademyIdFromToken);
-        console.log('헤더 검색 - 아카데미 코드 존재 여부:', hasAcademyCode);
-        
-        if (!hasAcademyCode) {
-            alert('먼저 아카데미코드를 등록해주세요')
-            return
-        }
-
         // 검색 페이지로 이동 (등록일순, 제목 검색 조건 포함)
-        router.push(`/post?keyword=${encodeURIComponent(searchQuery)}&sortType=${encodeURIComponent('등록일순')}&filterType=${encodeURIComponent('제목')}`)
+        router.push(`/post?keyword=${encodeURIComponent(searchQuery.trim())}&sortType=${encodeURIComponent('등록일순')}&filterType=${encodeURIComponent('제목')}`)
         
         // 검색 후 검색창 초기화
         setSearchQuery('')
