@@ -47,14 +47,14 @@ export default function LoginPage() {
                 localStorage.setItem('accessToken', data.accessToken)
                 console.log('액세스 토큰 저장 완료')
             }
-            
+
             if (data.refreshToken) {
                 localStorage.setItem('refreshToken', data.refreshToken)
                 console.log('리프레시 토큰 저장 완료')
             }
 
             //라우터로 보내면 레이아웃이 갱신이 안됨
-            window.location.href = '/'
+            window.location.href = '/home'
 
             // 홈 페이지로 이동
             router.push('/home')

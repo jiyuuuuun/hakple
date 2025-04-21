@@ -6,15 +6,12 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${file.upload-dir:${user.home}/hakple-uploads}")
     private String uploadDir;
-    
+
     @Value("${custom.site.frontUrl}")
     private String frontUrl;
 
@@ -29,28 +26,28 @@ public class WebConfig implements WebMvcConfigurer {
         } else {
             absoluteUploadPath = uploadDir;
         }
-        
+
         // file: 프로토콜로 시작하는지 확인!
-        String location = absoluteUploadPath.startsWith("file:") ? 
-            absoluteUploadPath : "file:" + absoluteUploadPath + "/";
-            
+        String location = absoluteUploadPath.startsWith("file:") ?
+                absoluteUploadPath : "file:" + absoluteUploadPath + "/";
+
         // 디버깅 정보 출력
         System.out.println("정적 리소스 매핑: /uploads/** -> " + location);
-            
+
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(location)
                 .setCachePeriod(3600); // 캐싱 기간 설정 (초 단위)
     }
-    
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(frontUrl)
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS, PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
-                
+
         System.out.println("==================================");
         System.out.println("CORS 설정됨");
         System.out.println("허용 오리진: " + frontUrl);

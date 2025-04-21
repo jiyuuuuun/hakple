@@ -2,65 +2,98 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+
+// 백엔드 응답 타입 정의
+interface AcademyResponse {
+    academyName?: string
+    message?: string
+    [key: string]: unknown
+}
 
 export default function AcademyRegister() {
     const [academyCode, setAcademyCode] = useState('')
     const [error, setError] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
+    const { isLogin } = useGlobalLoginMember()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
         setIsLoading(true)
 
-        try {
-            // API 요청을 통해 학원 코드 검증 및 등록
-            const dummyUserName = 'user7' // 실제로는 로그인 정보에서 가져와야 함
+        // 로그인 상태 확인
+        if (!isLogin) {
+            setError('로그인이 필요합니다.')
+            setIsLoading(false)
+            return
+        }
 
-            // axios 대신 fetch API 사용
+        try {
+            console.log('학원 등록 요청:', {
+                academyCode: academyCode,
+            })
+
+            // 학원 등록 API 요청 - JWT에서 자동으로 사용자 정보 추출
             const response = await fetch(`/api/v1/academies/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // 필요하다면 인증 토큰 추가
-                    // 'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
                 },
                 credentials: 'include', // 쿠키 포함하여 요청
                 body: JSON.stringify({
-                    userName: dummyUserName,
                     academyCode: academyCode,
                 }),
-            });
+            })
 
             if (!response.ok) {
                 // HTTP 에러 상태 코드에 따른 처리
                 if (response.status === 400) {
-                    throw new Error('유효하지 않은 학원 코드입니다.');
+                    throw new Error('유효하지 않은 학원 코드입니다.')
                 } else if (response.status === 404) {
-                    throw new Error('등록된 학원이 아닙니다.');
+                    throw new Error('등록된 학원이 아닙니다.')
                 } else if (response.status === 500) {
-                    throw new Error('서버 내부 오류가 발생했습니다. 서버 로그를 확인해주세요.');
+                    throw new Error('서버 내부 오류가 발생했습니다. 서버 로그를 확인해주세요.')
                 } else {
-                    throw new Error('학원 등록 중 오류가 발생했습니다.');
+                    throw new Error('학원 등록 중 오류가 발생했습니다.')
                 }
             }
 
-            const data = await response.json();
-
-            // 학원 등록 성공 시
-            console.log('응답 데이터:', data)
+            // 응답 형식 확인 후 적절히 처리
+            const contentType = response.headers.get('content-type')
             let academyName = '등록된 학원'
 
-            // 응답 형식에 따라 학원 이름 추출 방법 조정
-            if (typeof data === 'string' && data.includes(':')) {
-                academyName = data.split(': ')[1]
-            } else if (data && data.academyName) {
-                academyName = data.academyName
+            if (contentType && contentType.includes('application/json')) {
+                // JSON 응답인 경우
+                const data = (await response.json()) as AcademyResponse
+                console.log('학원 등록 응답 데이터 (JSON):', data)
+
+                // JSON 응답에서 학원 이름 추출
+                if (data && data.academyName) {
+                    academyName = data.academyName
+                }
+            } else {
+                // 텍스트 응답인 경우
+                const textData = await response.text()
+                console.log('학원 등록 응답 데이터 (텍스트):', textData)
+
+                // 텍스트 응답에서 학원 이름 추출
+                if (textData.includes('학원이 등록되었습니다:')) {
+                    academyName = textData.split('학원이 등록되었습니다:')[1].trim()
+                }
             }
 
-            // 로컬 스토리지에 저장하고 이동
+            // 로컬 스토리지에 학원 코드와 이름 저장
             localStorage.setItem('academyName', academyName)
+            localStorage.setItem('academyCode', academyCode)
+
+            console.log('학원 정보 저장 완료:', {
+                academyName: academyName,
+                academyCode: academyCode,
+            })
+
+            // 저장 후 내 정보 페이지로 이동
             router.push('/myinfo')
         } catch (error) {
             console.error('API 오류:', error)
@@ -69,18 +102,6 @@ export default function AcademyRegister() {
         } finally {
             setIsLoading(false)
         }
-    }
-
-    // 테스트용 더미 등록 함수 (백엔드 연결 전 테스트용)
-    const handleTestRegister = () => {
-        setError('')
-        setIsLoading(true)
-
-        // 3초 후 성공한 것처럼 처리
-        setTimeout(() => {
-            localStorage.setItem('academyName', '테스트 학원')
-            router.push('/myinfo')
-        }, 2000)
     }
 
     return (
@@ -127,19 +148,6 @@ export default function AcademyRegister() {
                                         {isLoading ? '처리 중...' : '확인'}
                                     </button>
                                 </div>
-
-                                {/* 개발/테스트용 버튼 - 백엔드 연결 전 테스트할 때 사용 */}
-                                {process.env.NODE_ENV === 'development' && (
-                                    <div className="mt-8 pt-4 border-t border-gray-200">
-                                        <button
-                                            type="button"
-                                            onClick={handleTestRegister}
-                                            className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm"
-                                        >
-                                            테스트용: 학원 등록 성공 시뮬레이션
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         </form>
                     </div>
