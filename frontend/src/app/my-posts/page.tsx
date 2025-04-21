@@ -36,21 +36,6 @@ interface PostResponseDto {
     status: string
 }
 
-// 페이지네이션 응답 타입
-interface PageResponse<T> {
-    content: T[]
-    pageable: {
-        pageNumber: number
-        pageSize: number
-    }
-    totalPages: number
-    totalElements: number
-    last: boolean
-    size: number
-    number: number
-    empty: boolean
-}
-
 export default function MyPostsPage() {
     const router = useRouter()
     // 전역 로그인 상태 추가
@@ -58,9 +43,6 @@ export default function MyPostsPage() {
     const [posts, setPosts] = useState<Post[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [page, setPage] = useState(1)
-    const [hasMore, setHasMore] = useState(true)
-    const [totalPages, setTotalPages] = useState(1)
 
     // 날짜 포맷팅 함수
     const formatDate = (dateString: string) => {
@@ -75,19 +57,16 @@ export default function MyPostsPage() {
     }
 
     // 게시물 데이터 가져오기
-    const fetchPosts = async (pageNum: number) => {
+    const fetchPosts = async () => {
         setIsLoading(true)
         setError(null)
 
         try {
-            // pageable 파라미터 적용 (size=10, sort=creationTime, direction=DESC)
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/boards/my?page=${pageNum - 1}&size=10&sort=creationTime,desc`,
-                {
-                    // 쿠키 기반 인증을 위해 credentials: 'include' 추가
-                    credentials: 'include',
-                },
-            )
+            // boards/my 엔드포인트는 현재 로그인한 사용자의 ID와 게시물의 user_id를 비교해서 조회함
+            const response = await fetch(`${API_BASE_URL}/api/v1/boards/my?sort=creationTime,desc`, {
+                // 쿠키 기반 인증을 위해 credentials: 'include' 추가
+                credentials: 'include',
+            })
 
             if (response.status === 401 || response.status === 403) {
                 // 인증 실패 또는 권한 없음 시 로그인 페이지로 리다이렉트
@@ -97,36 +76,41 @@ export default function MyPostsPage() {
             }
 
             if (!response.ok) {
+                console.error('API 응답 오류:', response.status, response.statusText)
                 throw new Error('게시물 목록을 불러오는데 실패했습니다.')
             }
 
-            const data: PageResponse<PostResponseDto> = await response.json()
+            // 응답 텍스트 확인 (디버깅용)
+            const responseText = await response.text()
+            console.log('API 응답:', responseText)
 
-            // 페이지네이션 정보 설정
-            setTotalPages(data.totalPages)
-            setHasMore(!data.last)
+            // 빈 응답 체크
+            if (!responseText || responseText.trim() === '') {
+                console.warn('API가 빈 응답을 반환했습니다.')
+                setPosts([])
+                return
+            }
+
+            // JSON 파싱
+            const data = JSON.parse(responseText)
+            const content = Array.isArray(data) ? data : data.content || []
 
             // API 응답 데이터를 컴포넌트에서 사용하는 형식으로 변환
-            const mappedPosts = data.content.map((item) => {
+            const mappedPosts = content.map((item: PostResponseDto) => {
                 console.log('서버로부터 받은 게시물 데이터:', item)
                 return {
                     id: item.id,
-                    title: item.title,
-                    content: item.content,
+                    title: item.title || '(제목 없음)',
+                    content: item.content || '',
                     createdAt: item.creationTime,
-                    nickname: item.nickname,
-                    likeCount: item.likeCount,
-                    commentCount: item.commentCount,
-                    viewCount: item.viewCount,
+                    nickname: item.nickname || '익명',
+                    likeCount: item.likeCount || 0,
+                    commentCount: item.commentCount || 0,
+                    viewCount: item.viewCount || 0,
                 }
             })
 
-            // 첫 페이지면 데이터 교체, 아니면 기존 데이터에 추가
-            if (pageNum === 1) {
-                setPosts(mappedPosts)
-            } else {
-                setPosts((prev) => [...prev, ...mappedPosts])
-            }
+            setPosts(mappedPosts)
         } catch (err) {
             console.error('게시물 목록 조회 오류:', err)
 
@@ -150,17 +134,8 @@ export default function MyPostsPage() {
             return
         }
 
-        fetchPosts(1)
+        fetchPosts()
     }, [router, isLogin])
-
-    // 더 보기 클릭 시
-    const handleLoadMore = () => {
-        if (!isLoading && hasMore) {
-            const nextPage = page + 1
-            setPage(nextPage)
-            fetchPosts(nextPage)
-        }
-    }
 
     // 게시글로 이동
     const handleGoToPost = (postId: number | null) => {
@@ -184,6 +159,7 @@ export default function MyPostsPage() {
 
     // 게시물 내용 요약 함수
     const summarizeContent = (content: string, maxLength: number = 100) => {
+        if (!content) return ''
         if (content.length <= maxLength) return content
         return content.substring(0, maxLength) + '...'
     }
@@ -193,13 +169,14 @@ export default function MyPostsPage() {
             <div className="max-w-4xl mx-auto">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-800 mb-8">내가 작성한 게시글</h1>
 
-                {isLoading && page === 1 ? (
+                {isLoading ? (
                     <div className="flex justify-center items-center py-20">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8C4FF2]"></div>
                     </div>
                 ) : error ? (
                     <div className="bg-red-50 dark:bg-red-100 p-4 rounded-lg text-red-600 dark:text-red-700">
-                        {error}
+                        <p>{error}</p>
+                        <p className="mt-2 text-sm">개발자 도구 콘솔(F12)에서 자세한 오류 정보를 확인할 수 있습니다.</p>
                     </div>
                 ) : posts.length === 0 ? (
                     <div className="bg-white dark:bg-slate-100 rounded-2xl p-10 shadow-md text-center">
@@ -240,42 +217,6 @@ export default function MyPostsPage() {
                                     </button>
                                 </div>
                             </div>
-                        ))}
-
-                        {hasMore && (
-                            <div className="flex justify-center mt-8">
-                                <button
-                                    onClick={handleLoadMore}
-                                    disabled={isLoading}
-                                    className={`px-6 py-3 rounded-lg ${
-                                        isLoading ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#8C4FF2] hover:bg-[#7340C2]'
-                                    } text-white transition-colors font-medium`}
-                                >
-                                    {isLoading ? '로딩 중...' : '더 보기'}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* 페이지네이션 */}
-                {posts.length > 0 && totalPages > 1 && (
-                    <div className="flex justify-center mt-8 space-x-2">
-                        {[...Array(totalPages)].map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => {
-                                    setPage(i + 1)
-                                    fetchPosts(i + 1)
-                                }}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                    page === i + 1
-                                        ? 'bg-[#8C4FF2] text-white'
-                                        : 'bg-white dark:bg-slate-100 text-gray-700 dark:text-gray-800 hover:bg-gray-100'
-                                }`}
-                            >
-                                {i + 1}
-                            </button>
                         ))}
                     </div>
                 )}
