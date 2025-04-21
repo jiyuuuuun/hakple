@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.Set;
 
 @Component
+@Slf4j
 public class JwtTokenizer {
     private final byte[] accessSecret;
     private final byte[] refreshSecret;
@@ -38,7 +40,12 @@ public class JwtTokenizer {
         claims.put("status", status);
         claims.put("userId",id); //userId 추가
         claims.put("roles",roles);
+        
+        // academyId 및 관련 필드 추가 (로그 추가)
+        log.info("JWT 토큰 생성 - academyId 추가: {}", academyId);
         claims.put("academyId", academyId); // academyId 추가
+        claims.put("academyCode", academyId); // academyCode도 추가 (동일한 값을 다른 필드명으로 추가)
+        claims.put("academy_code", academyId); // snake_case 형식으로도 추가
 
         //토큰에 그 요소들을 넣기
         return Jwts.builder()
