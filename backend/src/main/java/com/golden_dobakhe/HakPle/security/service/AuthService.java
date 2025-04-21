@@ -2,15 +2,19 @@ package com.golden_dobakhe.HakPle.security.service;
 //이 부분은 테스트를 위한 것이며 추후 어딘가에 병합이 될 수 있음
 
 
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.dto.LoginDto;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -63,23 +67,30 @@ public class AuthService {
             throw new RuntimeException("해당 username은 이미 사용중입니다.");
         };
 
+
+        Date currentDate = new Date();
+        //전화번호 난수 추가
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddmmss");
+        String formattedDateTime = dateFormat.format(currentDate);
         //나중에 프사 추가 하십셔
         User user = User.builder()
                 .userName(username)
                 .password(password)
                 .nickName(nickname)
                 .socialProvider("kakao")
+                .roles(new HashSet<>(Set.of(Role.USER)))
+                .phoneNum("KA" + formattedDateTime + (int)(Math.random() * 1000) + 1)
+                .status(Status.ACTIVE)
                 .build();
 
         return userRepository.save(user);
     }
 
     public User modifyOrJoin(String username, String nickname) {
-        User user = userRepository.findByUserName(username).get();
+        User user = userRepository.findByUserName(username).orElse(null);
 
         //만약에 있다면 수정
         if (user != null) {
-
             user.setNickName(nickname);
             return user;
         }
