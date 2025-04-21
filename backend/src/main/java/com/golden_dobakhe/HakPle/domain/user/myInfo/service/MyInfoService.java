@@ -9,25 +9,35 @@ import com.golden_dobakhe.HakPle.domain.user.myInfo.validator.PhoneNumValidator;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MyInfoService {
     private final UserRepository userRepository;
 
     //사용자 정보 가져오기
     public MyInfoResponseDto getMyInfo(String userName) {
+        log.info("MyInfoService - getMyInfo 호출: userName={}", userName);
+        
         User user = userRepository.findByUserName(userName)
                 .orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
+        
+        log.info("MyInfoService - 사용자 찾음: userId={}, academyId={}", user.getId(), user.getAcademyId());
+        
+        // academyId 값을 MyInfoResponseDto의 academyCode 필드에 매핑
+        String academyCode = user.getAcademyId();
+        log.info("MyInfoService - academyCode 매핑: academyId={} -> academyCode={}", user.getAcademyId(), academyCode);
 
         return MyInfoResponseDto.builder()
                 .nickName(user.getNickName())
                 .userName(user.getUserName())
                 .phoneNum(user.getPhoneNum())
                 .creationTime(user.getCreationTime())
-                .academyCode(user.getAcademyId())
+                .academyCode(academyCode)
                 .build();
     }
 

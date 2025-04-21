@@ -36,7 +36,7 @@ public class CustomOAuth2RequestResolver implements OAuth2AuthorizationRequestRe
             return null;
         }
 
-        String redirectUrl = request.getParameter("redirect");
+        String redirectUrl = request.getParameter("redirectUrl");
         //String redirectUrl = "http://localhost:3000";
 
         Map<String, Object> additionalParameters = new HashMap<>(authorizationRequest.getAdditionalParameters());
