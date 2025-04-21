@@ -25,6 +25,12 @@ export default function Header() {
     // 라우터 가져오기
     const router = useRouter()
 
+    // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
+    const isAuthPage = pathname === '/login' || pathname === '/signup'
+    if (isAuthPage) {
+        return null
+    }
+
     // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
 
