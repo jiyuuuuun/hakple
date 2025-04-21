@@ -1,6 +1,9 @@
 package com.golden_dobakhe.HakPle.domain.user.user.repository;
 
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -27,5 +30,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "roles") // 🎯 roles 컬렉션을 함께 로딩
     @Query("SELECT u FROM User u WHERE u.id = :id")
     Optional<User> findByIdWithRoles(@Param("id") Long id);
+
+    @Query("SELECT u FROM User u JOIN u.roles r WHERE r = :role")
+    List<User> findAllByRole(@Param("role") Role role);
+
 
 }

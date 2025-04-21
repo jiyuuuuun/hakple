@@ -8,6 +8,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
@@ -25,10 +26,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -155,5 +153,14 @@ public class AdminService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
         comment.setStatus(Status.PENDING);
+    }
+    //관리자 목록 조회
+    public List<User> getAdminUsers() {
+        return userRepository.findAllByRole(Role.ADMIN);
+    }
+
+    //등록되어 있는 학원 조회, 학원 별 사용 자 수
+    public List<AcademyWithUserCountDto> getAcademyListWithUserCounts() {
+        return academyRepository.findAllAcademiesWithUserCount();
     }
 }
