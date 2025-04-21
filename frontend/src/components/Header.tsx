@@ -24,27 +24,28 @@ export default function Header() {
     const pathname = usePathname()
     // 라우터 가져오기
     const router = useRouter()
-
-    // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
-    const isAuthPage = pathname === '/login' || pathname === '/signup'
-    if (isAuthPage) {
-        return null
-    }
-
+    
     // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
 
+    // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
+    const isAuthPage = pathname === '/login' || pathname === '/signup'
+    
     // 컴포넌트 마운트 시 한 번 관리자 권한 확인
     useEffect(() => {
+        if (isAuthPage) return;
+        
         console.log('Header - 컴포넌트 마운트, 로그인 상태:', isLogin)
         if (localStorage.getItem('accessToken')) {
             console.log('Header - 액세스 토큰 존재, 관리자 권한 확인 시작')
             checkAdminPermission()
         }
-    }, [])
+    }, [isAuthPage, isLogin])
 
     // 로그인 상태 변경 감지를 위한 효과
     useEffect(() => {
+        if (isAuthPage) return;
+        
         console.log('Header - 로그인 상태 감지:', isLogin, loginMember)
         
         // 로그인 상태일 때 관리자 권한 확인
@@ -55,15 +56,17 @@ export default function Header() {
             console.log('Header - 로그인되지 않음, 관리자 권한 없음')
             setIsAdmin(false)
         }
-    }, [isLogin, loginMember])
+    }, [isLogin, loginMember, isAuthPage])
     
     // 현재 경로가 바뀔 때 관리자 권한 다시 확인 (특히 /admin 페이지 방문 시)
     useEffect(() => {
+        if (isAuthPage) return;
+        
         if (pathname && pathname.startsWith('/admin') && isLogin) {
             console.log('Header - 관리자 페이지 방문, 권한 재확인')
             checkAdminPermission()
         }
-    }, [pathname, isLogin])
+    }, [pathname, isLogin, isAuthPage])
     
     // 관리자 권한 확인 함수
     const checkAdminPermission = async () => {
@@ -132,9 +135,14 @@ export default function Header() {
         setSearchQuery('')
     }
 
+    // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
+    if (isAuthPage) {
+        return null
+    }
+
     return (
         <header className="bg-[#f2edf4] py-3 sticky top-0 z-10 shadow-sm">
-            <div className="max-w-screen-lg mx-auto px-4">
+            <div className="w-full px-4">
                 <div className="flex items-center justify-between">
                     {/* 왼쪽: 로고와 네비게이션 */}
                     <div className="flex items-center space-x-4 md:space-x-8">
