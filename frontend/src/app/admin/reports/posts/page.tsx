@@ -317,12 +317,7 @@ export default function ReportedPostsPage() {
                     </Link>
                   </td>
                   <td className="py-3 px-4 whitespace-nowrap">
-                    <Link 
-                      href={`/admin/users/${post.reportedUserId}`} 
-                      className="text-[#8C4FF2] hover:underline"
-                    >
-                      {post.reportedUserId}
-                    </Link>
+                    {post.reportedUserId}
                   </td>
                   <td className="py-3 px-4 whitespace-nowrap">{post.userReportedCount}</td>
                   <td className="py-3 px-4 whitespace-nowrap">{post.boardReportedCount}</td>
