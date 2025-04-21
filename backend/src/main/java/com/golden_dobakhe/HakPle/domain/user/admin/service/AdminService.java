@@ -83,7 +83,8 @@ public class AdminService {
                 admin.getNickName(),
                 admin.getPhoneNum(),
                 admin.getStatus(),
-                admin.getRoles()
+                admin.getRoles(),
+                admin.getAcademyId()
         );
 
         String refreshToken = jwtTokenizer.createRefreshToken(
@@ -92,7 +93,8 @@ public class AdminService {
                 admin.getNickName(),
                 admin.getPhoneNum(),
                 admin.getStatus(),
-                admin.getRoles()
+                admin.getRoles(),
+                admin.getAcademyId()
         );
 
         // RefreshToken 저장

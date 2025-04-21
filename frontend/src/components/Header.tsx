@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 /**
  * 헤더 컴포넌트
@@ -18,8 +18,12 @@ export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     // 관리자 권한 확인 상태
     const [isAdmin, setIsAdmin] = useState(false)
+    // 검색어 상태 관리
+    const [searchQuery, setSearchQuery] = useState('')
     // 현재 경로 가져오기
     const pathname = usePathname()
+    // 라우터 가져오기
+    const router = useRouter()
 
     // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
@@ -97,6 +101,61 @@ export default function Header() {
             console.error('관리자 권한 확인 중 오류:', error)
             setIsAdmin(false)
         }
+    }
+
+    // 검색 제출 핸들러
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!searchQuery.trim()) return
+
+        // 로그인 상태 체크
+        if (!isLogin) {
+            alert('로그인이 필요합니다')
+            router.push('/login')
+            return
+        }
+
+        // 아카데미 코드 체크
+        console.log('헤더 검색 - 로그인 멤버 정보:', loginMember);
+        
+        // JWT 토큰에서 직접 academyId 확인
+        let academyIdFromToken = null;
+        const token = localStorage.getItem('accessToken');
+        
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                console.log('헤더 검색 - JWT 페이로드:', payload);
+                academyIdFromToken = payload.academyId;
+                console.log('헤더 검색 - 토큰에서 추출한 아카데미 코드:', academyIdFromToken);
+            } catch (e) {
+                console.error('헤더 검색 - 토큰 파싱 중 오류:', e);
+            }
+        }
+        
+        // loginMember에서 academyCode 확인 + 토큰에서 추출한 academyId도 함께 확인
+        const academyCodeFromMember = loginMember?.academyCode;
+        console.log('헤더 검색 - loginMember에서 가져온 academyCode:', academyCodeFromMember);
+        
+        // 수정된 확인 로직: 두 값 모두 null 또는 undefined가 아닌지 확인
+        const hasAcademyCodeFromMember = academyCodeFromMember !== undefined && academyCodeFromMember !== null;
+        const hasAcademyIdFromToken = academyIdFromToken !== undefined && academyIdFromToken !== null;
+        const hasAcademyCode = hasAcademyCodeFromMember || hasAcademyIdFromToken;
+        
+        console.log('헤더 검색 - 멤버에서 아카데미 코드 확인:', hasAcademyCodeFromMember);
+        console.log('헤더 검색 - 토큰에서 아카데미 코드 확인:', hasAcademyIdFromToken);
+        console.log('헤더 검색 - 아카데미 코드 존재 여부:', hasAcademyCode);
+        
+        if (!hasAcademyCode) {
+            alert('먼저 아카데미코드를 등록해주세요')
+            return
+        }
+
+        // 검색 페이지로 이동 (등록일순, 제목 검색 조건 포함)
+        router.push(`/post?keyword=${encodeURIComponent(searchQuery)}&sortType=${encodeURIComponent('등록일순')}&filterType=${encodeURIComponent('제목')}`)
+        
+        // 검색 후 검색창 초기화
+        setSearchQuery('')
     }
 
     return (
@@ -178,25 +237,38 @@ export default function Header() {
                     <div className="flex items-center space-x-2 md:space-x-3">
                         {/* 검색 입력창 */}
                         <div className="relative w-full max-w-[180px] md:max-w-[220px]">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg
-                                    className="w-4 h-4 md:w-5 md:h-5 text-gray-400"
-                                    fill="none"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                            </div>
-                            <input
-                                type="search"
-                                className="block w-full pl-8 md:pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
-                                placeholder="검색어를 입력하세요"
-                                aria-label="검색"
-                            />
+                            <form onSubmit={handleSearchSubmit}>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg
+                                            className="w-4 h-4 md:w-5 md:h-5 text-gray-400"
+                                            fill="none"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="search"
+                                        className="block w-full pl-8 md:pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
+                                        placeholder="검색어를 입력하세요"
+                                        aria-label="검색"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        className="hidden"
+                                        aria-label="검색하기"
+                                    >
+                                        검색
+                                    </button>
+                                </div>
+                            </form>
                         </div>
 
                         {/* 로그인 상태 디버깅 표시 */}

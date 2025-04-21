@@ -115,10 +115,26 @@ export default function MyInfoPage() {
             .then((data) => {
                 console.log('마이인포 - 사용자 정보 데이터:', data)
 
+                // 토큰에서 academyId 추출
+                let academyIdFromToken = null;
+                const token = localStorage.getItem('accessToken');
+                
+                if (token) {
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        console.log('JWT 페이로드:', payload);
+                        academyIdFromToken = payload.academyId;
+                        console.log('토큰에서 추출한 아카데미 코드:', academyIdFromToken);
+                    } catch (e) {
+                        console.error('토큰 파싱 중 오류:', e);
+                    }
+                }
+
                 // academyName 필드 추가 처리
                 const userInfoData: MyInfo = {
                     ...data,
-                    academyName: getAcademyNameFromCode(data.academyCode || ''),
+                    academyCode: data.academyCode || academyIdFromToken, // academyCode가 없으면 토큰에서 추출
+                    academyName: getAcademyNameFromCode(data.academyCode || academyIdFromToken || ''),
                 }
 
                 setUserInfo(userInfoData)
