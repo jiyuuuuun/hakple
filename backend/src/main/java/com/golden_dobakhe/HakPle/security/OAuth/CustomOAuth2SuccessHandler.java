@@ -31,7 +31,7 @@ public class CustomOAuth2SuccessHandler extends SavedRequestAwareAuthenticationS
         //토큰을 발급하고 그걸 가지고 쿠키로 만들기
         customRequest.makeAuthCookies(user);
         //리다이렉트 url을 만들기, state는 국룰인가봐
-        String redirectUrl = request.getParameter("state");
+        String redirectUrl = request.getParameter("state") + "/home";
 
         //프론트 주소로 리다이렉트를 시켜줌
         response.sendRedirect(redirectUrl);

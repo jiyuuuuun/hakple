@@ -52,8 +52,8 @@ public class ApiV1PostController {
     @Operation(summary = "게시물 ID로 조회", description = "특정 ID의 게시물을 조회합니다.")
     @GetMapping("/{id}")
     public ResponseEntity<BoardResponse> getBoard(
-            @PathVariable("id") Long id,
-            @RequestParam(required = false, defaultValue = "true") Boolean postView) {
+            @PathVariable(name = "id") Long id,
+            @RequestParam(name = "postView",required = false, defaultValue = "true") Boolean postView) {
         // 로그인 여부와 관계없이 게시글 조회 가능
         return ResponseEntity.ok(boardService.getBoard(id, postView));
     }
@@ -160,6 +160,20 @@ public class ApiV1PostController {
         boolean isReported = boardService.isReportedByUser(id, userId);
         Map<String, Boolean> response = new HashMap<>();
         response.put("isReported", isReported);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "게시물 작성자 확인", description = "현재 사용자가 게시물 작성자인지 확인합니다.")
+    @GetMapping("/{id}/is-owner")
+    public ResponseEntity<Map<String, Boolean>> checkBoardOwner(
+            @PathVariable("id") Long id
+    ) {
+        Long userId = getCurrentUserId();
+        
+        boolean isOwner = boardService.isBoardOwner(id, userId);
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isOwner", isOwner);
         
         return ResponseEntity.ok(response);
     }

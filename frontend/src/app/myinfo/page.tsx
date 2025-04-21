@@ -131,13 +131,13 @@ const AcademyInfo = ({ academyCode, academyName }: { academyCode: string, academ
 };
 
 // RecentActivity 컴포넌트 - 최근 활동 카드
-const RecentActivity = ({ 
-    postCount = 0, 
-    commentCount = 0, 
-    likeCount = 0 
-}: { 
-    postCount?: number, 
-    commentCount?: number, 
+const RecentActivity = ({
+    postCount = 0,
+    commentCount = 0,
+    likeCount = 0
+}: {
+    postCount?: number,
+    commentCount?: number,
     likeCount?: number
 }) => {
     return (
@@ -214,18 +214,18 @@ export default function MyInfoPage() {
             setAdminChecking(true)
             try {
                 const accessToken = localStorage.getItem('accessToken')
-                
+
                 if (!accessToken) {
                     console.log('토큰이 없어 관리자 권한 확인 불가')
                     setIsAdmin(false)
                     setAdminChecking(false)
                     return
                 }
-                
+
                 // 네트워크 타임아웃 설정 (5초)
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), 5000)
-                
+
                 try {
                     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
                         method: 'GET',
@@ -236,26 +236,26 @@ export default function MyInfoPage() {
                         },
                         signal: controller.signal
                     })
-                    
+
                     clearTimeout(timeoutId) // 타임아웃 취소
-                    
+
                     if (response.status === 401 || response.status === 403) {
                         console.log('인증 오류: 권한이 없음 (상태 코드:', response.status, ')')
                         setIsAdmin(false)
                         setAdminChecking(false)
                         return
                     }
-                    
+
                     if (!response.ok) {
                         console.error('서버 오류: 관리자 권한 확인 실패 (상태 코드:', response.status, ')')
                         setIsAdmin(false)
                         setAdminChecking(false)
                         return
                     }
-                    
+
                     const isAdminResult = await response.json()
                     console.log('MyInfo - 관리자 권한 확인 결과:', isAdminResult)
-                    
+
                     setIsAdmin(isAdminResult === true)
                 } catch (fetchError: any) {
                     if (fetchError.name === 'AbortError') {
@@ -325,6 +325,41 @@ export default function MyInfoPage() {
                         finalAcademyName = getAcademyNameFromCode(data.academyCode)
                     }
 
+                // 토큰에서 academyId 추출
+                let academyIdFromToken = null;
+                const token = localStorage.getItem('accessToken');
+
+                if (token) {
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        console.log('JWT 페이로드:', payload);
+                        
+                        // academyId 필드 우선 확인 후 다른 필드 확인 (모든 형태의 필드명 처리)
+                        academyIdFromToken = payload.academyId || payload.academyCode || payload.academy_code || null;
+                        
+                        // academyId 정보 로그 추가
+                        console.log('마이페이지 - JWT 페이로드 필드 확인:');
+                        console.log('- academyId:', payload.academyId);
+                        console.log('- academyCode:', payload.academyCode);
+                        console.log('- academy_code:', payload.academy_code);
+                        console.log('- 최종 선택된 값:', academyIdFromToken);
+                        
+                        // 닉네임 디코딩 확인용
+                        console.log('JWT 페이로드 - 닉네임:', payload.nickName);
+                        console.log('토큰에서 추출한 아카데미 코드:', academyIdFromToken);
+                        
+                        // 백엔드에서 학원 코드가 없지만 토큰에는 있는 경우 토큰의 값 사용
+                        if (!finalAcademyCode && academyIdFromToken) {
+                            finalAcademyCode = String(academyIdFromToken);
+                            finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken));
+                            console.log('토큰에서 학원 코드를 추출하여 사용:', finalAcademyCode);
+                        }
+                    } catch (e) {
+                        console.error('토큰 파싱 중 오류:', e);
+                    }
+                }
+
+                // academyName 필드 추가 처리
                     // 로컬 스토리지 업데이트
                     localStorage.setItem('academyCode', finalAcademyCode)
                     localStorage.setItem('academyName', finalAcademyName)
@@ -369,7 +404,7 @@ export default function MyInfoPage() {
             </div>
         )
     }
-    
+
     // 관리자 권한 확인 중인 경우 로딩 표시
     if (adminChecking) {
         return (

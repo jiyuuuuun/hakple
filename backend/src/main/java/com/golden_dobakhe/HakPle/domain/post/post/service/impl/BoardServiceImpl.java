@@ -17,6 +17,7 @@ import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentR
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import lombok.RequiredArgsConstructor;
@@ -216,7 +217,18 @@ public class BoardServiceImpl implements BoardService {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> BoardException.notFound());
 
-        board.validateUser(userId);
+        // 사용자 정보 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> BoardException.notFound());
+
+        // 관리자 권한 확인
+        boolean isAdmin = user.getRoles().contains(Role.ADMIN);
+
+        // 관리자이거나 작성자가 본인인 경우 삭제 가능
+        if (!isAdmin) {
+            board.validateUser(userId);
+        }
+
         board.validateStatus();
         board.setStatus(Status.INACTIVE);
         boardRepository.save(board);
@@ -265,12 +277,18 @@ public class BoardServiceImpl implements BoardService {
 
         board.validateStatus();
 
-        User user=userRepository.findById(board.getUser().getId()).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-
-        if (boardReportRepository.findByBoardIdAndUserId(boardId, userId).isPresent()) {
-            throw BoardException.invalidRequest();
+        User user = userRepository.findById(board.getUser().getId())
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        
+        // 자신의 게시글은 신고할 수 없음
+        if (board.getUser().getId().equals(userId)) {
+            throw BoardException.cannotReportOwnPost();
         }
 
+        // 이미 신고한 게시글인지 확인
+        if (boardReportRepository.findByBoardIdAndUserId(boardId, userId).isPresent()) {
+            throw BoardException.alreadyReported();
+        }
 
         BoardReport boardReport = BoardReport.builder()
                 .board(board)
@@ -278,9 +296,8 @@ public class BoardServiceImpl implements BoardService {
                         .orElseThrow(() -> BoardException.notFound()))
                 .build();
 
-        user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
-        board.setStatus(Status.INACTIVE); //대기 상태로 변경
-
+        user.setReportedCount(user.getReportedCount() + 1); // 신고 횟수 누적
+        // board.setStatus(Status.INACTIVE); // 대기 상태로 변경 코드 제거
 
         boardReportRepository.save(boardReport);
     }
@@ -345,11 +362,11 @@ public class BoardServiceImpl implements BoardService {
     @Override
     public String getAcademyCodeByUserId(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> BoardException.notFound());
+                .orElseThrow(() -> BoardException.notFound("사용자를 찾을 수 없습니다."));
 
         String academyCode = user.getAcademyId();
         if (!StringUtils.hasText(academyCode)) {
-            throw BoardException.invalidRequest();
+            throw BoardException.invalidRequest("아카데미 코드가 등록되지 않았습니다. 먼저 학원을 등록해주세요.");
         }
 
         return academyCode;
@@ -464,7 +481,15 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional(readOnly = true)
     public boolean isLikedByUser(Long boardId, Long userId) {
-
         return boardLikeRepository.findByBoardIdAndUserId(boardId, userId).isPresent();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isBoardOwner(Long boardId, Long userId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> BoardException.notFound());
+        
+        return board.getUser().getId().equals(userId);
     }
 }

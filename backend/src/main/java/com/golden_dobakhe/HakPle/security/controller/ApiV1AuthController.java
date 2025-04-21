@@ -14,6 +14,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -27,6 +28,7 @@ import java.util.Optional;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
+@Slf4j
 public class ApiV1AuthController {
     private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
@@ -42,19 +44,37 @@ public class ApiV1AuthController {
     //me api
     @GetMapping("/me")
     public ResponseEntity<?> me(HttpServletRequest request) {
+        log.info("me API 호출");
         String cookie = customRequest.getCookieValue("accessToken");
         Claims claims = jwtTokenizer.parseAccessToken(cookie);
+        
         Object userId = claims.get("userId");
+        
+        log.info("me API - JWT claims 내용: userId={}", userId);
 
         if (userId == null) {
+            log.warn("JWT에 userId가 없습니다!");
             throw new IllegalStateException("JWT에 userId가 없습니다!");
         }
 
-        User user = authService.findById(((Number) userId).longValue()).get();
+        User user = authService.findById(((Number) userId).longValue())
+            .orElseThrow(() -> {
+                log.warn("사용자를 찾을 수 없음: userId={}", userId);
+                return new IllegalStateException("사용자를 찾을 수 없습니다: " + userId);
+            });
+            
+        log.info("me API - 사용자 정보: userId={}, userName={}, academyId={}", 
+            user.getId(), user.getUserName(), user.getAcademyId());
 
-        if (user == null)
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("왜없음??");
-        MeDto meDto = new MeDto(user.getId(), user.getNickName(), user.getCreationTime(), user.getModificationTime());
+        // academyId 필드 추가
+        MeDto meDto = new MeDto(
+            user.getId(), 
+            user.getNickName(), 
+            user.getCreationTime(), 
+            user.getModificationTime(),
+            user.getAcademyId()  // academyId 필드 추가
+        );
+        
         return ResponseEntity.ok(meDto);
     }
 

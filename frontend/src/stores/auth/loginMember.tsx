@@ -7,6 +7,7 @@ type User = {
     nickname: string
     creationTime: string
     modificationTime: string
+    academyCode?: string
 }
 
 // 백엔드 응답 타입 - MyInfoResponseDto와 일치하도록
@@ -73,6 +74,7 @@ export function useLoginMember() {
             nickname: member.nickName || '',
             creationTime: member.creationTime || '',
             modificationTime: member.modificationTime || '',
+            academyCode: member.academyCode || '' // 백엔드에서 받은 academyCode만 사용
         }
 
         console.log('로그인 회원 정보 설정:', user)

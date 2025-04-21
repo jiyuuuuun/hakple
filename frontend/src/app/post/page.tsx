@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 
@@ -26,7 +26,7 @@ interface Tag {
 }
 
 export default function PostPage() {
-  const { isLogin } = useGlobalLoginMember();
+  const { isLogin, loginMember } = useGlobalLoginMember();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isMounted, setIsMounted] = useState(false);
@@ -44,23 +44,56 @@ export default function PostPage() {
   const [tagsLoading, setTagsLoading] = useState(false);
   const [filterType, setFilterType] = useState('태그');
   const [minLikes, setMinLikes] = useState<string | null>(null);
+  const [academyCodeChecked, setAcademyCodeChecked] = useState(false);
+  const [academyAlertShown, setAcademyAlertShown] = useState(false);
+  const academyAlertRef = useRef(false);
 
   // 1. 컴포넌트 마운트 시 클라이언트 사이드 렌더링 활성화
   useEffect(() => {
     setIsMounted(true);
-    if (searchParams && searchParams.has('minLikes')) {
-      setMinLikes(searchParams.get('minLikes'));
-    } else {
-      setMinLikes(null);
-      // 게시판 메뉴 클릭 시 태그 선택 상태 초기화
-      setSelectedTag(null);
-      // 태그 활성화 상태도 초기화
-      setPopularTags(prevTags => 
-        prevTags.map(tag => ({
-          ...tag,
-          isActive: false
-        }))
-      );
+    
+    // URL 파라미터 처리
+    if (searchParams) {
+      // minLikes 파라미터 처리
+      if (searchParams.has('minLikes')) {
+        setMinLikes(searchParams.get('minLikes'));
+      } else {
+        setMinLikes(null);
+        // 태그 선택 상태 초기화
+        setSelectedTag(null);
+        // 태그 활성화 상태도 초기화
+        setPopularTags(prevTags => 
+          prevTags.map(tag => ({
+            ...tag,
+            isActive: false
+          }))
+        );
+      }
+      
+      // 헤더에서 전달된 검색 파라미터 처리
+      if (searchParams.has('keyword')) {
+        const keyword = searchParams.get('keyword');
+        if (keyword) {
+          setSearchKeyword(keyword);
+          setSearchMode(true);
+        }
+      }
+      
+      // 정렬 타입 파라미터 처리
+      if (searchParams.has('sortType')) {
+        const sort = searchParams.get('sortType');
+        if (sort) {
+          setSortType(sort);
+        }
+      }
+      
+      // 필터 타입 파라미터 처리
+      if (searchParams.has('filterType')) {
+        const filter = searchParams.get('filterType');
+        if (filter) {
+          setFilterType(filter);
+        }
+      }
     }
   }, [searchParams]);
 
@@ -71,9 +104,29 @@ export default function PostPage() {
     }
   }, [isLogin, router]);
 
+  // 처음 로드 시 설정
+  useEffect(() => {
+    if (isMounted && isLogin && !academyCodeChecked) {
+      // 해당 로직 제거: 백엔드가 토큰에서 userId로 academyCode를 직접 찾기 때문에 체크가 필요 없음
+      // 로그인 상태만 확인하고 항상 true로 설정
+      console.log('게시판 - 사용자 로그인됨, ID:', loginMember?.id);
+      setAcademyCodeChecked(true);
+    }
+  }, [isLogin, isMounted, loginMember, academyCodeChecked]);
+
+  // 학원 등록 알림 표시 함수
+  const showAcademyAlert = () => {
+    if (!academyAlertRef.current) {
+      academyAlertRef.current = true;
+      setAcademyAlertShown(true);
+      alert('먼저 학원을 등록해주세요');
+      router.push('/home');
+    }
+  };
+
   // 2. 게시물 데이터 가져오는 함수
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string, minLikesParam?: string | null) => {
-    if (!isMounted) return; // 클라이언트에서만 실행
+    if (!isMounted || academyAlertRef.current) return; // 이미 알림이 표시되었으면 API 호출 중단
     
     setLoading(true);
     try {
@@ -126,6 +179,13 @@ export default function PostPage() {
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
+          
+          // academyCode 관련 오류 확인
+          if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') || 
+              errorMessage.includes('먼저 학원을 등록해주세요')) {
+            showAcademyAlert();
+            return;
+          }
         } catch (e) {
           errorMessage = `API 에러: ${response.status} ${response.statusText}`;
         }
@@ -177,7 +237,7 @@ export default function PostPage() {
 
   // 12. 인기 태그 불러오기 함수
   const fetchPopularTags = async () => {
-    if (!isMounted) return;
+    if (!isMounted || academyAlertShown) return; // 학원 등록 알림이 이미 표시된 경우 API 호출 중단
     
     setTagsLoading(true);
     try {
@@ -201,7 +261,21 @@ export default function PostPage() {
       });
       
       if (!response.ok) {
-        throw new Error('인기 태그를 불러오는데 실패했습니다.');
+        try {
+          const errorData = await response.json();
+          const errorMessage = errorData.message || '인기 태그를 불러오는데 실패했습니다.';
+          
+          // academyCode 관련 오류 확인
+          if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') || 
+              errorMessage.includes('먼저 학원을 등록해주세요')) {
+            showAcademyAlert();
+            return;
+          }
+          
+          throw new Error(errorMessage);
+        } catch (error) {
+          throw new Error('인기 태그를 불러오는데 실패했습니다.');
+        }
       }
       
       const data = await response.json();
@@ -233,15 +307,20 @@ export default function PostPage() {
   // 13. 의존성 변경 시 게시물 데이터 다시 불러오기
   useEffect(() => {
     if (isMounted) {
-      // 페이지, 페이지 크기, 정렬 방식, 검색어, 태그, minLikes 중 하나라도 변경되면 게시물 다시 불러옴
-      fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
+      // academyAlertRef가 true인 경우 API 호출 방지
+      if (!academyAlertRef.current) {
+        fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
+      }
     }
-  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted]); // minLikes 추가
+  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted]);
 
   // 14. 컴포넌트 마운트 시 인기 태그 불러오기
   useEffect(() => {
     if (isMounted) {
-      fetchPopularTags();
+      // academyAlertRef가 true인 경우 API 호출 방지
+      if (!academyAlertRef.current) {
+        fetchPopularTags();
+      }
     }
   }, [isMounted, minLikes]);
 

@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -14,6 +15,7 @@ import java.util.Date;
 import java.util.Set;
 
 @Component
+@Slf4j
 public class JwtTokenizer {
     private final byte[] accessSecret;
     private final byte[] refreshSecret;
@@ -30,7 +32,7 @@ public class JwtTokenizer {
 
     //토큰 만들기
     private String createToken(Long id, String userName, String nickName, String phoneNum, Status status
-    , Long expire, byte[] secretKey,Set<Role> roles) {
+    , Long expire, byte[] secretKey, Set<Role> roles, String academyId) {
 
         //토큰에 넣을 요소를 만들기
         Claims claims = Jwts.claims().setSubject(userName);
@@ -39,7 +41,6 @@ public class JwtTokenizer {
         claims.put("userId",id); //userId 추가
         claims.put("roles",roles);
 
-
         //토큰에 그 요소들을 넣기
         return Jwts.builder()
                 .setClaims(claims)
@@ -47,16 +48,24 @@ public class JwtTokenizer {
                 .setExpiration(new Date(new Date().getTime()+expire))
                 .signWith(getSignKey(secretKey))
                 .compact();
-
     }
 
     //access, refresh토큰 각각만들기
-    public String createAccessToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles) {
-        return createToken(id, userName, nickName, phoneNum, status, ACCESS_TOKEN_EXPIRE_COUNT, accessSecret,roles);
+    public String createAccessToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles, String academyId) {
+        return createToken(id, userName, nickName, phoneNum, status, ACCESS_TOKEN_EXPIRE_COUNT, accessSecret, roles, academyId);
     }
 
-    public String createRefreshToken(Long id, String userName, String nickName, String phoneNum, Status status,Set<Role> roles) {
-        return createToken(id, userName, nickName, phoneNum, status, ACCESS_TOKEN_EXPIRE_COUNT, accessSecret,roles);
+    public String createRefreshToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles, String academyId) {
+        return createToken(id, userName, nickName, phoneNum, status, REFRESH_TOKEN_EXPIRE_COUNT, refreshSecret, roles, academyId);
+    }
+
+    // 이전 버전 호환성을 위한 메서드
+    public String createAccessToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles) {
+        return createToken(id, userName, nickName, phoneNum, status, ACCESS_TOKEN_EXPIRE_COUNT, accessSecret, roles, null);
+    }
+
+    public String createRefreshToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles) {
+        return createToken(id, userName, nickName, phoneNum, status, REFRESH_TOKEN_EXPIRE_COUNT, refreshSecret, roles, null);
     }
 
     //jwt인증에 필요한 서명만들기
