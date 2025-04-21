@@ -8,9 +8,6 @@ import com.golden_dobakhe.HakPle.domain.user.user.dto.UserRegistRequestDTO;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
-import com.golden_dobakhe.HakPle.domain.user.user.validator.NickNameValidator;
-import com.golden_dobakhe.HakPle.domain.user.user.validator.PhoneNumValidator;
-import com.golden_dobakhe.HakPle.domain.user.user.validator.UserNameValidator;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import java.util.HashSet;
@@ -33,10 +30,6 @@ public class UserRegistService {
 
     // 회원가입 로직 (중복 확인 포함)
     public void register(UserRegistRequestDTO userRegistRequestDTO) {
-        // 아이디, 닉네임, 전화번호 각각 밸리데이터 분리
-        UserNameValidator.validateUserName(userRegistRequestDTO.getUserName(), userRepository);
-        NickNameValidator.validateNickName(userRegistRequestDTO.getNickName(), userRepository);
-        PhoneNumValidator.validatePhoneNum(userRegistRequestDTO.getPhoneNum(), userRepository);
 
         // User 엔티티로 변환 및 저장
         User user = User.builder()
@@ -50,7 +43,6 @@ public class UserRegistService {
 
         userRepository.save(user);
     }
-
 
     //회원 탈퇴
     public WithdrawResult withdraw(Long userId, String rawPassword) {

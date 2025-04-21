@@ -34,30 +34,32 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                // OAuth2 및 스웨거 API 문서
+                                .requestMatchers(
+                                        // OAuth2 및 스웨거 API 문서
 //                                "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
-                                "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
+                                        "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
 
-                                // 인증 관련 API
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/logout",
+                                        // 인증 관련 API
+                                        "/api/v1/auth/login",
+                                        "/api/v1/auth/logout",
 
-                                // 관리자 로그인/회원가입
+                                        // 관리자 로그인/회원가입
 
-                                "/api/v1/users/userreg",
-                                "/api/v1/users/check-duplicate",
+                                        "/api/v1/users/userreg",
+                                        "/api/v1/users/check-username",
+                                        "/api/v1/users/check-nickname",
+                                        "/api/v1/users/check-phonenum",
 
-                                // ✅ 관리자 로그인/회원가입은 열어두기
-                                "/api/v1/admin/login",
-                                "/api/v1/admin/register"
-                        ).permitAll()
+                                        // ✅ 관리자 로그인/회원가입은 열어두기
+                                        "/api/v1/admin/login",
+                                        "/api/v1/admin/register"
+                                ).permitAll()
 
-                        // 관리자 전용 API
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                                // 관리자 전용 API
+                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                        // 나머지는 모두 인증 필요
-                        .anyRequest().authenticated()
+                                // 나머지는 모두 인증 필요
+                                .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
