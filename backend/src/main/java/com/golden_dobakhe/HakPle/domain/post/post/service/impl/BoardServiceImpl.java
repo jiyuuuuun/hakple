@@ -362,11 +362,11 @@ public class BoardServiceImpl implements BoardService {
     @Override
     public String getAcademyCodeByUserId(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> BoardException.notFound());
+                .orElseThrow(() -> BoardException.notFound("사용자를 찾을 수 없습니다."));
 
         String academyCode = user.getAcademyId();
         if (!StringUtils.hasText(academyCode)) {
-            throw BoardException.invalidRequest();
+            throw BoardException.invalidRequest("아카데미 코드가 등록되지 않았습니다. 먼저 학원을 등록해주세요.");
         }
 
         return academyCode;
