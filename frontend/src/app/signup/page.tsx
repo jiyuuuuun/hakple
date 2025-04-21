@@ -22,11 +22,17 @@ export default function Signup() {
 
     // Track validation status
     const [validations, setValidations] = useState({
+        nicknameValid: false,
+        idValid: false,
+        phoneValid: false,
+        passwordValid: false,
+        confirmPasswordValid: false,
         nicknameChecked: false,
         idChecked: false,
+        phoneChecked: false,
     })
 
-    // 각 필드별 유효성 검사 결과 상태
+    // 각 필드별 유효성 결과 상태
     const [fieldErrors, setFieldErrors] = useState({
         nickname: '',
         phone: '',
@@ -35,188 +41,295 @@ export default function Signup() {
         confirmPassword: '',
     })
 
-    // 유효성 검증 함수
-    const validateNickname = (value: string): string => {
-        if (!value) return ''
-        return /^[가-힣a-zA-Z0-9._-]{2,20}$/.test(value)
-            ? ''
-            : '닉네임은 한글/영문/숫자와 특수기호(_, -, .)만 사용할 수 있으며 공백 없이 2~20자여야 합니다.'
+    // 각 필드별 유효성 및 오류 메시지 정보
+    const fieldValidation = {
+        nickname: {
+            regex: /^[가-힣a-zA-Z0-9._-]{2,20}$/,
+            invalidMessage:
+                '닉네임은 한글/영문/숫자와 특수기호 _, -, .만 사용할 수 있으며 공백 없이 2~20자여야 합니다.',
+            duplicateMessage: '이미 사용 중인 닉네임입니다.',
+            fieldName: 'nickName',
+            requiredMessage: '닉네임은 필수 입력값입니다.',
+        },
+        id: {
+            regex: /^[a-zA-Z0-9]{4,15}$/,
+            invalidMessage: '아이디는 4~15자 사이여야 합니다.',
+            duplicateMessage: '이미 사용 중인 아이디입니다.',
+            fieldName: 'userName',
+            requiredMessage: '아이디는 필수 입력값입니다.',
+        },
+        phone: {
+            regex: /^01[0-9]{1}-?[0-9]{3,4}-?[0-9]{4}$/,
+            invalidMessage: '전화번호는 10~11자리 숫자만 입력 가능합니다. (하이픈 생략 가능)',
+            duplicateMessage: '이미 사용 중인 전화번호입니다.',
+            fieldName: 'phoneNum',
+            requiredMessage: '전화번호는 필수 입력값입니다.',
+        },
+        password: {
+            regex: /^.{8,15}$/,
+            invalidMessage: '비밀번호는 8~15자 사이여야 합니다.',
+            fieldName: 'password',
+            requiredMessage: '비밀번호는 필수 입력값입니다.',
+        },
     }
 
-    const validateId = (value: string): string => {
-        if (!value) return ''
-        return value.length >= 4 && value.length <= 15 ? '' : '아이디는 최소 4자 최대 15자까지 입력 가능합니다.'
+    // 각 필드 유효성 검사 함수
+    const validateField = (field: 'nickname' | 'id' | 'phone' | 'password', value: string): string => {
+        if (!value) return fieldValidation[field].requiredMessage
+
+        const validation = fieldValidation[field]
+        return validation.regex.test(value) ? '' : validation.invalidMessage
     }
 
-    const validatePassword = (value: string): string => {
-        if (!value) return ''
-        return /^.{8,15}$/.test(value) ? '' : '비밀번호는 최소 8자 이상 15자까지 입력 가능합니다.'
-    }
-
-    const validatePhone = (value: string): string => {
-        if (!value) return ''
-        return /^01[0-9]{1}-?[0-9]{3,4}-?[0-9]{4}$/.test(value) ? '' : '전화번호는 10~11자리 숫자만 입력 가능합니다.'
-    }
-
+    // 입력 필드 변경 핸들러
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
         setFormData((prev) => ({ ...prev, [name]: value }))
 
         // 입력값에 대한 즉각적인 유효성 검사
-        switch (name) {
-            case 'nickname':
-                setFieldErrors((prev) => ({ ...prev, nickname: validateNickname(value) }))
-                // 값이 변경되면 중복확인 상태 초기화
-                if (validations.nicknameChecked) {
-                    setValidations((prev) => ({ ...prev, nicknameChecked: false }))
-                }
-                break
-            case 'id':
-                setFieldErrors((prev) => ({ ...prev, id: validateId(value) }))
-                // 값이 변경되면 중복확인 상태 초기화
-                if (validations.idChecked) {
-                    setValidations((prev) => ({ ...prev, idChecked: false }))
-                }
-                break
-            case 'password':
-                setFieldErrors((prev) => ({ ...prev, password: validatePassword(value) }))
-                // 비밀번호 변경 시 확인 비밀번호도 체크
-                if (formData.confirmPassword) {
-                    setFieldErrors((prev) => ({
-                        ...prev,
-                        confirmPassword: value !== formData.confirmPassword ? '비밀번호가 일치하지 않습니다.' : '',
-                    }))
-                }
-                break
-            case 'confirmPassword':
-                setFieldErrors((prev) => ({
-                    ...prev,
-                    confirmPassword: formData.password !== value ? '비밀번호가 일치하지 않습니다.' : '',
-                }))
-                break
-            case 'phone':
-                setFieldErrors((prev) => ({ ...prev, phone: validatePhone(value) }))
-                break
+        let error = ''
+        let isValid = false
+
+        if (name === 'nickname' || name === 'id' || name === 'phone' || name === 'password') {
+            error = validateField(name, value)
+            isValid = error === ''
+
+            setFieldErrors((prev) => ({ ...prev, [name]: error }))
+            setValidations((prev) => ({
+                ...prev,
+                [`${name}Valid`]: isValid,
+                // 값이 변경되면 중복확인 상태 초기화 (비밀번호는 제외)
+                ...(name === 'nickname' || name === 'id' || name === 'phone' ? { [`${name}Checked`]: false } : {}),
+            }))
+
+            // 비밀번호가 변경되면 비밀번호 확인 필드도 체크
+            if (name === 'password' && formData.confirmPassword) {
+                const confirmError = formData.confirmPassword === value ? '' : '비밀번호가 일치하지 않습니다.'
+                setFieldErrors((prev) => ({ ...prev, confirmPassword: confirmError }))
+                setValidations((prev) => ({ ...prev, confirmPasswordValid: !confirmError }))
+            }
+        } else if (name === 'confirmPassword') {
+            error = !value
+                ? '비밀번호 확인을 입력해주세요.'
+                : formData.password !== value
+                ? '비밀번호가 일치하지 않습니다.'
+                : ''
+            isValid = error === ''
+
+            setFieldErrors((prev) => ({ ...prev, confirmPassword: error }))
+            setValidations((prev) => ({ ...prev, confirmPasswordValid: isValid }))
         }
 
-        // Clear error when user starts typing
+        // Clear global error message when user types
         setErrorMessage('')
     }
 
-    const checkDuplicate = async (type: 'nickname' | 'id') => {
-        const fieldValue = formData[type]
-
-        // 각 필드별 유효성 검사 먼저 수행
-        let isValid = false
-        if (type === 'nickname') {
-            isValid = validateNickname(fieldValue) === ''
-        } else {
-            isValid = validateId(fieldValue) === ''
-        }
-
-        if (!isValid || !fieldValue) {
-            setErrorMessage(
-                type === 'nickname' ? '닉네임 형식이 올바르지 않습니다.' : '아이디 형식이 올바르지 않습니다.',
-            )
+    // 중복 확인 함수
+    const checkDuplicate = async (type: 'nickname' | 'id' | 'phone') => {
+        // 형식 검사 먼저 수행
+        if (!validations[`${type}Valid`]) {
+            setErrorMessage(`${fieldValidation[type].requiredMessage} 또는 형식이 올바르지 않습니다.`)
             return
         }
+
+        let fieldValue = formData[type]
+        if (type === 'phone') {
+            fieldValue = fieldValue.replace(/-/g, '') // 하이픈 제거
+        }
+
+        // API 엔드포인트 매핑
+        const endpointMap = {
+            nickname: 'check-nickname',
+            id: 'check-username',
+            phone: 'check-phonenum',
+        }
+
+        const endpoint = endpointMap[type]
 
         setIsLoading(true)
         setErrorMessage('')
 
         try {
-            // 실제 백엔드 API에 중복 확인 요청
-            const response = await fetch('http://localhost:8090/api/v1/users/check-duplicate', {
-                method: 'POST',
+            console.log(`중복 확인 요청: ${type}=${fieldValue}`)
+
+            // 쿼리 매개변수 방식 API 호출
+            let url
+            if (type === 'nickname') {
+                url = `http://localhost:8090/api/v1/users/${endpoint}?nickName=${encodeURIComponent(fieldValue)}`
+            } else if (type === 'id') {
+                url = `http://localhost:8090/api/v1/users/${endpoint}?userName=${encodeURIComponent(fieldValue)}`
+            } else {
+                // phone
+                url = `http://localhost:8090/api/v1/users/${endpoint}?phoneNum=${encodeURIComponent(fieldValue)}`
+            }
+
+            console.log('요청 URL:', url)
+
+            const response = await fetch(url, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    field: type === 'nickname' ? 'nickName' : 'userName',
-                    value: fieldValue,
-                }),
             })
 
-            if (response.ok) {
-                // 중복 확인 성공
-                setValidations((prev) => ({
-                    ...prev,
-                    [type === 'nickname' ? 'nicknameChecked' : 'idChecked']: true,
-                }))
-                setErrorMessage('')
-            } else {
-                // 중복인 경우 또는 다른 오류 발생
-                const errorText = await response.text()
+            console.log('응답 상태 코드:', response.status)
 
-                if (errorText.includes('DUPLICATE')) {
-                    setErrorMessage(`이미 사용 중인 ${type === 'nickname' ? '닉네임' : '아이디'}입니다.`)
-                } else {
-                    setErrorMessage('중복 확인 중 오류가 발생했습니다: ' + errorText)
+            // 응답 처리
+            if (response.ok) {
+                // 응답이 성공적인 경우
+                const responseData = await response.text()
+                console.log('중복 확인 응답 데이터:', responseData)
+
+                let isAvailable = false
+
+                try {
+                    // 텍스트 응답을 boolean으로 변환 시도
+                    if (responseData.trim() === 'true') {
+                        isAvailable = true
+                    } else if (responseData.trim() === 'false') {
+                        isAvailable = false
+                    } else {
+                        // JSON 파싱 시도
+                        const jsonResponse = JSON.parse(responseData)
+                        isAvailable = Boolean(jsonResponse)
+                    }
+                } catch (parseError) {
+                    console.error('응답 파싱 오류:', parseError)
+                    // 응답을 해석할 수 없는 경우 사용 불가능으로 처리
+                    isAvailable = false
                 }
 
-                // 중복 확인 상태 초기화
-                setValidations((prev) => ({
-                    ...prev,
-                    [type === 'nickname' ? 'nicknameChecked' : 'idChecked']: false,
-                }))
+                console.log('중복 확인 결과:', isAvailable ? '사용 가능' : '중복')
+
+                if (isAvailable) {
+                    // 성공: 중복되지 않음
+                    setValidations((prev) => ({
+                        ...prev,
+                        [`${type}Checked`]: true,
+                    }))
+
+                    setFieldErrors((prev) => ({
+                        ...prev,
+                        [type]: `사용 가능한 ${
+                            type === 'nickname' ? '닉네임' : type === 'id' ? '아이디' : '전화번호'
+                        }입니다.`,
+                    }))
+
+                    // 성공 메시지 제거 (입력창 아래 녹색 메시지만 표시)
+                    setErrorMessage('')
+                } else {
+                    // 실패: 중복됨
+                    setValidations((prev) => ({
+                        ...prev,
+                        [`${type}Checked`]: false,
+                    }))
+
+                    setFieldErrors((prev) => ({
+                        ...prev,
+                        [type]: fieldValidation[type].duplicateMessage,
+                    }))
+                }
+            } else {
+                // 응답이 오류인 경우
+                const errorText = await response.text()
+                console.error('중복 확인 응답 오류:', errorText)
+
+                if (response.status === 409) {
+                    // 중복 오류 (HTTP 409 Conflict)
+                    setValidations((prev) => ({ ...prev, [`${type}Checked`]: false }))
+                    setFieldErrors((prev) => ({ ...prev, [type]: fieldValidation[type].duplicateMessage }))
+                } else {
+                    // 기타 오류
+                    throw new Error(`서버 오류: ${errorText}`)
+                }
             }
         } catch (error) {
             console.error('중복 확인 중 오류 발생:', error)
-            setErrorMessage('서버 연결 중 오류가 발생했습니다.')
-            // 중복 확인 상태 초기화
+
             setValidations((prev) => ({
                 ...prev,
-                [type === 'nickname' ? 'nicknameChecked' : 'idChecked']: false,
+                [`${type}Checked`]: false,
             }))
+
+            setFieldErrors((prev) => ({
+                ...prev,
+                [type]: '서버 연결 중 오류가 발생했습니다.',
+            }))
+
+            // 에러 메시지 표시
+            setErrorMessage(
+                `중복 확인 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+            )
         } finally {
             setIsLoading(false)
         }
     }
 
+    // 폼 제출 핸들러
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         setErrorMessage('')
 
-        // 유효성 검사
-        if (fieldErrors.nickname || !formData.nickname) {
-            setErrorMessage('닉네임을 올바르게 입력해주세요.')
-            return
+        // 모든 필드에 대한 유효성 검사 수행
+        let hasError = false
+
+        // 아이디 검사
+        if (!formData.id) {
+            setFieldErrors((prev) => ({ ...prev, id: fieldValidation.id.requiredMessage }))
+            hasError = true
+        } else if (!validations.idValid) {
+            hasError = true
+        } else if (!validations.idChecked) {
+            setErrorMessage('아이디 중복 확인이 필요합니다.')
+            hasError = true
         }
 
-        if (fieldErrors.id || !formData.id) {
-            setErrorMessage('아이디를 올바르게 입력해주세요.')
-            return
+        // 비밀번호 검사
+        if (!formData.password) {
+            setFieldErrors((prev) => ({ ...prev, password: fieldValidation.password.requiredMessage }))
+            hasError = true
+        } else if (!validations.passwordValid) {
+            hasError = true
         }
 
-        if (fieldErrors.password || !formData.password) {
-            setErrorMessage('비밀번호를 올바르게 입력해주세요.')
-            return
+        // 비밀번호 확인 검사
+        if (!formData.confirmPassword) {
+            setFieldErrors((prev) => ({ ...prev, confirmPassword: '비밀번호 확인을 입력해주세요.' }))
+            hasError = true
+        } else if (formData.password !== formData.confirmPassword) {
+            setFieldErrors((prev) => ({ ...prev, confirmPassword: '비밀번호가 일치하지 않습니다.' }))
+            hasError = true
         }
 
-        if (fieldErrors.phone || !formData.phone) {
-            setErrorMessage('전화번호를 올바르게 입력해주세요.')
-            return
+        // 닉네임 검사
+        if (!formData.nickname) {
+            setFieldErrors((prev) => ({ ...prev, nickname: fieldValidation.nickname.requiredMessage }))
+            hasError = true
+        } else if (!validations.nicknameValid) {
+            hasError = true
+        } else if (!validations.nicknameChecked) {
+            setErrorMessage('닉네임 중복 확인이 필요합니다.')
+            hasError = true
         }
 
-        // 비밀번호 일치 확인
-        if (formData.password !== formData.confirmPassword) {
-            setErrorMessage('비밀번호가 일치하지 않습니다.')
-            return
+        // 전화번호 검사
+        if (!formData.phone) {
+            setFieldErrors((prev) => ({ ...prev, phone: fieldValidation.phone.requiredMessage }))
+            hasError = true
+        } else if (!validations.phoneValid) {
+            hasError = true
+        } else if (!validations.phoneChecked) {
+            setErrorMessage('전화번호 중복 확인이 필요합니다.')
+            hasError = true
         }
 
-        // 중복확인 여부 검사
-        if (!validations.nicknameChecked) {
-            setErrorMessage('닉네임 중복확인이 필요합니다.')
-            return
-        }
-
-        if (!validations.idChecked) {
-            setErrorMessage('아이디 중복확인이 필요합니다.')
-            return
-        }
-
+        // 이용약관 동의 검사
         if (!agreeToTerms) {
             setErrorMessage('이용약관에 동의해주세요.')
+            hasError = true
+        }
+
+        if (hasError) {
             return
         }
 
@@ -224,23 +337,27 @@ export default function Signup() {
         setErrorMessage('회원가입 처리 중...')
 
         try {
-            // 입력데이터로 JSON 생성 및 API 요청
+            // 전화번호 하이픈 제거
+            const cleanedPhone = formData.phone.replace(/-/g, '')
+
+            // 회원가입 API 요청 - DTO 변경 사항 반영 (passwordCheck 필드 추가)
             const response = await fetch('http://localhost:8090/api/v1/users/userreg', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    nickName: formData.nickname,
                     userName: formData.id,
                     password: formData.password,
-                    phoneNum: formData.phone.replace(/-/g, ''), // 하이픈 제거하여 전송
+                    passwordCheck: formData.confirmPassword,
+                    nickName: formData.nickname,
+                    phoneNum: cleanedPhone,
                 }),
             })
 
-            if (response.status >= 200 && response.status < 300) {
+            // 응답 처리
+            if (response.ok) {
                 console.log('회원가입 성공')
-                // 회원가입 성공
                 router.push('/signup/success')
                 return
             }
@@ -249,28 +366,7 @@ export default function Signup() {
             try {
                 const responseText = await response.text()
                 console.log('회원가입 응답:', response.status, responseText)
-
-                let errorMsg = '회원가입 처리 중 오류가 발생했습니다.'
-
-                if (response.status === 409) {
-                    // 중복 오류 처리
-                    if (responseText.includes('USERNAME_DUPLICATE')) {
-                        errorMsg = '아이디를 이미 사용 중입니다.'
-                        // 중복 확인 상태 초기화
-                        setValidations((prev) => ({ ...prev, idChecked: false }))
-                    } else if (responseText.includes('NICKNAME_DUPLICATE')) {
-                        errorMsg = '닉네임을 이미 사용 중입니다.'
-                        // 중복 확인 상태 초기화
-                        setValidations((prev) => ({ ...prev, nicknameChecked: false }))
-                    } else if (responseText.includes('PHONENUM_DUPLICATE')) {
-                        errorMsg = '전화번호를 이미 사용 중입니다.'
-                    }
-                } else if (response.status === 400) {
-                    // 잘못된 요청 처리
-                    errorMsg = responseText || '입력 정보를 다시 확인해주세요.'
-                }
-
-                setErrorMessage(errorMsg)
+                setErrorMessage(responseText || '회원가입 처리 중 오류가 발생했습니다.')
             } catch (jsonError) {
                 console.error('API 응답 파싱 오류:', jsonError)
                 setErrorMessage('회원가입 처리 중 오류가 발생했습니다.')
@@ -283,15 +379,17 @@ export default function Signup() {
         }
     }
 
-    // Check if form is valid
+    // 폼 전체 유효성 상태 확인
     const isFormValid = () => {
         return (
-            formData.nickname &&
-            formData.id &&
-            formData.password &&
-            formData.password === formData.confirmPassword &&
+            validations.nicknameValid &&
             validations.nicknameChecked &&
+            validations.idValid &&
             validations.idChecked &&
+            validations.phoneValid &&
+            validations.phoneChecked &&
+            validations.passwordValid &&
+            validations.confirmPasswordValid &&
             agreeToTerms
         )
     }
@@ -309,15 +407,19 @@ export default function Signup() {
                     </h1>
                 </div>
 
-                {/* 에러 메시지 - Hakple 로고와 환영 메시지 아래에 있지만 필요시에만 표시 */}
-                {errorMessage &&
-                    errorMessage !== '' &&
-                    !errorMessage.includes('가능') &&
-                    !errorMessage.includes('완료') && (
-                        <div className="mb-4 p-3 rounded-md bg-red-100 border-l-4 border-red-500 text-red-700">
-                            <p>{errorMessage}</p>
-                        </div>
-                    )}
+                {/* 에러 메시지 */}
+                {errorMessage && !errorMessage.includes('처리 중') && (
+                    <div className="mb-4 p-3 rounded-md bg-red-100 border-l-4 border-red-500 text-red-700">
+                        <p>{errorMessage}</p>
+                    </div>
+                )}
+
+                {/* 처리 중 메시지 */}
+                {errorMessage && errorMessage.includes('처리 중') && (
+                    <div className="mb-4 p-3 rounded-md bg-blue-100 border-l-4 border-blue-500 text-blue-700">
+                        <p>{errorMessage}</p>
+                    </div>
+                )}
 
                 {/* 폼 */}
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -338,6 +440,8 @@ export default function Signup() {
                                 className={`flex-1 px-4 py-3 text-base text-black rounded-lg border ${
                                     validations.idChecked
                                         ? 'border-green-500'
+                                        : validations.idValid
+                                        ? 'border-orange-300'
                                         : fieldErrors.id
                                         ? 'border-red-500'
                                         : 'border-gray-300'
@@ -346,17 +450,18 @@ export default function Signup() {
                             <button
                                 type="button"
                                 onClick={() => checkDuplicate('id')}
-                                disabled={isLoading || !!fieldErrors.id}
-                                className="px-4 py-3 text-base bg-gray-100 text-gray-700 rounded-lg hover:bg-[#9C50D4] hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                disabled={isLoading || !validations.idValid}
+                                className="px-4 py-3 text-sm whitespace-nowrap bg-gray-100 text-gray-700 rounded-lg hover:bg-[#9C50D4] hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {isLoading ? '확인 중...' : '중복확인'}
+                                {isLoading && formData.id === fieldErrors.id ? '확인 중...' : '중복확인'}
                             </button>
                         </div>
                     </div>
-                    {validations.idChecked && !fieldErrors.id && (
+                    {validations.idChecked ? (
                         <div className="ml-28 -mt-2 text-sm text-green-600">사용 가능한 아이디입니다.</div>
-                    )}
-                    {fieldErrors.id && <div className="ml-28 -mt-2 text-sm text-red-600">{fieldErrors.id}</div>}
+                    ) : fieldErrors.id ? (
+                        <div className="ml-28 -mt-2 text-sm text-red-600">{fieldErrors.id}</div>
+                    ) : null}
 
                     {/* 비밀번호 */}
                     <div className="flex items-center space-x-4">
@@ -373,7 +478,11 @@ export default function Signup() {
                                 value={formData.password}
                                 onChange={handleChange}
                                 className={`w-full px-4 py-3 text-base text-black rounded-lg border ${
-                                    fieldErrors.password ? 'border-red-500' : 'border-gray-300'
+                                    validations.passwordValid && formData.password
+                                        ? 'border-green-500'
+                                        : fieldErrors.password
+                                        ? 'border-red-500'
+                                        : 'border-gray-300'
                                 } focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent`}
                             />
                             <button
@@ -409,10 +518,10 @@ export default function Signup() {
                                 value={formData.confirmPassword}
                                 onChange={handleChange}
                                 className={`w-full px-4 py-3 text-base text-black rounded-lg border ${
-                                    fieldErrors.confirmPassword
-                                        ? 'border-red-500'
-                                        : formData.confirmPassword && formData.password === formData.confirmPassword
+                                    validations.confirmPasswordValid && formData.confirmPassword
                                         ? 'border-green-500'
+                                        : fieldErrors.confirmPassword
+                                        ? 'border-red-500'
                                         : 'border-gray-300'
                                 } focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent`}
                             />
@@ -451,6 +560,8 @@ export default function Signup() {
                                 className={`flex-1 px-4 py-3 text-base text-black rounded-lg border ${
                                     validations.nicknameChecked
                                         ? 'border-green-500'
+                                        : validations.nicknameValid
+                                        ? 'border-orange-300'
                                         : fieldErrors.nickname
                                         ? 'border-red-500'
                                         : 'border-gray-300'
@@ -459,41 +570,58 @@ export default function Signup() {
                             <button
                                 type="button"
                                 onClick={() => checkDuplicate('nickname')}
-                                disabled={isLoading || !!fieldErrors.nickname}
-                                className="px-4 py-3 text-base bg-gray-100 text-gray-700 rounded-lg hover:bg-[#9C50D4] hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                                disabled={isLoading || !validations.nicknameValid}
+                                className="px-4 py-3 text-sm whitespace-nowrap bg-gray-100 text-gray-700 rounded-lg hover:bg-[#9C50D4] hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                {isLoading ? '확인 중...' : '중복확인'}
+                                {isLoading && formData.nickname === fieldErrors.nickname ? '확인 중...' : '중복확인'}
                             </button>
                         </div>
                     </div>
-                    {validations.nicknameChecked && !fieldErrors.nickname && (
+                    {validations.nicknameChecked ? (
                         <div className="ml-28 -mt-2 text-sm text-green-600">사용 가능한 닉네임입니다.</div>
-                    )}
-                    {fieldErrors.nickname && (
+                    ) : fieldErrors.nickname ? (
                         <div className="ml-28 -mt-2 text-sm text-red-600">{fieldErrors.nickname}</div>
-                    )}
+                    ) : null}
 
-                    {/* 휴대폰 번호 */}
+                    {/* 전화번호 */}
                     <div className="flex items-center space-x-4">
                         <label htmlFor="phone" className="text-lg font-medium text-gray-700 w-24">
-                            휴대폰 번호
+                            전화번호
                         </label>
-                        <div className="flex-1">
+                        <div className="flex-1 flex space-x-2">
                             <input
                                 id="phone"
                                 name="phone"
                                 type="tel"
                                 required
-                                placeholder="휴대폰 번호를 입력하세요"
+                                placeholder="'-' 없이 입력하세요"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                className={`w-full px-4 py-3 text-base text-black rounded-lg border ${
-                                    fieldErrors.phone ? 'border-red-500' : 'border-gray-300'
+                                className={`flex-1 px-4 py-3 text-base text-black rounded-lg border ${
+                                    validations.phoneChecked
+                                        ? 'border-green-500'
+                                        : validations.phoneValid
+                                        ? 'border-orange-300'
+                                        : fieldErrors.phone
+                                        ? 'border-red-500'
+                                        : 'border-gray-300'
                                 } focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent`}
                             />
+                            <button
+                                type="button"
+                                onClick={() => checkDuplicate('phone')}
+                                disabled={isLoading || !validations.phoneValid}
+                                className="px-4 py-3 text-sm whitespace-nowrap bg-gray-100 text-gray-700 rounded-lg hover:bg-[#9C50D4] hover:text-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isLoading && formData.phone === fieldErrors.phone ? '확인 중...' : '중복확인'}
+                            </button>
                         </div>
                     </div>
-                    {fieldErrors.phone && <div className="ml-28 -mt-2 text-sm text-red-600">{fieldErrors.phone}</div>}
+                    {validations.phoneChecked ? (
+                        <div className="ml-28 -mt-2 text-sm text-green-600">사용 가능한 전화번호입니다.</div>
+                    ) : fieldErrors.phone ? (
+                        <div className="ml-28 -mt-2 text-sm text-red-600">{fieldErrors.phone}</div>
+                    ) : null}
 
                     {/* 이용약관 */}
                     <div className="flex items-center mt-8 mb-4">
@@ -513,7 +641,7 @@ export default function Signup() {
                     {/* 회원가입 버튼 */}
                     <button
                         type="submit"
-                        disabled={!isFormValid() || isLoading}
+                        disabled={isLoading}
                         className={`w-full py-4 text-lg font-medium text-white rounded-lg transition-colors ${
                             isFormValid() && !isLoading
                                 ? 'bg-[#9C50D4] hover:bg-[#8a45bc]'
