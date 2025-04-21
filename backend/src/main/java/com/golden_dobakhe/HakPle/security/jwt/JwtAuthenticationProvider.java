@@ -39,15 +39,15 @@ public class JwtAuthenticationProvider {
             throw new RuntimeException("유효하지 않은 토큰입니다", e);
         }
 
-        try {
-            if (redisTemplate.hasKey(token)) {
-                log.warn("🚫 블랙리스트 토큰 사용: {}", token);
-                throw new RuntimeException("로그아웃된 토큰입니다");
-            }
-        } catch (Exception e) {
-            log.error("❌ Redis 연결 실패: {}", e.getMessage(), e);
-            throw new RuntimeException("내부 서버 오류(Redis 연결 실패)", e);
-        }
+//        try {
+//            if (redisTemplate.hasKey(token)) {
+//                log.warn("🚫 블랙리스트 토큰 사용: {}", token);
+//                throw new RuntimeException("로그아웃된 토큰입니다");
+//            }
+//        } catch (Exception e) {
+//            log.error("❌ Redis 연결 실패: {}", e.getMessage(), e);
+//            throw new RuntimeException("내부 서버 오류(Redis 연결 실패)", e);
+//        }
 
         Long userId = extractUserId(claims);
         User user = userRepository.findByIdWithRoles(userId)
