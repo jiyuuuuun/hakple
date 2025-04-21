@@ -358,8 +358,6 @@ export default function MyInfoPage() {
                 // 최종 사용자 정보 업데이트
                 const userInfoData: MyInfo = {
                     ...data,
-                    academyCode: data.academyCode || academyIdFromToken, // academyCode가 없으면 토큰에서 추출
-                    academyName: getAcademyNameFromCode(data.academyCode || academyIdFromToken || ''),
                     academyCode: finalAcademyCode,
                     academyName: finalAcademyName,
                 }
