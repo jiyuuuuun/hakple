@@ -5,6 +5,7 @@ import com.golden_dobakhe.HakPle.security.OAuth.CustomOAuth2RequestResolver;
 import com.golden_dobakhe.HakPle.security.OAuth.CustomOAuth2SuccessHandler;
 import com.golden_dobakhe.HakPle.security.jwt.JwtAuthFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -18,8 +19,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.List;
 
 @Configuration
 @Slf4j
@@ -39,12 +38,11 @@ public class SecurityConfig {
                                 // OAuth2 및 스웨거 API 문서
                                 "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
-                                
+
                                 // 인증 관련 API
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/logout",
 
-                                
                                 // 관리자 로그인/회원가입
 
                                 "/api/v1/users/userreg",
@@ -99,7 +97,7 @@ public class SecurityConfig {
         //해당 사이트와 매핑? 매치? 한다
         config.setAllowedOrigins(List.of("http://localhost:3000"));
         config.addAllowedHeader("*");
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
         //그리고 외부에서 가져온 credentials를 허용시킨다
         config.setAllowCredentials(true);

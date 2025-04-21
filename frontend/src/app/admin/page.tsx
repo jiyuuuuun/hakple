@@ -109,18 +109,70 @@ export default function AdminPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">🔑관리자 페이지</h1>
+      <h1 className="text-3xl font-bold mb-6">🔑 관리자 페이지</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Link href="/admin/reports/comments" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-          <h2 className="text-xl font-semibold mb-2">💬댓글 관리</h2>
-          <p className="text-gray-600">신고된 댓글을 관리합니다</p>
-        </Link>
-        
-        <Link href="/admin/reports/posts" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-          <h2 className="text-xl font-semibold mb-2">📃게시글 관리</h2>
-          <p className="text-gray-600">신고된 게시글을 관리합니다</p>
-        </Link>
+      {/* 관리자 계정 관련 */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 border-b pb-2 text-[#8C4FF2]">👤 관리자 계정 관리</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link href="/admin/admins" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">🔰 관리자 목록 조회</h2>
+            <p className="text-gray-600">모든 관리자 계정 목록을 확인합니다</p>
+          </Link>
+          
+          <Link href="/admin/create-admin" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">👑 관리자 생성</h2>
+            <p className="text-gray-600">새로운 관리자 계정을 생성합니다</p>
+          </Link>
+        </div>
+      </div>
+
+      {/* 게시글 관련 */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 border-b pb-2 text-[#8C4FF2]">📝 게시글 관리</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link href="/admin/posts" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">📑 게시글 목록 조회</h2>
+            <p className="text-gray-600">모든 게시글 목록을 조회합니다</p>
+          </Link>
+          
+          <Link href="/admin/reports/posts" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">📃 신고된 게시글 관리</h2>
+            <p className="text-gray-600">신고된 게시글을 검토하고 관리합니다</p>
+          </Link>
+          
+          <Link href="/admin/reports/comments" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">💬 신고된 댓글 관리</h2>
+            <p className="text-gray-600">신고된 댓글을 검토하고 관리합니다</p>
+          </Link>
+        </div>
+      </div>
+
+      {/* 학원 관련 */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 border-b pb-2 text-[#8C4FF2]">🏫 학원 관리</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link href="/admin/academy/list" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">📋 학원 목록 조회</h2>
+            <p className="text-gray-600">등록된 학원 목록을 조회합니다</p>
+          </Link>
+          
+          <Link href="/admin/academy/register" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">➕ 학원 등록</h2>
+            <p className="text-gray-600">새로운 학원을 등록합니다</p>
+          </Link>
+        </div>
+      </div>
+
+      {/* 회원 관련 */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 border-b pb-2 text-[#8C4FF2]">👥 회원 관리</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link href="/admin/users" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">📊 회원 목록 조회</h2>
+            <p className="text-gray-600">등록된 모든 회원을 조회합니다</p>
+          </Link>
+        </div>
       </div>
     </div>
   );

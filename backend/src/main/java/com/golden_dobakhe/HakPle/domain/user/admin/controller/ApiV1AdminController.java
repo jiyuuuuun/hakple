@@ -1,12 +1,17 @@
 package com.golden_dobakhe.HakPle.domain.user.admin.controller;
 
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 import java.util.Map;
 
 
@@ -79,6 +86,21 @@ public class ApiV1AdminController {
         log.info(principal.getUser().getRoles().toString());
 
         return ResponseEntity.ok(isAdmin);
+    }
+
+    @Operation(summary = "학원 목록 조회 (유저 수 포함)", description = "모든 학원의 기본 정보와 소속 유저 수를 반환합니다.")
+    @ApiResponse(responseCode = "200", description = "성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AcademyWithUserCountDto.class)))
+    @GetMapping("/academies")
+    public ResponseEntity<List<AcademyWithUserCountDto>> getAcademiesWithUserCount() {
+        List<AcademyWithUserCountDto> result = adminService.getAcademyListWithUserCounts();
+        return ResponseEntity.ok(result);
+    }
+
+    @Operation(summary = "관리자 권한 유저 목록 조회", description = "권한이 ADMIN인 유저만 조회합니다.")
+    @GetMapping("/admins")
+    public ResponseEntity<List<User>> getAdminUsers() {
+        List<User> adminUsers = adminService.getAdminUsers();
+        return ResponseEntity.ok(adminUsers);
     }
 
 

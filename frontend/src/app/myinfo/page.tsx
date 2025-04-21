@@ -70,15 +70,124 @@ const formatDate = (dateString: string): string => {
 
 // 학원 이름 찾기 함수 (학원 코드로부터)
 const getAcademyNameFromCode = (code: string): string => {
-    // 실제로는 학원 코드를 바탕으로 이름을 조회하는 로직이 필요
-    // 현재는 임시로 코드를 그대로 사용
-    return code || ''
+    if (typeof window !== 'undefined') {
+        // 로컬 스토리지에서 학원 이름 확인 (academyRegister 페이지에서 저장한 값)
+        const storedAcademyName = localStorage.getItem('academyName')
+        if (storedAcademyName) {
+            return storedAcademyName
+        }
+    }
+    // 코드가 있지만 이름이 없는 경우 '등록된 학원'으로 표시
+    return code ? '등록된 학원' : ''
 }
+
+// 휴대폰 번호 형식화 함수 (하이픈 추가)
+const formatPhoneNumber = (phoneNum: string): string => {
+    if (!phoneNum) return ''
+
+    // 이미 하이픈이 있는 경우 일단 제거
+    const digitsOnly = phoneNum.replace(/-/g, '')
+
+    // 길이에 따라 다른 형식 적용
+    if (digitsOnly.length === 11) {
+        // 010-1234-5678 형식
+        return digitsOnly.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+    } else if (digitsOnly.length === 10) {
+        // 010-123-4567 형식 또는 02-1234-5678 형식
+        if (digitsOnly.startsWith('02')) {
+            return digitsOnly.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3')
+        }
+        return digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')
+    } else {
+        // 그 외의 경우 원본 반환
+        return phoneNum
+    }
+}
+
+// AcademyInfo 컴포넌트 - 등록된 학원 정보 표시
+const AcademyInfo = ({ academyCode, academyName }: { academyCode: string, academyName: string }) => {
+    return (
+        <div className="flex justify-between">
+            <span className="text-gray-500">등록된 학원</span>
+            <span className="text-gray-900">
+                {academyCode ? (
+                    <Link
+                        href="/myinfo/academyRegister"
+                        className="text-[#9C50D4] hover:underline"
+                    >
+                        {academyName}
+                    </Link>
+                ) : (
+                    <Link
+                        href="/myinfo/academyRegister"
+                        className="text-[#9C50D4] hover:underline"
+                    >
+                        학원 등록하러 가기
+                    </Link>
+                )}
+            </span>
+        </div>
+    );
+};
+
+// RecentActivity 컴포넌트 - 최근 활동 카드
+const RecentActivity = ({
+    postCount = 0,
+    commentCount = 0,
+    likeCount = 0
+}: {
+    postCount?: number,
+    commentCount?: number,
+    likeCount?: number
+}) => {
+    return (
+        <div className="mx-4 mt-6 bg-white rounded-xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-medium text-gray-800 p-6 pb-2">최근 활동</h2>
+
+            <div>
+                <Link href="/my-posts" className="flex items-center justify-between p-6">
+                    <div className="flex items-center">
+                        <PencilIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span className="text-gray-700">내가 쓴 게시글</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 mr-2">{postCount}개</span>
+                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                </Link>
+
+                <Link href="/my-comments" className="flex items-center justify-between p-6">
+                    <div className="flex items-center">
+                        <ChatBubbleLeftIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span className="text-gray-700">내가 쓴 댓글</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 mr-2">{commentCount}개</span>
+                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                </Link>
+
+                <Link href="/my-likes" className="flex items-center justify-between p-6">
+                    <div className="flex items-center">
+                        <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
+                        <span className="text-gray-700">좋아요한 게시글</span>
+                    </div>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 mr-2">{likeCount}개</span>
+                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                </Link>
+            </div>
+        </div>
+    );
+};
 
 export default function MyInfoPage() {
     const [userInfo, setUserInfo] = useState<MyInfo | null>(null)
     const [error, setError] = useState<string | null>(null)
     const { isLogin, loginMember } = useGlobalLoginMember()
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [adminChecking, setAdminChecking] = useState(true) // 관리자 권한 확인 중 로딩 상태
 
     // 백엔드에서 가져온 데이터와 전역 상태의 데이터를 합친 최종 사용자 정보
     const combinedUserInfo = {
@@ -96,29 +205,130 @@ export default function MyInfoPage() {
     useEffect(() => {
         if (!isLogin) {
             setError('로그인이 필요합니다.')
+            setAdminChecking(false)
             return
         }
 
-        console.log('마이인포 - 사용자 정보 요청 시작')
+        // 관리자 권한 확인
+        const checkAdminPermission = async () => {
+            setAdminChecking(true)
+            try {
+                const accessToken = localStorage.getItem('accessToken')
+
+                if (!accessToken) {
+                    console.log('토큰이 없어 관리자 권한 확인 불가')
+                    setIsAdmin(false)
+                    setAdminChecking(false)
+                    return
+                }
+
+                // 네트워크 타임아웃 설정 (5초)
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+                try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${accessToken}`
+                        },
+                        signal: controller.signal
+                    })
+
+                    clearTimeout(timeoutId) // 타임아웃 취소
+
+                    if (response.status === 401 || response.status === 403) {
+                        console.log('인증 오류: 권한이 없음 (상태 코드:', response.status, ')')
+                        setIsAdmin(false)
+                        setAdminChecking(false)
+                        return
+                    }
+
+                    if (!response.ok) {
+                        console.error('서버 오류: 관리자 권한 확인 실패 (상태 코드:', response.status, ')')
+                        setIsAdmin(false)
+                        setAdminChecking(false)
+                        return
+                    }
+
+                    const isAdminResult = await response.json()
+                    console.log('MyInfo - 관리자 권한 확인 결과:', isAdminResult)
+
+                    setIsAdmin(isAdminResult === true)
+                } catch (fetchError: any) {
+                    if (fetchError.name === 'AbortError') {
+                        console.error('관리자 권한 확인 요청 타임아웃')
+                    } else {
+                        console.error('네트워크 오류:', fetchError)
+                    }
+                    setIsAdmin(false)
+                }
+            } catch (error) {
+                console.error('관리자 권한 확인 중 예상치 못한 오류:', error)
+                setIsAdmin(false)
+            } finally {
+                setAdminChecking(false)
+            }
+        }
+
+        checkAdminPermission();
+
+        // 로컬 스토리지에서 학원 정보 확인
+        let storedAcademyName = ''
+        let storedAcademyCode = ''
+        if (typeof window !== 'undefined') {
+            storedAcademyName = localStorage.getItem('academyName') || ''
+            storedAcademyCode = localStorage.getItem('academyCode') || ''
+
+            console.log('마이페이지 - 저장된 학원 정보:', {
+                academyName: storedAcademyName,
+                academyCode: storedAcademyCode,
+            })
+        }
+
+        console.log('myinfo - 사용자 정보 요청 시작')
         // JWT 토큰에서 사용자 정보를 추출하므로 별도의 파라미터 없이 요청
         fetch('/api/v1/myInfos', {
             method: 'GET',
             credentials: 'include', // 쿠키(JWT)를 포함하여 요청
         })
             .then((res) => {
-                console.log('마이인포 - 응답 상태:', res.status)
+                console.log('myinfo - 응답 상태:', res.status)
                 if (!res.ok) {
                     throw new Error('사용자 정보를 불러오지 못했습니다.')
                 }
                 return res.json()
             })
             .then((data) => {
-                console.log('마이인포 - 사용자 정보 데이터:', data)
+                console.log('myinfo - 사용자 정보 데이터:', data)
+
+                // 백엔드에서 받은 학원 정보 처리
+                let finalAcademyName = storedAcademyName
+                let finalAcademyCode = storedAcademyCode
+
+                // 1. 백엔드에 학원코드가 있는 경우 우선 사용
+                if (data.academyCode) {
+                    finalAcademyCode = data.academyCode
+
+                    // 2. 백엔드에 학원이름도 있는 경우 그대로 사용
+                    if (data.academyName) {
+                        finalAcademyName = data.academyName
+                    }
+                    // 3. 백엔드에 학원코드만 있는 경우
+                    else if (storedAcademyName && storedAcademyCode === data.academyCode) {
+                        // 로컬에 저장된 학원코드가 백엔드와 일치하면 로컬 학원이름 사용
+                        finalAcademyName = storedAcademyName
+                    } else {
+                        // 그 외의 경우 기본값 사용
+                        finalAcademyName = getAcademyNameFromCode(data.academyCode)
+                    }
 
                 // 토큰에서 academyId 추출
                 let academyIdFromToken = null;
                 const token = localStorage.getItem('accessToken');
-                
+
                 if (token) {
                     try {
                         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -131,16 +341,33 @@ export default function MyInfoPage() {
                 }
 
                 // academyName 필드 추가 처리
+                    // 로컬 스토리지 업데이트
+                    localStorage.setItem('academyCode', finalAcademyCode)
+                    localStorage.setItem('academyName', finalAcademyName)
+                }
+                // 4. 백엔드에 학원코드가
+                else if (storedAcademyCode) {
+                    // 백엔드에 학원 정보가 없는데 로컬에 있으면 로컬 정보 초기화
+                    console.log('백엔드에 학원 정보가 없어서 로컬 스토리지 초기화')
+                    localStorage.removeItem('academyCode')
+                    localStorage.removeItem('academyName')
+                    finalAcademyCode = ''
+                    finalAcademyName = ''
+                }
+
+                // 최종 사용자 정보 업데이트
                 const userInfoData: MyInfo = {
                     ...data,
                     academyCode: data.academyCode || academyIdFromToken, // academyCode가 없으면 토큰에서 추출
                     academyName: getAcademyNameFromCode(data.academyCode || academyIdFromToken || ''),
+                    academyCode: finalAcademyCode,
+                    academyName: finalAcademyName,
                 }
 
                 setUserInfo(userInfoData)
             })
             .catch((err) => {
-                console.error('마이인포 - 에러:', err)
+                console.error('myinfo - 에러:', err)
                 setError(err.message)
             })
     }, [isLogin])
@@ -161,6 +388,16 @@ export default function MyInfoPage() {
         )
     }
 
+    // 관리자 권한 확인 중인 경우 로딩 표시
+    if (adminChecking) {
+        return (
+            <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8C4FF2]"></div>
+                <p className="mt-4 text-gray-600">권한을 확인하는 중입니다...</p>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-gray-50">
             <div>
@@ -172,8 +409,8 @@ export default function MyInfoPage() {
                     )}
 
                     {/* 프로필 섹션 */}
-                    <div className="relative h-56 bg-[#f2edf4] rounded-t-lg mt-4 mx-1">
-                        <div className="absolute left-8 bottom-0 transform translate-y-[55%]">
+                    <div className="relative h-56 bg-[#f2edf4] rounded-t-lg mt-4 mx-4">
+                        <div className="absolute left-8 bottom-0 translate-y-23">
                             <div className="relative">
                                 <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white bg-white">
                                     <Image
@@ -189,14 +426,14 @@ export default function MyInfoPage() {
                                     />
                                 </div>
                             </div>
-                            <div className="mt-6 text-left pl-1">
+                            <div className="mt-5 text-left pl-1">
                                 <h1 className="text-2xl font-semibold text-[#9C50D4]">{combinedUserInfo.nickName}</h1>
                             </div>
                         </div>
                     </div>
 
                     {/* 흰색 배경 컨테이너 시작 */}
-                    <div className="bg-white mx-1 rounded-b-2xl shadow-sm pb-6 mt-0 pt-20">
+                    <div className="bg-white mx-4 rounded-b-2xl shadow-sm pb-6 mt-0 pt-20">
                         {/* 정보 섹션 - 그리드 레이아웃으로 변경 */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mx-4 mt-6">
                             {/* 기본 정보 카드 */}
@@ -210,9 +447,11 @@ export default function MyInfoPage() {
                                     </div>
 
                                     <div className="flex justify-between">
-                                        <span className="text-gray-500">휴대폰번호</span>
+                                        <span className="text-gray-500">휴대폰 번호</span>
                                         <span className="text-gray-900">
-                                            {combinedUserInfo.phoneNum || '등록된 번호가 없습니다'}
+                                            {combinedUserInfo.phoneNum
+                                                ? formatPhoneNumber(combinedUserInfo.phoneNum)
+                                                : '등록된 번호가 없습니다'}
                                         </span>
                                     </div>
 
@@ -232,26 +471,9 @@ export default function MyInfoPage() {
                                         </span>
                                     </div>
 
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">등록된 학원</span>
-                                        <span className="text-gray-900">
-                                            {combinedUserInfo.academyCode ? (
-                                                <Link
-                                                    href="/myinfo/academyRegister"
-                                                    className="text-[#9C50D4] hover:underline"
-                                                >
-                                                    {combinedUserInfo.academyName || combinedUserInfo.academyCode}
-                                                </Link>
-                                            ) : (
-                                                <Link
-                                                    href="/myinfo/academyRegister"
-                                                    className="text-[#9C50D4] hover:underline"
-                                                >
-                                                    학원 등록하러 가기
-                                                </Link>
-                                            )}
-                                        </span>
-                                    </div>
+                                    {!isAdmin && (
+                                        <AcademyInfo academyCode={combinedUserInfo.academyCode} academyName={combinedUserInfo.academyName} />
+                                    )}
                                 </div>
                             </div>
 
@@ -287,45 +509,10 @@ export default function MyInfoPage() {
                             </div>
                         </div>
 
-                        {/* 최근 활동 카드 */}
-                        <div className="mx-4 mt-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-medium text-gray-800 p-6 pb-2">최근 활동</h2>
-
-                            <div>
-                                <Link href="/my-posts" className="flex items-center justify-between p-6">
-                                    <div className="flex items-center">
-                                        <PencilIcon className="h-5 w-5 text-gray-400 mr-3" />
-                                        <span className="text-gray-700">내가 쓴 게시글</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="text-gray-400 mr-2">{combinedUserInfo.postCount}개</span>
-                                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </Link>
-
-                                <Link href="/my-comments" className="flex items-center justify-between p-6">
-                                    <div className="flex items-center">
-                                        <ChatBubbleLeftIcon className="h-5 w-5 text-gray-400 mr-3" />
-                                        <span className="text-gray-700">내가 쓴 댓글</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="text-gray-400 mr-2">{combinedUserInfo.commentCount}개</span>
-                                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </Link>
-
-                                <Link href="/favorites" className="flex items-center justify-between p-6">
-                                    <div className="flex items-center">
-                                        <HeartIcon className="h-5 w-5 text-gray-400 mr-3" />
-                                        <span className="text-gray-700">좋아요한 게시글</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <span className="text-gray-400 mr-2">{combinedUserInfo.likeCount}개</span>
-                                        <ChevronRightIcon className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </Link>
-                            </div>
-                        </div>
+                        {/* 최근 활동 카드 - 관리자가 아닐 때만 표시 */}
+                        {!isAdmin && (
+                            <RecentActivity postCount={combinedUserInfo.postCount} commentCount={combinedUserInfo.commentCount} likeCount={combinedUserInfo.likeCount} />
+                        )}
                     </div>
                 </main>
             </div>
