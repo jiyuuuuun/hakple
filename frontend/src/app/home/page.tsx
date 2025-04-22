@@ -164,7 +164,7 @@ export default function HomePage() {
             })
 
             if (!response.ok) {
-                throw new Error('게시글을 불러오는데 실패했습니다')
+                console.log('게시글을 불러오는데 실패했습니다', response)
             }
 
             const data = (await response.json()) as ApiResponse
