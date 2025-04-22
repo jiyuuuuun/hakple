@@ -45,6 +45,17 @@ export default function LoginPage() {
             
             // 로그인이 성공하면 setLoginMember 호출하여 전역 상태 업데이트
             setLoginMember(data);
+
+            // 응답 데이터에서 토큰 추출 및 저장
+            // if (data.accessToken) {
+            //     localStorage.setItem('accessToken', data.accessToken)
+            //     console.log('액세스 토큰 저장 완료')
+            // }
+
+            // if (data.refreshToken) {
+            //     localStorage.setItem('refreshToken', data.refreshToken)
+            //     console.log('리프레시 토큰 저장 완료')
+            // }
             
             // 관리자 권한 확인
             console.log('관리자 권한 확인 시작');
