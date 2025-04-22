@@ -260,7 +260,6 @@ export default function MyInfoPage() {
                 const timeoutId = setTimeout(() => controller.abort(), 5000)
 
                 try {
-
                     // fetchApi 유틸리티 함수 사용으로 변경
                     const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
@@ -338,25 +337,25 @@ export default function MyInfoPage() {
                             ? storedAcademyName
                             : getAcademyNameFromCode(data.academyCode))
 
-                    // 토큰에서 추가 정보 확인 (백업)
-                    const token = localStorage.getItem('accessToken')
-                    if (token) {
-                        try {
-                            const payload = JSON.parse(atob(token.split('.')[1]))
-                            const academyIdFromToken =
-                                payload.academyId || payload.academyCode || payload.academy_code || null
+                    // // 토큰에서 추가 정보 확인 (백업)
+                    // const token = localStorage.getItem('accessToken')
+                    // if (token) {
+                    //     try {
+                    //         const payload = JSON.parse(atob(token.split('.')[1]))
+                    //         const academyIdFromToken =
+                    //             payload.academyId || payload.academyCode || payload.academy_code || null
 
-                            // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
-                            if (!finalAcademyCode && academyIdFromToken) {
-                                finalAcademyCode = String(academyIdFromToken)
-                                finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
-                            }
-                        } catch (e) {
-                            console.error('토큰 파싱 중 오류:', e)
-                        }
-                    } catch (e) {
-                        console.log('토큰 파싱 중 오류:', e);
-                    }
+                    //         // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
+                    //         if (!finalAcademyCode && academyIdFromToken) {
+                    //             finalAcademyCode = String(academyIdFromToken)
+                    //             finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
+                    //         }
+                    //     } catch (e) {
+                    //         console.error('토큰 파싱 중 오류:', e)
+                    //     }
+                    // } catch (e) {
+                    //     console.log('토큰 파싱 중 오류:', e);
+                    // }
 
                     // 정보 업데이트
                     localStorage.setItem('academyCode', finalAcademyCode)
