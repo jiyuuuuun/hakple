@@ -1,15 +1,18 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
 // API 유틸리티 추가
 import { fetchApi } from '@/utils/api'
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import '@/app/calendar/calendar.css'; // ➕ 커스텀 스타일 적용할 파일
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import '@/app/calendar/calendar.css' // ➕ 커스텀 스타일 적용할 파일
+
+// 스타일시트를 위한 import 추가 - CDN 방식으로 헤드에 추가는 layout에서 처리
+// 대신 SVG 아이콘 컴포넌트를 직접 사용합니다
 
 // 댓글 인터페이스
 interface Comment {
@@ -39,6 +42,7 @@ interface Post {
     tags: string[]
     boardComments?: Comment[]
     boardLikes?: Like[]
+    isReported?: boolean
 }
 
 // API 응답 타입
@@ -66,6 +70,9 @@ export default function HomePage() {
     const [posts, setPosts] = useState<Post[]>([])
     const [loading, setLoading] = useState<boolean>(true)
     const [events, setEvents] = useState<EventItem[]>([])
+    const [showPostMenu, setShowPostMenu] = useState<number | null>(null)
+    const [isReporting, setIsReporting] = useState(false)
+    const postMenuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({})
 
     // localStorage 관련 디버깅 함수
     const checkAndUpdateAcademyInfo = () => {
@@ -125,6 +132,59 @@ export default function HomePage() {
         }
     }
 
+    useEffect(() => {
+        // 로그인 확인 및 리다이렉트
+        if (!isLogin) {
+            router.push('/login')
+            return
+        }
+
+        // 학원 정보 검증
+        verifyAcademyInfo()
+
+        // 학원 정보 확인 및 업데이트
+        checkAndUpdateAcademyInfo()
+
+        // 게시글 데이터 가져오기
+        fetchLatestPosts()
+
+        // 페이지가 포커스를 받을 때마다 학원 정보 다시 확인 (다른 페이지에서 등록 후 돌아온 경우)
+        const handleFocus = () => {
+            console.log('창이 포커스를 받았습니다 - 학원 정보 다시 확인')
+            checkAndUpdateAcademyInfo()
+        }
+
+        window.addEventListener('focus', handleFocus)
+        // 컴포넌트 언마운트 시 이벤트 리스너 제거
+        return () => {
+            window.removeEventListener('focus', handleFocus)
+        }
+    }, [isLogin, router])
+
+    // 외부 클릭 감지 - 메뉴 닫기
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            // 메뉴 버튼 클릭은 무시
+            const target = event.target as Element
+            if (target.closest('.menu-button') || target.closest('.menu-item')) {
+                return
+            }
+
+            // 활성화된 메뉴가 있을 때만 체크
+            if (showPostMenu !== null) {
+                const activeRef = postMenuRefs.current[showPostMenu]
+                if (activeRef && !activeRef.contains(event.target as Node)) {
+                    setShowPostMenu(null)
+                }
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showPostMenu])
+
     // 최신 게시글 가져오기
     const fetchLatestPosts = async () => {
         setLoading(true)
@@ -160,7 +220,8 @@ export default function HomePage() {
             } else {
                 setPosts([])
             }
-        } catch (error) {
+        } catch {
+            // 변수 자체를 제거
             setPosts([])
         } finally {
             setLoading(false)
@@ -176,7 +237,17 @@ export default function HomePage() {
             if (!res.ok) return
 
             const data = await res.json()
-            const mappedEvents = data.map((item: any) => ({
+
+            // 서버 응답 타입 명시
+            interface ScheduleItem {
+                id: number | string
+                title: string
+                startDate: string
+                endDate: string
+                color?: string
+            }
+
+            const mappedEvents = (data as ScheduleItem[]).map((item) => ({
                 id: String(item.id),
                 title: item.title,
                 start: item.startDate,
@@ -231,6 +302,57 @@ export default function HomePage() {
             return `${Math.floor(diffMinutes / 60)}시간 전`
         } else {
             return `${date.toLocaleDateString()}`
+        }
+    }
+
+    // 메뉴 토글 함수
+    const togglePostMenu = (e: React.MouseEvent, postId: number) => {
+        e.stopPropagation()
+        e.preventDefault()
+        setShowPostMenu(showPostMenu === postId ? null : postId)
+    }
+
+    // 게시글 신고 함수
+    const handleReport = async (postId: number) => {
+        if (!isLogin) {
+            alert('로그인이 필요한 기능입니다.')
+            router.push('/login')
+            return
+        }
+
+        if (isReporting) return
+
+        const confirmed = window.confirm('정말로 이 게시글을 신고하시겠습니까?')
+        if (!confirmed) return
+
+        setIsReporting(true)
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/report`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.message || '게시글 신고에 실패했습니다.')
+            }
+
+            // 신고 상태 업데이트
+            setPosts((prevPosts) =>
+                prevPosts.map((post) => (post.id === postId ? { ...post, isReported: true } : post)),
+            )
+
+            alert('게시글이 신고되었습니다.')
+            setShowPostMenu(null)
+        } catch (error) {
+            console.error('게시글 신고 중 오류:', error)
+            alert(error instanceof Error ? error.message : '게시글 신고 중 오류가 발생했습니다.')
+        } finally {
+            setIsReporting(false)
         }
     }
 
@@ -310,15 +432,15 @@ export default function HomePage() {
                             </div>
                         ) : posts.length > 0 ? (
                             posts.map((post) => (
-                                <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-8 transition-all duration-200 hover:shadow-lg hover:bg-gray-50">
+                                <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-8">
                                     <div className="p-6">
                                         {/* 작성자 정보 */}
-                                        <div className="flex justify-between items-center mb-5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-6 w-6 text-gray-400"
+                                                        className="h-7 w-7 text-gray-400"
                                                         fill="none"
                                                         viewBox="0 0 24 24"
                                                         stroke="currentColor"
@@ -331,105 +453,77 @@ export default function HomePage() {
                                                         />
                                                     </svg>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">{post.nickname}</span>
-                                                    <span className="text-gray-500 text-sm">•</span>
-                                                    <span className="text-sm text-gray-500">{formatDate(post.creationTime)}</span>
+                                                <div>
+                                                    <div className="font-medium text-lg">{post.nickname}</div>
+                                                    <div className="text-base text-gray-500">
+                                                        {formatDate(post.creationTime)}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <button className="text-gray-400 hover:text-[#9C50D4] transition-colors">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-6 w-6"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
+                                            <div className="relative">
+                                                <button
+                                                    className="text-gray-400 menu-button"
+                                                    onClick={(e) => togglePostMenu(e, post.id)}
                                                 >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                                                    />
-                                                </svg>
-                                            </button>
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-6 w-6"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                                {showPostMenu === post.id && (
+                                                    <div
+                                                        ref={(el) => {
+                                                            postMenuRefs.current[post.id] = el
+                                                        }}
+                                                        className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md z-10 w-32 py-1 border border-gray-200"
+                                                    >
+                                                        <button
+                                                            className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-gray-100 menu-item"
+                                                            onClick={() => handleReport(post.id)}
+                                                            disabled={post.isReported || isReporting}
+                                                        >
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className="h-4 w-4 mr-2"
+                                                                viewBox="0 0 20 20"
+                                                                fill="currentColor"
+                                                            >
+                                                                <path
+                                                                    fillRule="evenodd"
+                                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 100-2 1 1 0 000 2zM12 13a1 1 0 100-2 1 1 0 000 2z"
+                                                                    clipRule="evenodd"
+                                                                />
+                                                            </svg>
+                                                            {post.isReported ? '신고 완료' : '글 신고'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        {/* 게시글 제목 및 내용 */}
-                                        <Link href={`/post/${post.id}`} className="no-underline group">
-                                            <h3 className="text-lg font-semibold mb-2 group-hover:text-[#9C50D4] transition-colors">
+                                        {/* 게시글 제목 */}
+                                        <Link href={`/post/${post.id}`} className="block mb-3 no-underline">
+                                            <h3 className="text-xl font-semibold text-[#333333] hover:text-[#980ffa] mt-1">
                                                 {post.title}
                                             </h3>
-                                            <p className="mb-4 text-gray-700 line-clamp-3">
-                                                {post.content.replace(/<[^>]*>?/gm, '')}
-                                            </p>
                                         </Link>
 
-                                        {/* 게시글 이미지 영역 (옵션) */}
-                                        {post.content.includes('<img') && (
-                                            <div className="bg-gray-100 rounded-md h-48 flex items-center justify-center mb-4 overflow-hidden">
-                                                <img
-                                                    src={post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                        )}
-
-                                        {/* 해시태그 */}
-                                        {post.tags && post.tags.length > 0 && (
-                                            <div className="flex gap-2 mb-4 flex-wrap">
-                                                {post.tags.map((tag, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        className="text-sm text-[#9C50D4] bg-purple-50 px-2 py-1 rounded-full hover:bg-purple-100 transition-colors"
-                                                    >
-                                                        #{tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* 좋아요 및 댓글 수 */}
-                                        <div className="flex items-center gap-6 text-gray-600">
-                                            <div className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors cursor-pointer">
+                                        {/* 통계 정보 */}
+                                        <div className="flex items-center justify-end gap-[10px] pr-[10px] mb-3">
+                                            <div className="flex items-center gap-1">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-6 w-6"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={1.5}
-                                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                                    />
-                                                </svg>
-                                                <span>{post.likeCount}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors cursor-pointer">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-6 w-6"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={1.5}
-                                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                                                    />
-                                                </svg>
-                                                <span>{post.commentCount}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 ml-auto">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-6 w-6"
+                                                    className="h-4 w-4 text-gray-400"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -447,9 +541,54 @@ export default function HomePage() {
                                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                                                     />
                                                 </svg>
-                                                <span>{post.viewCount}</span>
+                                                <span className="text-xs text-[#999999]">{post.viewCount}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-4 w-4 text-gray-400"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={1.5}
+                                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                                    />
+                                                </svg>
+                                                <span className="text-xs text-[#999999]">{post.commentCount}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-4 w-4 text-gray-400"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={1.5}
+                                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                    />
+                                                </svg>
+                                                <span className="text-xs text-[#999999]">{post.likeCount}</span>
                                             </div>
                                         </div>
+
+                                        {/* 게시글 이미지 영역 (옵션) */}
+                                        {post.content.includes('<img') && (
+                                            <div className="bg-gray-100 rounded-md h-48 flex items-center justify-center mb-3 overflow-hidden">
+                                                <img
+                                                    src={post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))
@@ -484,13 +623,13 @@ export default function HomePage() {
                                     headerToolbar={{
                                         left: '',
                                         center: 'title',
-                                        right: 'prev,next'
+                                        right: 'prev,next',
                                     }}
                                     contentHeight={300}
                                     fixedWeekCount={false}
                                     dayHeaderContent={(args) => {
-                                        const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-                                        return days[args.date.getDay()];
+                                        const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                                        return days[args.date.getDay()]
                                     }}
                                     events={events}
                                     eventContent={() => ({ html: '•' })}

@@ -3,10 +3,10 @@ HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+!/src/main//build/
+!/src/test//build/
 
-### STS ###
+#STS
 .apt_generated
 .classpath
 .factorypath
@@ -15,41 +15,43 @@ build/
 .springBeans
 .sts4-cache
 bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+!/src/main//bin/
+!/src/test//bin/
 
-### IntelliJ IDEA ###
+#IntelliJ IDEA
 .idea
 *.iws
 *.iml
-*.ipr
+.ipr
 out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+!/src/main//out/
+!/src/test//out/
 
-### NetBeans ###
+#NetBeans
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 
-### VS Code ###
+#VS Code
 .vscode/
 
-### Custom ###
+#Custom
 application-secret.yml
 
-### terraform ###
+#terraform
 .terraform
 .terraform.lock.hcl
 terraform.tfstate
-terraform.tfstate.*
+terraform.tfstate.
 
-# Node
+#Node
 node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
 package-lock.json
 yarn.lock
+
+uploads

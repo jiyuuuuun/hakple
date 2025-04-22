@@ -103,21 +103,18 @@ export default function MyCommentsPage() {
             const data: PageResponse<CommentResponseDto> = await response.json()
 
             // 페이지네이션 정보 설정
-            setTotalPages(data.totalPages)
+            setTotalPages(data.totalPages || 1)
             setHasMore(!data.last)
 
             // API 응답 데이터를 컴포넌트에서 사용하는 형식으로 변환
-            const mappedComments = data.content.map((item) => {
-                console.log('서버로부터 받은 댓글 데이터:', item)
-                return {
-                    id: item.id,
-                    content: item.content,
-                    createdAt: item.creationTime,
-                    boardId: item.boardId,
-                    nickname: item.nickname,
-                    likeCount: item.likeCount,
-                }
-            })
+            const mappedComments = data.content.map((item) => ({
+                id: item.id,
+                content: item.content || '',
+                createdAt: item.creationTime,
+                boardId: item.boardId,
+                nickname: item.nickname || '익명',
+                likeCount: item.likeCount || 0,
+            }))
 
             // 첫 페이지면 데이터 교체, 아니면 기존 데이터에 추가
             if (pageNum === 1) {
@@ -162,22 +159,23 @@ export default function MyCommentsPage() {
 
     // 게시글로 이동
     const handleGoToPost = (boardId: number | null) => {
-        console.log('이동 시도 중인 게시글 ID:', boardId)
-
-        // boardId가 없는 경우 예외 처리
         if (!boardId) {
-            console.error('게시글 ID가 없습니다.')
             alert('게시글 정보를 찾을 수 없습니다.')
             return
         }
 
         try {
-            // 동적 라우팅을 사용하여 post/[id] 페이지로 이동
             router.push(`/post/${boardId}`)
         } catch (error) {
             console.error('게시글 이동 중 오류 발생:', error)
             alert('게시글로 이동할 수 없습니다. 다시 시도해주세요.')
         }
+    }
+
+    // HTML 태그 제거 함수
+    const removeHtmlTags = (content: string) => {
+        if (!content) return ''
+        return content.replace(/<[^>]*>/g, '')
     }
 
     return (
@@ -203,10 +201,7 @@ export default function MyCommentsPage() {
                             <div key={comment.id} className="bg-white dark:bg-slate-100 rounded-2xl p-6 shadow-md">
                                 <div
                                     className="cursor-pointer hover:underline text-lg font-semibold text-gray-800 dark:text-gray-800 mb-3"
-                                    onClick={() => {
-                                        console.log('게시글 제목 클릭:', comment.boardId)
-                                        handleGoToPost(comment.boardId)
-                                    }}
+                                    onClick={() => handleGoToPost(comment.boardId)}
                                 >
                                     <span className="text-[#8C4FF2]">📄</span> 게시글
                                 </div>
@@ -215,15 +210,12 @@ export default function MyCommentsPage() {
                                     <span>좋아요: {comment.likeCount}</span>
                                 </div>
                                 <p className="text-gray-700 dark:text-gray-700 mb-4 whitespace-pre-line">
-                                    {comment.content}
+                                    {removeHtmlTags(comment.content)}
                                 </p>
                                 <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-600">
                                     <span>🕒 {formatDate(comment.createdAt)}</span>
                                     <button
-                                        onClick={() => {
-                                            console.log('원본 글 보기 버튼 클릭:', comment.boardId)
-                                            handleGoToPost(comment.boardId)
-                                        }}
+                                        onClick={() => handleGoToPost(comment.boardId)}
                                         className="text-[#8C4FF2] hover:underline"
                                     >
                                         🔗 원본 글 보기
