@@ -5,17 +5,18 @@ import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.exception.ImageErrorCode;
 import com.golden_dobakhe.HakPle.domain.resource.image.exception.ProfileImageException;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
-
-import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
-import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class ProfileImageService {
 
@@ -25,6 +26,7 @@ public class ProfileImageService {
     private static final String UPLOAD_DIR = "uploads/profile/";
 
     // 프로필 사진 등록, 수정
+    @Transactional
     public String uploadProfileImage(ProfileImageRequestDto dto, MultipartFile file) throws IOException {
         // 유저 조회
         User user = userRepository.findByUserName(dto.getUserName())

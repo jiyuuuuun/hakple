@@ -51,7 +51,7 @@ interface PageResponse<T> {
     empty: boolean
 }
 
-export default function MyLikePage() {
+export default function MyLikesPage() {
     const router = useRouter()
     // 전역 로그인 상태 추가
     const { isLogin } = useGlobalLoginMember()
@@ -80,46 +80,45 @@ export default function MyLikePage() {
         setError(null)
 
         try {
-            // pageable 파라미터 적용 (size=10, sort=creationTime, direction=DESC)
             const response = await fetch(
-                `${API_BASE_URL}/api/v1/boards/like?page=${pageNum - 1}&size=10&sort=creationTime,desc`,
+                `${API_BASE_URL}/api/v1/posts/my/likes?page=${pageNum - 1}&size=10&sort=creationTime,desc`,
                 {
-                    // 쿠키 기반 인증을 위해 credentials: 'include' 추가
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
                     credentials: 'include',
                 },
             )
 
             if (response.status === 401 || response.status === 403) {
-                // 인증 실패 또는 권한 없음 시 로그인 페이지로 리다이렉트
-                console.error('인증이 만료되었거나 권한이 없습니다. 다시 로그인해주세요.')
-                router.push('/login?redirect=my-like')
+                router.push('/login?redirect=my-likes')
                 return
             }
 
             if (!response.ok) {
-                throw new Error('좋아요한 게시물 목록을 불러오는데 실패했습니다.')
+                throw new Error(
+                    `좋아요한 게시물 목록을 불러오는데 실패했습니다. (${response.status}: ${response.statusText})`,
+                )
             }
 
             const data: PageResponse<PostResponseDto> = await response.json()
 
             // 페이지네이션 정보 설정
-            setTotalPages(data.totalPages)
+            setTotalPages(data.totalPages || 1)
             setHasMore(!data.last)
 
             // API 응답 데이터를 컴포넌트에서 사용하는 형식으로 변환
-            const mappedPosts = data.content.map((item) => {
-                console.log('서버로부터 받은 좋아요한 게시물 데이터:', item)
-                return {
-                    id: item.id,
-                    title: item.title,
-                    content: item.content,
-                    createdAt: item.creationTime,
-                    nickname: item.nickname,
-                    likeCount: item.likeCount,
-                    commentCount: item.commentCount,
-                    viewCount: item.viewCount,
-                }
-            })
+            const mappedPosts = data.content.map((item) => ({
+                id: item.id,
+                title: item.title || '(제목 없음)',
+                content: item.content || '',
+                createdAt: item.creationTime,
+                nickname: item.nickname || '익명',
+                likeCount: item.likeCount || 0,
+                commentCount: item.commentCount || 0,
+                viewCount: item.viewCount || 0,
+            }))
 
             // 첫 페이지면 데이터 교체, 아니면 기존 데이터에 추가
             if (pageNum === 1) {
@@ -130,7 +129,6 @@ export default function MyLikePage() {
         } catch (err) {
             console.error('좋아요한 게시물 목록 조회 오류:', err)
 
-            // 네트워크 오류나 기타 예외 상황인 경우
             if (err instanceof Error) {
                 setError(err.message || '좋아요한 게시물 목록을 불러오는데 실패했습니다.')
             } else {
@@ -143,10 +141,8 @@ export default function MyLikePage() {
 
     // 초기 데이터 로드 및 로그인 상태 확인
     useEffect(() => {
-        // 로그인 상태 확인 (전역 상태 사용)
         if (!isLogin) {
-            console.log('로그인이 필요합니다.')
-            router.push('/login?redirect=my-like')
+            router.push('/login?redirect=my-likes')
             return
         }
 
@@ -164,17 +160,12 @@ export default function MyLikePage() {
 
     // 게시글로 이동
     const handleGoToPost = (postId: number | null) => {
-        console.log('이동 시도 중인 게시글 ID:', postId)
-
-        // postId가 없는 경우 예외 처리
         if (!postId) {
-            console.error('게시글 ID가 없습니다.')
             alert('게시글 정보를 찾을 수 없습니다.')
             return
         }
 
         try {
-            // 동적 라우팅을 사용하여 post/[id] 페이지로 이동
             router.push(`/post/${postId}`)
         } catch (error) {
             console.error('게시글 이동 중 오류 발생:', error)
@@ -184,8 +175,13 @@ export default function MyLikePage() {
 
     // 게시물 내용 요약 함수
     const summarizeContent = (content: string, maxLength: number = 100) => {
-        if (content.length <= maxLength) return content
-        return content.substring(0, maxLength) + '...'
+        if (!content) return ''
+
+        // HTML 태그 제거
+        const textContent = content.replace(/<[^>]*>/g, '')
+
+        if (textContent.length <= maxLength) return textContent
+        return textContent.substring(0, maxLength) + '...'
     }
 
     return (
@@ -211,10 +207,7 @@ export default function MyLikePage() {
                             <div key={post.id} className="bg-white dark:bg-slate-100 rounded-2xl p-6 shadow-md">
                                 <div
                                     className="cursor-pointer hover:underline text-lg font-semibold text-gray-800 dark:text-gray-800 mb-3"
-                                    onClick={() => {
-                                        console.log('게시글 제목 클릭:', post.id)
-                                        handleGoToPost(post.id)
-                                    }}
+                                    onClick={() => handleGoToPost(post.id)}
                                 >
                                     <span className="text-[#8C4FF2]">❤️</span> {post.title}
                                 </div>
@@ -230,10 +223,7 @@ export default function MyLikePage() {
                                 <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-600">
                                     <span>🕒 {formatDate(post.createdAt)}</span>
                                     <button
-                                        onClick={() => {
-                                            console.log('게시글 보기 버튼 클릭:', post.id)
-                                            handleGoToPost(post.id)
-                                        }}
+                                        onClick={() => handleGoToPost(post.id)}
                                         className="text-[#8C4FF2] hover:underline"
                                     >
                                         🔗 게시글 상세보기

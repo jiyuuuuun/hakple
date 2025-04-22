@@ -34,7 +34,6 @@ public class ApiV1MyInfoController {
     @GetMapping
     public ResponseEntity<MyInfoResponseDto> getMyInfo(Authentication authentication) {
         String userName = authentication.getName(); // JWT 필터가 유저네임 넣어줌
-//    public ResponseEntity<MyInfoResponseDto> getMyInfo(@RequestParam("userName") String userName) {
         MyInfoResponseDto dto = myInfoService.getMyInfo(userName);
         return ResponseEntity.ok(dto);
     }
@@ -54,9 +53,6 @@ public class ApiV1MyInfoController {
             @RequestBody MyInfoUpdateRequestDto myInfoUpdateRequestDto, Authentication authentication
     ) {
         String userName = authentication.getName(); // JWT 필터에서 유저네임 꺼내옴
-//    public ResponseEntity<String> updateMyInfo(
-//            @RequestParam("userName") String userName,
-//            @RequestBody MyInfoUpdateRequestDto myInfoUpdateRequestDto) {
 
         myInfoService.updateMyInfo(userName, myInfoUpdateRequestDto);
         return ResponseEntity.ok("회원 정보가 성공적으로 수정되었습니다.");

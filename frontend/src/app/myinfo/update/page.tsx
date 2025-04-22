@@ -72,7 +72,10 @@ export default function ProfileUpdatePage() {
                 setPhoneNumber(data.phoneNum)
 
                 // 카카오 소셜 로그인 사용자 확인
-                if (data.userName && data.userName.startsWith('kakao_')) {
+                if (
+                    (data.userName && data.userName.startsWith('kakao_')) ||
+                    (data.phoneNum && data.phoneNum.startsWith('KA'))
+                ) {
                     setIsKakaoUser(true)
                 }
             } catch (err) {
@@ -538,7 +541,7 @@ export default function ProfileUpdatePage() {
                                         현재 휴대폰 번호: {phoneNumber ? formatPhoneNumber(phoneNumber) : '없음'}
                                     </div>
                                     {isKakaoUser ? (
-                                        <div className="mt-2 mb-4 p-3 bg-yellow-50 text-amber-700 rounded-md">
+                                        <div className="mt-2 mb-4 p-3 bg-red-100 text-red-700 rounded-md">
                                             카카오 소셜 로그인 사용자는 휴대폰 번호를 수정할 수 없습니다.
                                         </div>
                                     ) : (
