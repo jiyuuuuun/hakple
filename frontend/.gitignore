@@ -23,7 +23,7 @@ yarn.lock
 
 # misc
 .DS_Store
-.pem
+*.pem
 .AppleDouble
 .LSOverride
 
@@ -43,13 +43,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# IDE
+
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Terraform
+
 .terraform/
 *.tfstate
 *.tfstate.backup

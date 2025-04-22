@@ -60,7 +60,7 @@ export default function LoginPage() {
                 }
             }, 500)
         } catch (error) {
-            console.error('로그인 에러:', error)
+            console.log('로그인 에러:', error)
             setError(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.')
         }
     }

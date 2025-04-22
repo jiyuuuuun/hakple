@@ -14,15 +14,15 @@ export default function AdminPage() {
     const checkAdmin = async () => {
       try {
         // 로컬 스토리지에서 액세스 토큰 가져오기
-        const token = localStorage.getItem('accessToken');
-        console.log('Token found:', !!token);
+        // const token = localStorage.getItem('accessToken');
+        // console.log('Token found:', !!token);
         
-        if (!token) {
-          console.log('No token found, redirecting to login');
-          setDebugInfo({ error: 'No token found' });
-          router.push('/login');
-          return;
-        }
+        // if (!token) {
+        //   console.log('No token found, redirecting to login');
+        //   setDebugInfo({ error: 'No token found' });
+        //   router.push('/login');
+        //   return;
+        // }
         
         console.log('Checking admin status, API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`);
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
@@ -30,7 +30,7 @@ export default function AdminPage() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // 인증 토큰 추가
+            //'Authorization': `Bearer ${token}` // 인증 토큰 추가
           },
         });
 

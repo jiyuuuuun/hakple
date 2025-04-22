@@ -123,7 +123,7 @@ export function useLoginMember() {
             const isAdmin = await response.json()
             return isAdmin === true
         } catch (error) {
-            console.error('관리자 권한 확인 중 오류:', error)
+            console.log('관리자 권한 확인 중 오류:', error)
             return false
         }
     }
