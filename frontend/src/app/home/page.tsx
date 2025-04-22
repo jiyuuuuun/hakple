@@ -145,7 +145,7 @@ export default function HomePage() {
         setLoading(true)
         try {
             // API 요청 URL 구성 (size=5로 최신 5개 게시글만 가져옴)
-            const url = `/api/v1/posts?page=1&size=5&sortType=creationTime,dec`
+            const url = `/api/v1/posts?page=1&size=5&sortType=creationTime,desc`
 
             // API 유틸리티 함수 사용
             const response = await fetchApi(url, {
