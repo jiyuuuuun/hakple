@@ -1,6 +1,8 @@
 package com.golden_dobakhe.HakPle.domain.user.user.controller;
 
 import com.golden_dobakhe.HakPle.domain.user.user.dto.ChangePasswordRequest;
+import com.golden_dobakhe.HakPle.domain.user.user.dto.FindUsernameRequest;
+import com.golden_dobakhe.HakPle.domain.user.user.dto.FindUsernameResponse;
 import com.golden_dobakhe.HakPle.domain.user.user.dto.ResetPasswordRequest;
 import com.golden_dobakhe.HakPle.domain.user.user.service.UserFindService;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
@@ -27,16 +29,11 @@ public class ApiV1UserFindController {
 
     // 아이디 찾기
     @Operation(summary = "아이디 찾기", description = "닉네임, 전화번호로 사용자의 아이디를 찾습니다.")
-    @GetMapping("/find-username")
-    public ResponseEntity<String> findUserName(
-            @RequestParam(name = "nickName") String nickName,
-            @RequestParam(name = "phoneNum") String phoneNum) {
-        try {
-            String userName = userFindService.findUserNameByPhoneNum(nickName, phoneNum);
-            return ResponseEntity.ok(userName);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    @PostMapping("/find-username")
+    public ResponseEntity<FindUsernameResponse> findUserName(@RequestBody @Valid FindUsernameRequest request) {
+        String userName = userFindService.findUserNameByPhoneNum(request.getNickName(), request.getPhoneNum());
+        FindUsernameResponse response = new FindUsernameResponse(userName);
+        return ResponseEntity.ok(response);
     }
 
     //비밀번호 변경
