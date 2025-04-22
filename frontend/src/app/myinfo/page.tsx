@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { ChevronRightIcon, PencilIcon, ChatBubbleLeftIcon, HeartIcon } from '@heroicons/react/24/outline'
 import { UserIcon, LockClosedIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import { fetchApi } from '@/utils/api'
 
 // 백엔드 DTO와 일치하는 MyInfo 타입
 type MyInfo = {
@@ -62,7 +63,7 @@ const formatDate = (dateString: string): string => {
 
         return `${year}년 ${month}월 ${day}일`
     } catch (error) {
-        console.error('날짜 형식 변환 오류:', error, '원본 날짜:', dateString)
+        console.log('날짜 형식 변환 오류:', error, '원본 날짜:', dateString)
         // 에러가 발생해도 원본 날짜 문자열을 반환
         return dateString
     }
@@ -227,7 +228,8 @@ export default function MyInfoPage() {
                 const timeoutId = setTimeout(() => controller.abort(), 5000)
 
                 try {
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                    // fetchApi 유틸리티 함수 사용으로 변경
+                    const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
                         credentials: 'include',
                         headers: {
@@ -247,7 +249,7 @@ export default function MyInfoPage() {
                     }
 
                     if (!response.ok) {
-                        console.error('서버 오류: 관리자 권한 확인 실패 (상태 코드:', response.status, ')')
+                        console.log('서버 오류: 관리자 권한 확인 실패 (상태 코드:', response.status, ')')
                         setIsAdmin(false)
                         setAdminChecking(false)
                         return
@@ -259,14 +261,14 @@ export default function MyInfoPage() {
                     setIsAdmin(isAdminResult === true)
                 } catch (fetchError: any) {
                     if (fetchError.name === 'AbortError') {
-                        console.error('관리자 권한 확인 요청 타임아웃')
+                        console.log('관리자 권한 확인 요청 타임아웃')
                     } else {
-                        console.error('네트워크 오류:', fetchError)
+                        console.log('네트워크 오류:', fetchError)
                     }
                     setIsAdmin(false)
                 }
             } catch (error) {
-                console.error('관리자 권한 확인 중 예상치 못한 오류:', error)
+                console.log('관리자 권한 확인 중 예상치 못한 오류:', error)
                 setIsAdmin(false)
             } finally {
                 setAdminChecking(false)
@@ -289,8 +291,8 @@ export default function MyInfoPage() {
         }
 
         console.log('myinfo - 사용자 정보 요청 시작')
-        // JWT 토큰에서 사용자 정보를 추출하므로 별도의 파라미터 없이 요청
-        fetch('/api/v1/myInfos', {
+        // fetch 대신 fetchApi 사용
+        fetchApi('/api/v1/myInfos', {
             method: 'GET',
             credentials: 'include', // 쿠키(JWT)를 포함하여 요청
         })
@@ -355,7 +357,7 @@ export default function MyInfoPage() {
                             console.log('토큰에서 학원 코드를 추출하여 사용:', finalAcademyCode);
                         }
                     } catch (e) {
-                        console.error('토큰 파싱 중 오류:', e);
+                        console.log('토큰 파싱 중 오류:', e);
                     }
                 }
 
@@ -384,7 +386,7 @@ export default function MyInfoPage() {
                 setUserInfo(userInfoData)
             })
             .catch((err) => {
-                console.error('myinfo - 에러:', err)
+                console.log('myinfo - 에러:', err)
                 setError(err.message)
             })
     }, [isLogin])

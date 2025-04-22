@@ -5,6 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
+// API 유틸리티 추가
+import { fetchApi } from '@/utils/api'
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import '@/app/calendar/calendar.css'; // ➕ 커스텀 스타일 적용할 파일
 
 // 댓글 인터페이스
 interface Comment {
@@ -44,6 +49,15 @@ interface ApiResponse {
     last: boolean
 }
 
+// 일정 인터페이스 추가
+interface EventItem {
+    id: string
+    title: string
+    start: string
+    end: string
+    color?: string
+}
+
 export default function HomePage() {
     const router = useRouter()
     const { isLogin } = useGlobalLoginMember()
@@ -51,6 +65,7 @@ export default function HomePage() {
     const [academyCode, setAcademyCode] = useState<string | null>(null)
     const [posts, setPosts] = useState<Post[]>([])
     const [loading, setLoading] = useState<boolean>(true)
+    const [events, setEvents] = useState<EventItem[]>([])
 
     // localStorage 관련 디버깅 함수
     const checkAndUpdateAcademyInfo = () => {
@@ -58,11 +73,6 @@ export default function HomePage() {
         if (typeof window !== 'undefined') {
             const storedAcademyName = localStorage.getItem('academyName')
             const storedAcademyCode = localStorage.getItem('academyCode')
-
-            console.log('홈페이지 - localStorage의 학원 정보:', {
-                academyName: storedAcademyName,
-                academyCode: storedAcademyCode,
-            })
 
             // 값이 변경된 경우에만 상태 업데이트
             if (academyName !== storedAcademyName) {
@@ -82,14 +92,14 @@ export default function HomePage() {
     // 백엔드에서 사용자의 학원 정보 확인
     const verifyAcademyInfo = async () => {
         try {
-            const response = await fetch('/api/v1/myInfos', {
+            // fetch 대신 fetchApi 유틸리티 함수 사용
+            const response = await fetchApi('/api/v1/myInfos', {
                 method: 'GET',
                 credentials: 'include',
             })
 
             if (response.ok) {
                 const data = await response.json()
-                console.log('백엔드에서 받은 사용자 정보:', data)
 
                 // 백엔드에서 받은 학원 정보 활용
                 if (data.academyCode) {
@@ -103,7 +113,6 @@ export default function HomePage() {
                 } else {
                     // 백엔드에 학원 정보가 없으면 로컬 스토리지 초기화
                     if (academyCode || localStorage.getItem('academyCode')) {
-                        console.log('백엔드에 학원 정보가 없어 로컬 스토리지 초기화')
                         localStorage.removeItem('academyName')
                         localStorage.removeItem('academyCode')
                         setAcademyName(null)
@@ -112,50 +121,19 @@ export default function HomePage() {
                 }
             }
         } catch (error) {
-            console.error('사용자 정보 확인 중 오류:', error)
+            console.log('사용자 정보 확인 중 오류:', error)
         }
     }
-
-    useEffect(() => {
-        // 로그인 확인 및 리다이렉트
-        if (!isLogin) {
-            router.push('/login')
-            return
-        }
-
-        // 학원 정보 검증
-        verifyAcademyInfo()
-
-        // 학원 정보 확인 및 업데이트
-        checkAndUpdateAcademyInfo()
-
-        // 게시글 데이터 가져오기
-        fetchLatestPosts()
-
-        // 페이지가 포커스를 받을 때마다 학원 정보 다시 확인 (다른 페이지에서 등록 후 돌아온 경우)
-        const handleFocus = () => {
-            console.log('창이 포커스를 받았습니다 - 학원 정보 다시 확인')
-            checkAndUpdateAcademyInfo()
-        }
-
-        window.addEventListener('focus', handleFocus)
-        // 컴포넌트 언마운트 시 이벤트 리스너 제거
-        return () => {
-            window.removeEventListener('focus', handleFocus)
-        }
-    }, [isLogin, router])
 
     // 최신 게시글 가져오기
     const fetchLatestPosts = async () => {
         setLoading(true)
         try {
             // API 요청 URL 구성 (size=5로 최신 5개 게시글만 가져옴)
-            const url = `${
-                process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
-            }/api/v1/posts?page=1&size=5&sortType=creationTime,dec`
+            const url = `/api/v1/posts?page=1&size=5&sortType=creationTime,desc`
 
-            // API 요청
-            const response = await fetch(url, {
+            // API 유틸리티 함수 사용
+            const response = await fetchApi(url, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
@@ -164,7 +142,8 @@ export default function HomePage() {
             })
 
             if (!response.ok) {
-                throw new Error('게시글을 불러오는데 실패했습니다')
+                setPosts([])
+                return
             }
 
             const data = (await response.json()) as ApiResponse
@@ -182,12 +161,63 @@ export default function HomePage() {
                 setPosts([])
             }
         } catch (error) {
-            console.error('게시글을 가져오는 중 오류가 발생했습니다:', error)
             setPosts([])
         } finally {
             setLoading(false)
         }
     }
+
+    // 일정 데이터 가져오기
+    const fetchEvents = async () => {
+        try {
+            const res = await fetchApi('/api/v1/schedules', {
+                credentials: 'include',
+            })
+            if (!res.ok) return
+
+            const data = await res.json()
+            const mappedEvents = data.map((item: any) => ({
+                id: String(item.id),
+                title: item.title,
+                start: item.startDate,
+                end: item.endDate,
+                color: item.color,
+            }))
+
+            setEvents(mappedEvents)
+        } catch (err) {
+            console.error('일정 로딩 중 오류:', err)
+        }
+    }
+
+    useEffect(() => {
+        // 로그인 확인 및 리다이렉트
+        if (!isLogin) {
+            router.push('/login')
+            return
+        }
+
+        // 학원 정보 검증
+        verifyAcademyInfo()
+
+        // 학원 정보 확인 및 업데이트
+        checkAndUpdateAcademyInfo()
+
+        // 게시글과 일정 데이터 가져오기
+        fetchLatestPosts()
+        fetchEvents()
+
+        // 페이지가 포커스를 받을 때마다 학원 정보 다시 확인 (다른 페이지에서 등록 후 돌아온 경우)
+        const handleFocus = () => {
+            checkAndUpdateAcademyInfo()
+        }
+
+        window.addEventListener('focus', handleFocus)
+        // 컴포넌트 언마운트 시 이벤트 리스너 제거
+        return () => {
+            window.removeEventListener('focus', handleFocus)
+        }
+    }, [isLogin, router])
 
     // 날짜 형식 변환 함수
     const formatDate = (dateString: string) => {
@@ -223,7 +253,7 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <main className="max-w-screen-lg mx-auto px-4 py-6">
+            <main className="max-w-[1600px] mx-auto px-1 sm:px-2 md:px-3 py-6">
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* 왼쪽 사이드바 - 학원 목록 */}
                     <aside className="w-full md:w-64 shrink-0">
@@ -253,12 +283,12 @@ export default function HomePage() {
                     {/* 메인 피드 영역 */}
                     <div className="flex-1">
                         {/* 글쓰기 버튼 */}
-                        <div className="bg-white rounded-lg shadow p-4 mb-6 mt-8">
+                        <div className="bg-white rounded-lg shadow p-6 mb-8 mt-8">
                             <Link href="/post/new">
-                                <button className="w-full flex items-center justify-center gap-2 bg-[#9C50D4] hover:bg-purple-500 text-white py-3 px-4 rounded-md transition">
+                                <button className="w-full flex items-center justify-center gap-3 bg-[#9C50D4] hover:bg-purple-500 text-white py-4 px-6 rounded-lg transition text-lg">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
-                                        className="h-5 w-5"
+                                        className="h-6 w-6"
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
                                     >
@@ -275,20 +305,20 @@ export default function HomePage() {
 
                         {/* 게시글 목록 */}
                         {loading ? (
-                            <div className="bg-white rounded-lg shadow p-8 text-center">
+                            <div className="bg-white rounded-lg shadow p-10 text-center text-lg">
                                 <div className="animate-pulse text-gray-500">게시글을 불러오는 중...</div>
                             </div>
                         ) : posts.length > 0 ? (
                             posts.map((post) => (
-                                <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-6">
-                                    <div className="p-4">
+                                <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-8">
+                                    <div className="p-6">
                                         {/* 작성자 정보 */}
-                                        <div className="flex justify-between items-center mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
+                                        <div className="flex justify-between items-center mb-5">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-6 w-6 text-gray-400"
+                                                        className="h-7 w-7 text-gray-400"
                                                         fill="none"
                                                         viewBox="0 0 24 24"
                                                         stroke="currentColor"
@@ -302,8 +332,8 @@ export default function HomePage() {
                                                     </svg>
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium">{post.nickname}</div>
-                                                    <div className="text-sm text-gray-500">
+                                                    <div className="font-medium text-lg">{post.nickname}</div>
+                                                    <div className="text-base text-gray-500">
                                                         {formatDate(post.creationTime)}
                                                     </div>
                                                 </div>
@@ -443,6 +473,35 @@ export default function HomePage() {
                             </div>
                         )}
                     </div>
+
+                    {/* 오른쪽 사이드바 - 캘린더 */}
+                    <aside className="w-full md:w-80 shrink-0">
+                        <div className="bg-white rounded-lg shadow p-4 mb-6 mt-8 sticky top-20">
+                            <h2 className="text-lg font-semibold mb-4 text-gray-800">캘린더</h2>
+                            <div className="mini-calendar">
+                                <FullCalendar
+                                    plugins={[dayGridPlugin]}
+                                    initialView="dayGridMonth"
+                                    headerToolbar={{
+                                        left: '',
+                                        center: 'title',
+                                        right: 'prev,next'
+                                    }}
+                                    contentHeight={300}
+                                    fixedWeekCount={false}
+                                    dayHeaderContent={(args) => {
+                                        const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                                        return days[args.date.getDay()];
+                                    }}
+                                    events={events}
+                                    eventContent={() => ({ html: '•' })}
+                                    eventDisplay="block"
+                                    dayMaxEvents={3}
+                                    moreLinkContent={(args) => `+${args.num}`}
+                                />
+                            </div>
+                        </div>
+                    </aside>
                 </div>
             </main>
         </div>
