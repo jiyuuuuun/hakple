@@ -362,161 +362,88 @@ export default function HomePage() {
                             </div>
                         ) : posts.length > 0 ? (
                             posts.map((post) => (
-                                <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-6">
-                                    <div className="p-4">
-                                        {/* 작성자 정보 */}
-                                        <div className="flex justify-between items-center mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-6 w-6 text-gray-400"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                                        />
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium">{post.nickname}</div>
-                                                    <div className="text-sm text-gray-500">
-                                                        {formatDate(post.creationTime)}
-                                                    </div>
-                                                </div>
+                                <div
+                                    key={post.id}
+                                    className="px-[20px] py-[10px] bg-white border border-[#eeeeee] rounded-[10px] mb-6"
+                                >
+                                    <div className="flex items-center justify-between mb-4 gap-[10px] pt-[10px]">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-[30px] h-[30px] rounded-full bg-[#f2f2f2] flex items-center justify-center overflow-hidden">
+                                                <span className="material-icons text-sm text-[#999999]">person</span>
                                             </div>
-                                            <div className="relative">
-                                                <button
-                                                    className="text-gray-400 menu-button"
-                                                    onClick={(e) => togglePostMenu(e, post.id)}
-                                                >
-                                                    <span className="material-icons">more_horiz</span>
-                                                </button>
-                                                {showPostMenu === post.id && (
-                                                    <div
-                                                        ref={(el) => {
-                                                            postMenuRefs.current[post.id] = el
-                                                        }}
-                                                        className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md z-10 w-32 py-1 border border-gray-200"
-                                                    >
-                                                        <button
-                                                            className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-gray-100 menu-item"
-                                                            onClick={() => handleReport(post.id)}
-                                                            disabled={post.isReported || isReporting}
-                                                        >
-                                                            <span
-                                                                className={`material-icons ${
-                                                                    post.isReported ? 'text-gray-400' : 'text-gray-500'
-                                                                } mr-2`}
-                                                            >
-                                                                flag
-                                                            </span>
-                                                            {post.isReported ? '신고 완료' : '글 신고'}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <span className="text-sm text-[#666666] pl-[20px]">{post.nickname}</span>
+                                            <span className="text-xs text-[#999999] pl-[10px]">•</span>
+                                            <span className="text-sm text-[#999999] pl-[10px]">
+                                                {formatDate(post.creationTime)}
+                                            </span>
                                         </div>
 
-                                        {/* 게시글 제목 및 내용 */}
-                                        <Link href={`/post/${post.id}`} className="no-underline">
-                                            <h3 className="text-lg font-semibold mb-2 hover:text-[#9C50D4]">
-                                                {post.title}
-                                            </h3>
-                                        </Link>
-                                        <p className="mb-4 text-gray-700 line-clamp-1">
-                                            {post.content.replace(/<[^>]*>?/gm, '')}
-                                        </p>
-
-                                        {/* 게시글 이미지 영역 (옵션) */}
-                                        {post.content.includes('<img') && (
-                                            <div className="bg-gray-100 rounded-md h-48 flex items-center justify-center mb-4 overflow-hidden">
-                                                <img
-                                                    src={post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                        )}
-
-                                        {/* 해시태그 - 숨김 처리 */}
-                                        {/* {post.tags && post.tags.length > 0 && (
-                                            <div className="flex gap-2 mb-4 flex-wrap">
-                                                {post.tags.map((tag, idx) => (
-                                                    <span
-                                                        key={idx}
-                                                        className="text-sm text-[#9C50D4] bg-purple-50 px-2 py-1 rounded-full"
+                                        <div className="relative">
+                                            <button
+                                                className="text-gray-400 menu-button"
+                                                onClick={(e) => togglePostMenu(e, post.id)}
+                                            >
+                                                <span className="material-icons">more_horiz</span>
+                                            </button>
+                                            {showPostMenu === post.id && (
+                                                <div
+                                                    ref={(el) => {
+                                                        postMenuRefs.current[post.id] = el
+                                                    }}
+                                                    className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md z-10 w-32 py-1 border border-gray-200"
+                                                >
+                                                    <button
+                                                        className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-gray-100 menu-item"
+                                                        onClick={() => handleReport(post.id)}
+                                                        disabled={post.isReported || isReporting}
                                                     >
-                                                        #{tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )} */}
+                                                        <span
+                                                            className={`material-icons ${
+                                                                post.isReported ? 'text-gray-400' : 'text-gray-500'
+                                                            } mr-2`}
+                                                        >
+                                                            flag
+                                                        </span>
+                                                        {post.isReported ? '신고 완료' : '글 신고'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                        {/* 좋아요 및 댓글 수 */}
-                                        <div className="flex items-center gap-6 text-gray-500 text-sm">
-                                            <div className="flex items-center gap-1">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={1.5}
-                                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                                    />
-                                                </svg>
-                                                {post.likeCount}
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={1.5}
-                                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                                                    />
-                                                </svg>
-                                                {post.commentCount}
-                                            </div>
-                                            <div className="flex items-center gap-1 ml-auto">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={1.5}
-                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                    />
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={1.5}
-                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                    />
-                                                </svg>
-                                                {post.viewCount}
-                                            </div>
+                                    <Link href={`/post/${post.id}`} className="block mb-3 no-underline pl-[20px]">
+                                        <h3 className="text-lg font-semibold text-[#333333] hover:text-[#980ffa]">
+                                            {post.title}
+                                        </h3>
+                                    </Link>
+
+                                    {/* 게시글 이미지 영역 (옵션) */}
+                                    {post.content.includes('<img') && (
+                                        <div className="bg-gray-100 rounded-md h-48 flex items-center justify-center mb-4 overflow-hidden">
+                                            <img
+                                                src={post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
+                                                alt=""
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center justify-end gap-[10px] pr-[10px] mb-2">
+                                        <div className="flex items-center gap-1">
+                                            <span className="material-icons text-sm text-[#999999]">visibility</span>
+                                            <span className="text-xs text-[#999999]">{post.viewCount}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="material-icons text-sm text-[#999999]">
+                                                chat_bubble_outline
+                                            </span>
+                                            <span className="text-xs text-[#999999]">{post.commentCount}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="material-icons text-sm text-[#999999]">
+                                                favorite_border
+                                            </span>
+                                            <span className="text-xs text-[#999999]">{post.likeCount}</span>
                                         </div>
                                     </div>
                                 </div>
