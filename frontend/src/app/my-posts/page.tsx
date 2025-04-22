@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
-
-// API 기본 URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
+import { fetchApi } from '@/utils/api'
 
 // 게시물 타입 정의
 interface Post {
@@ -64,52 +62,34 @@ export default function MyPostsPage() {
         setError(null)
 
         try {
-            const url = `${API_BASE_URL}/api/v1/posts/my?page=${page}&size=${pageSize}&sort=creationTime,desc`
+            const url = `/api/v1/posts/my?page=${page}&size=${pageSize}&sort=creationTime,desc`
 
-            // API 요청
-            const response = await fetch(url, {
+            // fetchApi 유틸리티 사용
+            const response = await fetchApi(url, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
                 },
-                credentials: 'include', // 쿠키를 포함하여 요청
+                credentials: 'include',
             })
 
-            if (response.status === 401 || response.status === 403) {
-                router.push('/login?redirect=my-posts')
-                return
-            }
-
             if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    router.push('/login?redirect=my-posts')
+                    return
+                }
                 throw new Error(`게시물 목록을 불러오는데 실패했습니다. (${response.status})`)
             }
 
-            // 응답 텍스트
-            const responseText = await response.text()
-
-            // 빈 응답 체크
-            if (!responseText || responseText.trim() === '') {
-                setPosts([])
-                return
-            }
-
-            // JSON 파싱
-            let data
-            try {
-                data = JSON.parse(responseText)
-            } catch {
-                throw new Error('API 응답을 파싱하는데 실패했습니다. 잘못된 형식의 데이터입니다.')
-            }
+            const data = await response.json()
 
             // 페이지네이션 정보 추출
             if (data && typeof data === 'object' && 'content' in data) {
-                // Spring Data의 Page 객체 형식인 경우
                 setTotalPages(data.totalPages || 0)
                 setTotalElements(data.totalElements || 0)
                 setCurrentPage(data.number || 0)
                 const content = data.content || []
 
-                // API 응답 데이터를 컴포넌트에서 사용하는 형식으로 변환
                 const mappedPosts = content.map((item: PostResponseDto) => ({
                     id: item.id,
                     title: item.title || '(제목 없음)',
@@ -123,31 +103,11 @@ export default function MyPostsPage() {
 
                 setPosts(mappedPosts)
             } else {
-                // 배열로 직접 반환된 경우 (기존 로직 유지)
-                const content = Array.isArray(data) ? data : []
-
-                // API 응답 데이터를 컴포넌트에서 사용하는 형식으로 변환
-                const mappedPosts = content.map((item: PostResponseDto) => ({
-                    id: item.id,
-                    title: item.title || '(제목 없음)',
-                    content: item.content || '',
-                    createdAt: item.creationTime,
-                    nickname: item.nickname || '익명',
-                    likeCount: item.likeCount || 0,
-                    commentCount: item.commentCount || 0,
-                    viewCount: item.viewCount || 0,
-                }))
-
-                setPosts(mappedPosts)
+                setPosts([])
             }
         } catch (err) {
             console.error('게시물 목록 조회 오류:', err)
-
-            if (err instanceof Error) {
-                setError(err.message || '게시물 목록을 불러오는데 실패했습니다.')
-            } else {
-                setError('알 수 없는 오류가 발생했습니다.')
-            }
+            setError(err instanceof Error ? err.message : '게시물 목록을 불러오는데 실패했습니다.')
         } finally {
             setIsLoading(false)
         }
@@ -253,22 +213,20 @@ export default function MyPostsPage() {
                                 <button
                                     onClick={() => handlePageChange(0)}
                                     disabled={currentPage === 0}
-                                    className={`px-3 py-1 rounded ${
-                                        currentPage === 0
+                                    className={`px-3 py-1 rounded ${currentPage === 0
                                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                             : 'bg-[#8C4FF2] text-white hover:bg-[#7A43D6]'
-                                    }`}
+                                        }`}
                                 >
                                     처음
                                 </button>
                                 <button
                                     onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage === 0}
-                                    className={`px-3 py-1 rounded ${
-                                        currentPage === 0
+                                    className={`px-3 py-1 rounded ${currentPage === 0
                                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                             : 'bg-[#8C4FF2] text-white hover:bg-[#7A43D6]'
-                                    }`}
+                                        }`}
                                 >
                                     이전
                                 </button>
@@ -280,22 +238,20 @@ export default function MyPostsPage() {
                                 <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages - 1}
-                                    className={`px-3 py-1 rounded ${
-                                        currentPage === totalPages - 1
+                                    className={`px-3 py-1 rounded ${currentPage === totalPages - 1
                                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                             : 'bg-[#8C4FF2] text-white hover:bg-[#7A43D6]'
-                                    }`}
+                                        }`}
                                 >
                                     다음
                                 </button>
                                 <button
                                     onClick={() => handlePageChange(totalPages - 1)}
                                     disabled={currentPage === totalPages - 1}
-                                    className={`px-3 py-1 rounded ${
-                                        currentPage === totalPages - 1
+                                    className={`px-3 py-1 rounded ${currentPage === totalPages - 1
                                             ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                             : 'bg-[#8C4FF2] text-white hover:bg-[#7A43D6]'
-                                    }`}
+                                        }`}
                                 >
                                     마지막
                                 </button>

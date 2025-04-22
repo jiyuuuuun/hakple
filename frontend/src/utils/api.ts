@@ -6,7 +6,7 @@
 /**
  * API 요청을 위한 기본 URL
  */
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
 
 /**
  * 기본 fetch 함수 래퍼
@@ -14,53 +14,45 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://loca
  * @param options fetch 옵션
  * @returns Response 객체
  */
-export async function fetchApi(url: string, options?: RequestInit): Promise<Response> {
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-  
-  // 기본 옵션 설정
+export async function fetchApi(url: string, options: RequestInit = {}): Promise<Response> {
+  // 전체 URL 생성 (상대 경로인 경우에만 BASE_URL 추가)
+  const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
+
+  // 기본 옵션과 사용자 지정 옵션 병합
   const defaultOptions: RequestInit = {
-    credentials: 'include', // 기본적으로 쿠키 기반 인증 포함
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
     },
+    credentials: 'include',
   };
 
-  // 사용자 옵션과 기본 옵션 병합
-  const mergedOptions = {
+  const mergedOptions: RequestInit = {
     ...defaultOptions,
     ...options,
     headers: {
       ...defaultOptions.headers,
-      ...options?.headers,
+      ...options.headers,
     },
   };
 
-  // API 요청 실행
+  // API 요청 실행 및 타임아웃 설정
   try {
-    const response = await fetch(fullUrl, mergedOptions);
-    
-    // 응답 상태 체크
-    if (!response.ok) {
-      // 400, 403 에러는 console.error 대신 console.log 사용
-      if (response.status === 400 || response.status === 403) {
-        console.log(`API 요청 실패 (${response.status}): ${response.statusText}`);
-        try {
-          // 에러 응답의 텍스트 추출 시도
-          const errorText = await response.text();
-          console.log('응답 내용:', errorText);
-        } catch (e) {
-          console.log('응답 내용을 읽을 수 없음');
-        }
-      } else {
-        // 다른 에러는 기존대로 console.error 사용
-        console.error(`API 요청 실패 (${response.status}): ${response.statusText}`);
-      }
-    }
-    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
+
+    const response = await fetch(fullUrl, {
+      ...mergedOptions,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
     return response;
   } catch (error) {
-    console.error('API 요청 중 네트워크 오류:', error);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('요청 시간이 초과되었습니다.');
+      }
+    }
     throw error;
   }
 }
@@ -73,18 +65,18 @@ export async function fetchApi(url: string, options?: RequestInit): Promise<Resp
  */
 export async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetchApi(url, options);
-  
+
   // 응답이 ok가 아니면 에러 발생
   if (!response.ok) {
     throw new Error(`API 요청 실패 (${response.status}): ${response.statusText}`);
   }
-  
+
   // 응답 텍스트 체크
   const text = await response.text();
   if (!text || text.trim() === '') {
     return {} as T;
   }
-  
+
   // JSON 파싱 시도
   try {
     return JSON.parse(text) as T;
@@ -139,4 +131,4 @@ export function patch<T>(url: string, data: any, options?: RequestInit): Promise
  */
 export function del<T>(url: string, options?: RequestInit): Promise<T> {
   return fetchJson<T>(url, { ...options, method: 'DELETE' });
-} 
+}
