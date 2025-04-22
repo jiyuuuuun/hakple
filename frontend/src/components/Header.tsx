@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { usePathname, useRouter } from 'next/navigation'
+import { fetchApi } from '@/utils/api'
 
 /**
  * 헤더 컴포넌트
@@ -35,9 +36,7 @@ export default function Header() {
     useEffect(() => {
         if (isAuthPage) return;
         
-        console.log('Header - 컴포넌트 마운트, 로그인 상태:', isLogin)
         if (localStorage.getItem('accessToken')) {
-            console.log('Header - 액세스 토큰 존재, 관리자 권한 확인 시작')
             checkAdminPermission()
         }
     }, [isAuthPage, isLogin])
@@ -46,14 +45,10 @@ export default function Header() {
     useEffect(() => {
         if (isAuthPage) return;
         
-        console.log('Header - 로그인 상태 감지:', isLogin, loginMember)
-        
         // 로그인 상태일 때 관리자 권한 확인
         if (isLogin) {
-            console.log('Header - 로그인 상태이므로 관리자 권한 확인 시작')
             checkAdminPermission()
         } else {
-            console.log('Header - 로그인되지 않음, 관리자 권한 없음')
             setIsAdmin(false)
         }
     }, [isLogin, loginMember, isAuthPage])
@@ -63,7 +58,6 @@ export default function Header() {
         if (isAuthPage) return;
         
         if (pathname && pathname.startsWith('/admin') && isLogin) {
-            console.log('Header - 관리자 페이지 방문, 권한 재확인')
             checkAdminPermission()
         }
     }, [pathname, isLogin, isAuthPage])
@@ -71,34 +65,48 @@ export default function Header() {
     // 관리자 권한 확인 함수
     const checkAdminPermission = async () => {
         try {
-            console.log('Header - 관리자 권한 확인 API 요청')
-            const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
+            const accessToken = localStorage.getItem('accessToken')
+            
+            if (!accessToken) {
+                setIsAdmin(false)
+                return
+            }
+            
+            // fetchApi 사용으로 변경
+            const response = await fetchApi('/api/v1/admin/check', {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
                 },
             })
             
-            console.log('Header - 관리자 권한 확인 응답 상태:', response.status)
+            // 인증/권한 오류도 일반 로그로 출력
+            if (response.status === 401 || response.status === 403) {
+                console.log(`인증 오류: 권한이 없음 (상태 코드: ${response.status})`)
+                setIsAdmin(false)
+                return
+            }
+            
+            // 그 외 서버 오류는 중요한 에러이므로 error로 출력
             if (!response.ok) {
+                console.error(`서버 오류: 관리자 권한 확인 실패 (상태 코드: ${response.status})`)
                 setIsAdmin(false)
                 return
             }
             
             // boolean 값으로 응답이 오므로 이를 처리
             const isAdminResult = await response.json()
-            console.log('Header - 관리자 권한 확인 결과:', isAdminResult)
             
             if (isAdminResult === true) {
-                console.log('Header - 관리자 권한 있음')
                 setIsAdmin(true)
             } else {
-                console.log('Header - 관리자 권한 없음')
                 setIsAdmin(false)
             }
         } catch (error) {
-            console.error('관리자 권한 확인 중 오류:', error)
+            // 중요한 네트워크 오류는 콘솔에 출력
+            console.error('관리자 권한 확인 중 오류 발생:', error)
             setIsAdmin(false)
         }
     }
@@ -117,7 +125,6 @@ export default function Header() {
 
         // POST API에서 토큰으로 userId를 추출해서 academyCode를 조회하기 때문에
         // 프론트엔드에서 별도로 academyCode를 체크할 필요가 없음
-        console.log('검색 시작 - 로그인된 사용자 ID:', loginMember?.id)
         
         // 검색 페이지로 이동 (등록일순, 제목 검색 조건 포함)
         router.push(`/post?keyword=${encodeURIComponent(searchQuery.trim())}&sortType=${encodeURIComponent('등록일순')}&filterType=${encodeURIComponent('제목')}`)

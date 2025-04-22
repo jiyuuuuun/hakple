@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
+// API 유틸리티 추가
+import { fetchApi } from '@/utils/api'
 
 // 댓글 인터페이스
 interface Comment {
@@ -59,11 +61,6 @@ export default function HomePage() {
             const storedAcademyName = localStorage.getItem('academyName')
             const storedAcademyCode = localStorage.getItem('academyCode')
 
-            console.log('홈페이지 - localStorage의 학원 정보:', {
-                academyName: storedAcademyName,
-                academyCode: storedAcademyCode,
-            })
-
             // 값이 변경된 경우에만 상태 업데이트
             if (academyName !== storedAcademyName) {
                 setAcademyName(storedAcademyName)
@@ -82,14 +79,14 @@ export default function HomePage() {
     // 백엔드에서 사용자의 학원 정보 확인
     const verifyAcademyInfo = async () => {
         try {
-            const response = await fetch('/api/v1/myInfos', {
+            // fetch 대신 fetchApi 유틸리티 함수 사용
+            const response = await fetchApi('/api/v1/myInfos', {
                 method: 'GET',
                 credentials: 'include',
             })
 
             if (response.ok) {
                 const data = await response.json()
-                console.log('백엔드에서 받은 사용자 정보:', data)
 
                 // 백엔드에서 받은 학원 정보 활용
                 if (data.academyCode) {
@@ -103,7 +100,6 @@ export default function HomePage() {
                 } else {
                     // 백엔드에 학원 정보가 없으면 로컬 스토리지 초기화
                     if (academyCode || localStorage.getItem('academyCode')) {
-                        console.log('백엔드에 학원 정보가 없어 로컬 스토리지 초기화')
                         localStorage.removeItem('academyName')
                         localStorage.removeItem('academyCode')
                         setAcademyName(null)
@@ -112,7 +108,7 @@ export default function HomePage() {
                 }
             }
         } catch (error) {
-            console.error('사용자 정보 확인 중 오류:', error)
+            console.log('사용자 정보 확인 중 오류:', error)
         }
     }
 
@@ -134,7 +130,6 @@ export default function HomePage() {
 
         // 페이지가 포커스를 받을 때마다 학원 정보 다시 확인 (다른 페이지에서 등록 후 돌아온 경우)
         const handleFocus = () => {
-            console.log('창이 포커스를 받았습니다 - 학원 정보 다시 확인')
             checkAndUpdateAcademyInfo()
         }
 
@@ -150,12 +145,10 @@ export default function HomePage() {
         setLoading(true)
         try {
             // API 요청 URL 구성 (size=5로 최신 5개 게시글만 가져옴)
-            const url = `${
-                process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
-            }/api/v1/posts?page=1&size=5&sortType=creationTime,dec`
+            const url = `/api/v1/posts?page=1&size=5&sortType=creationTime,dec`
 
-            // API 요청
-            const response = await fetch(url, {
+            // API 유틸리티 함수 사용
+            const response = await fetchApi(url, {
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
@@ -164,7 +157,8 @@ export default function HomePage() {
             })
 
             if (!response.ok) {
-                console.log('게시글을 불러오는데 실패했습니다', response)
+                setPosts([])
+                return
             }
 
             const data = (await response.json()) as ApiResponse
@@ -182,7 +176,6 @@ export default function HomePage() {
                 setPosts([])
             }
         } catch (error) {
-            console.error('게시글을 가져오는 중 오류가 발생했습니다:', error)
             setPosts([])
         } finally {
             setLoading(false)

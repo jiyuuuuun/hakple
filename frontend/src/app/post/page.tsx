@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
+import { fetchApi } from '@/utils/api';
 
 interface Post {
   id: number;
@@ -130,8 +131,8 @@ export default function PostPage() {
     
     setLoading(true);
     try {
-      // 3. URL 구성 - academyCode 파라미터 제거
-      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts?page=${page}&size=${size}`;
+      // 3. URL 구성 - 상대경로 사용
+      let url = `/api/v1/posts?page=${page}&size=${size}`;
       
       // 정렬 방식 추가 (확실히 적용되도록 별도 처리)
       url += `&sortType=${encodeURIComponent(sort)}`;
@@ -164,8 +165,8 @@ export default function PostPage() {
       
       console.log('API 요청 URL:', url);
       
-      // 6. API 요청 보내기
-      const response = await fetch(url, {
+      // 6. API 요청 보내기 - fetchApi 사용
+      const response = await fetchApi(url, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -207,7 +208,7 @@ export default function PostPage() {
         setTotalPages(data.totalPages || 1);
         setSearchCount(data.totalElements || 0);
       } else {
-        console.warn('예상과 다른 API 응답 형식:', data);
+        console.log('예상과 다른 API 응답 형식:', data);
         if (Array.isArray(data)) {
           
           setPosts(data.map((post: any) => ({
@@ -225,7 +226,7 @@ export default function PostPage() {
       }
     } catch (error: any) {
       // 10. 오류 처리
-      console.error('게시물을 가져오는 중 오류가 발생했습니다:', error.message);
+      console.log('게시물을 가져오는 중 오류가 발생했습니다:', error.message);
       setPosts([]);
       setTotalPages(1);
       setSearchCount(0);
@@ -241,8 +242,8 @@ export default function PostPage() {
     
     setTagsLoading(true);
     try {
-      // academyCode 파라미터 제거
-      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/tags/popular`;
+      // 상대 경로 사용
+      let url = `/api/v1/posts/tags/popular`;
       
       // minLikes 파라미터 추가
       if (minLikes) {
@@ -252,7 +253,8 @@ export default function PostPage() {
       
       console.log('인기 태그 요청 URL:', url);
       
-      const response = await fetch(url, {
+      // fetchApi 사용
+      const response = await fetchApi(url, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -297,7 +299,7 @@ export default function PostPage() {
         setPopularTags([]);
       }
     } catch (error: any) {
-      console.error('인기 태그를 가져오는 중 오류가 발생했습니다:', error.message);
+      console.log('인기 태그를 가져오는 중 오류가 발생했습니다:', error.message);
       setPopularTags([]);
     } finally {
       setTagsLoading(false);
