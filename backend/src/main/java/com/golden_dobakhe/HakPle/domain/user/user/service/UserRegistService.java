@@ -30,20 +30,6 @@ public class UserRegistService {
 
     // 회원가입 로직 (중복 확인 포함)
     public void register(UserRegistRequestDTO userRegistRequestDTO) {
-        // 사용자 이름 중복 확인
-        if (userRepository.existsByUserName(userRegistRequestDTO.getUserName())) {
-            throw new UserException(UserErrorCode.USERNAME_DUPLICATE);
-        }
-
-        // 닉네임 중복 확인
-        if (userRepository.existsByNickName(userRegistRequestDTO.getNickName())) {
-            throw new UserException(UserErrorCode.NICKNAME_DUPLICATE);
-        }
-
-        // 전화번호 중복 확인
-        if (userRepository.existsByPhoneNum(userRegistRequestDTO.getPhoneNum())) {
-            throw new UserException(UserErrorCode.PHONENUM_DUPLICATE);
-        }
 
         // User 엔티티로 변환 및 저장
         User user = User.builder()
@@ -57,7 +43,6 @@ public class UserRegistService {
 
         userRepository.save(user);
     }
-
 
     //회원 탈퇴
     public WithdrawResult withdraw(Long userId, String rawPassword) {

@@ -333,8 +333,27 @@ export default function MyInfoPage() {
                     try {
                         const payload = JSON.parse(atob(token.split('.')[1]));
                         console.log('JWT 페이로드:', payload);
-                        academyIdFromToken = payload.academyId;
+                        
+                        // academyId 필드 우선 확인 후 다른 필드 확인 (모든 형태의 필드명 처리)
+                        academyIdFromToken = payload.academyId || payload.academyCode || payload.academy_code || null;
+                        
+                        // academyId 정보 로그 추가
+                        console.log('마이페이지 - JWT 페이로드 필드 확인:');
+                        console.log('- academyId:', payload.academyId);
+                        console.log('- academyCode:', payload.academyCode);
+                        console.log('- academy_code:', payload.academy_code);
+                        console.log('- 최종 선택된 값:', academyIdFromToken);
+                        
+                        // 닉네임 디코딩 확인용
+                        console.log('JWT 페이로드 - 닉네임:', payload.nickName);
                         console.log('토큰에서 추출한 아카데미 코드:', academyIdFromToken);
+                        
+                        // 백엔드에서 학원 코드가 없지만 토큰에는 있는 경우 토큰의 값 사용
+                        if (!finalAcademyCode && academyIdFromToken) {
+                            finalAcademyCode = String(academyIdFromToken);
+                            finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken));
+                            console.log('토큰에서 학원 코드를 추출하여 사용:', finalAcademyCode);
+                        }
                     } catch (e) {
                         console.error('토큰 파싱 중 오류:', e);
                     }
@@ -361,8 +380,6 @@ export default function MyInfoPage() {
                     academyCode: finalAcademyCode,
                     academyName: finalAcademyName,
                 }
-
-
 
                 setUserInfo(userInfoData)
             })
