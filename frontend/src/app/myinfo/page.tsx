@@ -106,39 +106,33 @@ const formatPhoneNumber = (phoneNum: string): string => {
 }
 
 // AcademyInfo 컴포넌트 - 등록된 학원 정보 표시
-const AcademyInfo = ({ academyCode, academyName }: { academyCode: string, academyName: string }) => {
+const AcademyInfo = ({ academyCode, academyName }: { academyCode: string; academyName: string }) => {
     return (
         <div className="flex justify-between">
             <span className="text-gray-500">등록된 학원</span>
             <span className="text-gray-900">
                 {academyCode ? (
-                    <Link
-                        href="/myinfo/academyRegister"
-                        className="text-[#9C50D4] hover:underline"
-                    >
+                    <Link href="/myinfo/academyRegister" className="text-[#9C50D4] hover:underline">
                         {academyName}
                     </Link>
                 ) : (
-                    <Link
-                        href="/myinfo/academyRegister"
-                        className="text-[#9C50D4] hover:underline"
-                    >
+                    <Link href="/myinfo/academyRegister" className="text-[#9C50D4] hover:underline">
                         학원 등록하러 가기
                     </Link>
                 )}
             </span>
         </div>
-    );
-};
+    )
+}
 
 // RecentActivity 컴포넌트 - 최근 활동 카드
 const RecentActivity = ({
     postCount = 0,
     commentCount = 0,
-    likeCount = 0
+    likeCount = 0,
 }: {
-    postCount?: number,
-    commentCount?: number,
+    postCount?: number
+    commentCount?: number
     likeCount?: number
 }) => {
     return (
@@ -180,8 +174,8 @@ const RecentActivity = ({
                 </Link>
             </div>
         </div>
-    );
-};
+    )
+}
 
 export default function MyInfoPage() {
     const [userInfo, setUserInfo] = useState<MyInfo | null>(null)
@@ -189,6 +183,13 @@ export default function MyInfoPage() {
     const { isLogin, loginMember } = useGlobalLoginMember()
     const [isAdmin, setIsAdmin] = useState(false)
     const [adminChecking, setAdminChecking] = useState(true) // 관리자 권한 확인 중 로딩 상태
+    const [postCount, setPostCount] = useState(0)
+    const [commentCount, setCommentCount] = useState(0)
+    const [likeCount, setLikeCount] = useState(0)
+    const [countLoading, setCountLoading] = useState(true)
+
+    // API 기본 URL
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
 
     // 백엔드에서 가져온 데이터와 전역 상태의 데이터를 합친 최종 사용자 정보
     const combinedUserInfo = {
@@ -198,9 +199,41 @@ export default function MyInfoPage() {
         creationTime: formatDate(userInfo?.creationTime || loginMember.creationTime),
         academyCode: userInfo?.academyCode || '',
         academyName: userInfo?.academyName || getAcademyNameFromCode(userInfo?.academyCode || ''),
-        postCount: userInfo?.postCount || 0,
-        commentCount: userInfo?.commentCount || 0,
-        likeCount: userInfo?.likeCount || 0,
+        postCount: postCount,
+        commentCount: commentCount,
+        likeCount: likeCount,
+    }
+
+    // 카운트 데이터 가져오기 공통 함수
+    const fetchCount = async (endpoint: string, setter: (count: number) => void) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}${endpoint}?page=0&size=1`, {
+                credentials: 'include',
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setter(data?.totalElements || 0)
+            }
+        } catch (error) {
+            console.error(`${endpoint} 조회 오류:`, error)
+        }
+    }
+
+    // 모든 카운트 정보 가져오기
+    const fetchAllCounts = async () => {
+        setCountLoading(true)
+        try {
+            await Promise.all([
+                fetchCount('/api/v1/posts/my', setPostCount),
+                fetchCount('/api/v1/comments/my', setCommentCount),
+                fetchCount('/api/v1/posts/my/likes', setLikeCount),
+            ])
+        } catch (error) {
+            console.error('카운트 정보 조회 오류:', error)
+        } finally {
+            setCountLoading(false)
+        }
     }
 
     useEffect(() => {
@@ -217,7 +250,6 @@ export default function MyInfoPage() {
                 const accessToken = localStorage.getItem('accessToken')
 
                 if (!accessToken) {
-                    console.log('토큰이 없어 관리자 권한 확인 불가')
                     setIsAdmin(false)
                     setAdminChecking(false)
                     return
@@ -228,36 +260,28 @@ export default function MyInfoPage() {
                 const timeoutId = setTimeout(() => controller.abort(), 5000)
 
                 try {
+
                     // fetchApi 유틸리티 함수 사용으로 변경
                     const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
                         credentials: 'include',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${accessToken}`
+                            Authorization: `Bearer ${accessToken}`,
                         },
-                        signal: controller.signal
+                        signal: controller.signal,
                     })
 
                     clearTimeout(timeoutId) // 타임아웃 취소
 
-                    if (response.status === 401 || response.status === 403) {
-                        console.log('인증 오류: 권한이 없음 (상태 코드:', response.status, ')')
-                        setIsAdmin(false)
-                        setAdminChecking(false)
-                        return
-                    }
-
+                    // 인증 실패, 권한 없음, 기타 오류 상태 처리
                     if (!response.ok) {
                         console.log('서버 오류: 관리자 권한 확인 실패 (상태 코드:', response.status, ')')
                         setIsAdmin(false)
-                        setAdminChecking(false)
                         return
                     }
 
                     const isAdminResult = await response.json()
-                    console.log('MyInfo - 관리자 권한 확인 결과:', isAdminResult)
-
                     setIsAdmin(isAdminResult === true)
                 } catch (fetchError: any) {
                     if (fetchError.name === 'AbortError') {
@@ -275,7 +299,7 @@ export default function MyInfoPage() {
             }
         }
 
-        checkAdminPermission();
+        checkAdminPermission()
 
         // 로컬 스토리지에서 학원 정보 확인
         let storedAcademyName = ''
@@ -283,11 +307,6 @@ export default function MyInfoPage() {
         if (typeof window !== 'undefined') {
             storedAcademyName = localStorage.getItem('academyName') || ''
             storedAcademyCode = localStorage.getItem('academyCode') || ''
-
-            console.log('마이페이지 - 저장된 학원 정보:', {
-                academyName: storedAcademyName,
-                academyCode: storedAcademyCode,
-            })
         }
 
         console.log('myinfo - 사용자 정보 요청 시작')
@@ -297,79 +316,53 @@ export default function MyInfoPage() {
             credentials: 'include', // 쿠키(JWT)를 포함하여 요청
         })
             .then((res) => {
-                console.log('myinfo - 응답 상태:', res.status)
                 if (!res.ok) {
                     throw new Error('사용자 정보를 불러오지 못했습니다.')
                 }
                 return res.json()
             })
             .then((data) => {
-                console.log('myinfo - 사용자 정보 데이터:', data)
-
                 // 백엔드에서 받은 학원 정보 처리
                 let finalAcademyName = storedAcademyName
                 let finalAcademyCode = storedAcademyCode
 
-                // 1. 백엔드에 학원코드가 있는 경우 우선 사용
+                // 학원 정보 처리
                 if (data.academyCode) {
+                    // 백엔드에 학원 코드가 있는 경우
                     finalAcademyCode = data.academyCode
 
-                    // 2. 백엔드에 학원이름도 있는 경우 그대로 사용
-                    if (data.academyName) {
-                        finalAcademyName = data.academyName
-                    }
-                    // 3. 백엔드에 학원코드만 있는 경우
-                    else if (storedAcademyName && storedAcademyCode === data.academyCode) {
-                        // 로컬에 저장된 학원코드가 백엔드와 일치하면 로컬 학원이름 사용
-                        finalAcademyName = storedAcademyName
-                    } else {
-                        // 그 외의 경우 기본값 사용
-                        finalAcademyName = getAcademyNameFromCode(data.academyCode)
-                    }
+                    // 학원 이름 결정 로직
+                    finalAcademyName =
+                        data.academyName ||
+                        (storedAcademyName && storedAcademyCode === data.academyCode
+                            ? storedAcademyName
+                            : getAcademyNameFromCode(data.academyCode))
 
-                // 토큰에서 academyId 추출
-                let academyIdFromToken = null;
-                const token = localStorage.getItem('accessToken');
+                    // 토큰에서 추가 정보 확인 (백업)
+                    const token = localStorage.getItem('accessToken')
+                    if (token) {
+                        try {
+                            const payload = JSON.parse(atob(token.split('.')[1]))
+                            const academyIdFromToken =
+                                payload.academyId || payload.academyCode || payload.academy_code || null
 
-                if (token) {
-                    try {
-                        const payload = JSON.parse(atob(token.split('.')[1]));
-                        console.log('JWT 페이로드:', payload);
-                        
-                        // academyId 필드 우선 확인 후 다른 필드 확인 (모든 형태의 필드명 처리)
-                        academyIdFromToken = payload.academyId || payload.academyCode || payload.academy_code || null;
-                        
-                        // academyId 정보 로그 추가
-                        console.log('마이페이지 - JWT 페이로드 필드 확인:');
-                        console.log('- academyId:', payload.academyId);
-                        console.log('- academyCode:', payload.academyCode);
-                        console.log('- academy_code:', payload.academy_code);
-                        console.log('- 최종 선택된 값:', academyIdFromToken);
-                        
-                        // 닉네임 디코딩 확인용
-                        console.log('JWT 페이로드 - 닉네임:', payload.nickName);
-                        console.log('토큰에서 추출한 아카데미 코드:', academyIdFromToken);
-                        
-                        // 백엔드에서 학원 코드가 없지만 토큰에는 있는 경우 토큰의 값 사용
-                        if (!finalAcademyCode && academyIdFromToken) {
-                            finalAcademyCode = String(academyIdFromToken);
-                            finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken));
-                            console.log('토큰에서 학원 코드를 추출하여 사용:', finalAcademyCode);
+                            // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
+                            if (!finalAcademyCode && academyIdFromToken) {
+                                finalAcademyCode = String(academyIdFromToken)
+                                finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
+                            }
+                        } catch (e) {
+                            console.error('토큰 파싱 중 오류:', e)
                         }
                     } catch (e) {
                         console.log('토큰 파싱 중 오류:', e);
                     }
-                }
 
-                // academyName 필드 추가 처리
-                    // 로컬 스토리지 업데이트
+                    // 정보 업데이트
                     localStorage.setItem('academyCode', finalAcademyCode)
                     localStorage.setItem('academyName', finalAcademyName)
-                }
-                // 4. 백엔드에 학원코드가
-                else if (storedAcademyCode) {
-                    // 백엔드에 학원 정보가 없는데 로컬에 있으면 로컬 정보 초기화
-                    console.log('백엔드에 학원 정보가 없어서 로컬 스토리지 초기화')
+                } else if (storedAcademyCode) {
+                    // 백엔드에 학원 정보가 없지만 로컬에 있는 경우 초기화
                     localStorage.removeItem('academyCode')
                     localStorage.removeItem('academyName')
                     finalAcademyCode = ''
@@ -384,6 +377,9 @@ export default function MyInfoPage() {
                 }
 
                 setUserInfo(userInfoData)
+
+                // 게시글, 댓글, 좋아요 개수 가져오기
+                fetchAllCounts()
             })
             .catch((err) => {
                 console.log('myinfo - 에러:', err)
@@ -491,7 +487,10 @@ export default function MyInfoPage() {
                                     </div>
 
                                     {!isAdmin && (
-                                        <AcademyInfo academyCode={combinedUserInfo.academyCode} academyName={combinedUserInfo.academyName} />
+                                        <AcademyInfo
+                                            academyCode={combinedUserInfo.academyCode}
+                                            academyName={combinedUserInfo.academyName}
+                                        />
                                     )}
                                 </div>
                             </div>
@@ -529,9 +528,21 @@ export default function MyInfoPage() {
                         </div>
 
                         {/* 최근 활동 카드 - 관리자가 아닐 때만 표시 */}
-                        {!isAdmin && (
-                            <RecentActivity postCount={combinedUserInfo.postCount} commentCount={combinedUserInfo.commentCount} likeCount={combinedUserInfo.likeCount} />
-                        )}
+                        {!isAdmin &&
+                            (countLoading ? (
+                                <div className="mx-4 mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                                    <h2 className="text-lg font-medium text-gray-800 pb-2">최근 활동</h2>
+                                    <div className="flex justify-center items-center py-10">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#8C4FF2]"></div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <RecentActivity
+                                    postCount={combinedUserInfo.postCount}
+                                    commentCount={combinedUserInfo.commentCount}
+                                    likeCount={combinedUserInfo.likeCount}
+                                />
+                            ))}
                     </div>
                 </main>
             </div>

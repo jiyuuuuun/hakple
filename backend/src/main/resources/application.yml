@@ -32,6 +32,10 @@ spring:
     username: testuser
     password: testpw
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      data-source-properties:
+        maxAllowedPacket: 134217728
   jpa:
     open-in-view: false
     hibernate:

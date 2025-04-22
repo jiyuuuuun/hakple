@@ -7,6 +7,9 @@ import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
 import com.golden_dobakhe.HakPle.security.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,12 +19,15 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Optional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -53,7 +59,7 @@ public class ApiV1PostController {
     @GetMapping("/{id}")
     public ResponseEntity<BoardResponse> getBoard(
             @PathVariable(name = "id") Long id,
-            @RequestParam(name = "postView",required = false, defaultValue = "true") Boolean postView) {
+            @RequestParam(name = "postView", required = false, defaultValue = "true") Boolean postView) {
         // 로그인 여부와 관계없이 게시글 조회 가능
         return ResponseEntity.ok(boardService.getBoard(id, postView));
     }
@@ -71,9 +77,9 @@ public class ApiV1PostController {
             @PageableDefault(size = 10) Pageable pageable) {
 
         Long userId = getCurrentUserId();
-        
+
         Pageable adjustedPageable = PageRequest.of(page - 1, size);
-        
+
         // 검색어(keyword)가 제공된 경우:
         // - searchType 파라미터가 제공되면 해당 타입('제목', '작성자', '태그')으로 검색합니다.
         // - searchType 파라미터가 없으면 제목 또는 작성자 이름으로 검색합니다.
@@ -81,12 +87,16 @@ public class ApiV1PostController {
         // 검색어와 태그가 모두 제공되지 않은 경우: 모든 게시물을 반환합니다.
         if (keyword != null && !keyword.isEmpty()) {
             if (searchType != null && !searchType.isEmpty()) {
-                return ResponseEntity.ok(boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, minLikes, adjustedPageable));
+                return ResponseEntity.ok(
+                        boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, minLikes,
+                                adjustedPageable));
             } else {
-                return ResponseEntity.ok(boardService.searchBoardsByUserId(userId, keyword, sortType, minLikes, adjustedPageable));
+                return ResponseEntity.ok(
+                        boardService.searchBoardsByUserId(userId, keyword, sortType, minLikes, adjustedPageable));
             }
         } else if (tag != null && !tag.isEmpty()) {
-            return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, adjustedPageable));
+            return ResponseEntity.ok(
+                    boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, adjustedPageable));
         } else {
             return ResponseEntity.ok(boardService.getBoardsByUserId(userId, sortType, minLikes, adjustedPageable));
         }
@@ -137,7 +147,8 @@ public class ApiV1PostController {
         Sort sort = Sort.by(Sort.Direction.DESC, "creationTime");
         Pageable adjustedPageable = PageRequest.of(page - 1, pageable.getPageSize(), sort);
 
-        return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, adjustedPageable));
+        return ResponseEntity.ok(
+                boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, adjustedPageable));
     }
 
     @Operation(summary = "게시물 신고", description = "특정 ID의 게시물을 신고합니다.")
@@ -156,11 +167,11 @@ public class ApiV1PostController {
             @PathVariable("id") Long id
     ) {
         Long userId = getCurrentUserId();
-        
+
         boolean isReported = boardService.isReportedByUser(id, userId);
         Map<String, Boolean> response = new HashMap<>();
         response.put("isReported", isReported);
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -170,11 +181,11 @@ public class ApiV1PostController {
             @PathVariable("id") Long id
     ) {
         Long userId = getCurrentUserId();
-        
+
         boolean isOwner = boardService.isBoardOwner(id, userId);
         Map<String, Boolean> response = new HashMap<>();
         response.put("isOwner", isOwner);
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -184,11 +195,11 @@ public class ApiV1PostController {
             @PathVariable("id") Long id
     ) {
         Long userId = getCurrentUserId();
-        
+
         boolean isLiked = boardService.isLikedByUser(id, userId);
         Map<String, Boolean> response = new HashMap<>();
         response.put("isLiked", isLiked);
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -223,10 +234,10 @@ public class ApiV1PostController {
             @RequestParam(name = "searchType", required = false) String searchType,
             @RequestParam(name = "minLikes", required = false) Integer minLikes
     ) {
-        
+
         Long userId = getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
-        
+
         // 검색어(keyword)가 제공된 경우:
         // - searchType 파라미터가 제공되면 해당 타입('제목', '작성자', '태그')으로 검색합니다.
         // - searchType 파라미터가 없으면 제목 또는 작성자 이름으로 검색합니다.
@@ -236,12 +247,33 @@ public class ApiV1PostController {
             return ResponseEntity.ok(boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, pageable));
         } else if (StringUtils.hasText(keyword)) {
             if (StringUtils.hasText(searchType)) {
-                return ResponseEntity.ok(boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, minLikes, pageable));
+                return ResponseEntity.ok(
+                        boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, minLikes,
+                                pageable));
             } else {
-                return ResponseEntity.ok(boardService.searchBoardsByUserId(userId, keyword, sortType, minLikes, pageable));
+                return ResponseEntity.ok(
+                        boardService.searchBoardsByUserId(userId, keyword, sortType, minLikes, pageable));
             }
         } else {
             return ResponseEntity.ok(boardService.getBoardsByUserId(userId, sortType, minLikes, pageable));
         }
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "내가 작성한 게시글 조회")
+    public ResponseEntity<Page<BoardResponse>> getMyPosts(
+            @PageableDefault(size = 10, sort = "creationTime", direction = Sort.Direction.DESC) Pageable pageable) {
+        Long userId = getCurrentUserId();
+        Page<BoardResponse> posts = boardService.getMyBoards(userId, pageable);
+        return ResponseEntity.ok(posts);
+    }
+
+    @GetMapping("/my/likes")
+    @Operation(summary = "내가 좋아요한 게시글 조회")
+    public ResponseEntity<Page<BoardResponse>> getLikedPosts(
+            @PageableDefault(size = 10, sort = "creationTime", direction = Sort.Direction.DESC) Pageable pageable) {
+        Long userId = getCurrentUserId();
+        Page<BoardResponse> likedPosts = boardService.getLikedBoards(userId, pageable);
+        return ResponseEntity.ok(likedPosts);
     }
 }
