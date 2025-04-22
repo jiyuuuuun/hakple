@@ -25,17 +25,17 @@ export default function Header() {
     const pathname = usePathname()
     // 라우터 가져오기
     const router = useRouter()
-    
+
     // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
 
     // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
     const isAuthPage = pathname === '/login' || pathname === '/signup'
-    
+
     // 컴포넌트 마운트 시 한 번 관리자 권한 확인
     useEffect(() => {
         if (isAuthPage) return;
-        
+
         if (localStorage.getItem('accessToken')) {
             checkAdminPermission()
         }
@@ -44,7 +44,7 @@ export default function Header() {
     // 로그인 상태 변경 감지를 위한 효과
     useEffect(() => {
         if (isAuthPage) return;
-        
+
         // 로그인 상태일 때 관리자 권한 확인
         if (isLogin) {
             checkAdminPermission()
@@ -52,53 +52,46 @@ export default function Header() {
             setIsAdmin(false)
         }
     }, [isLogin, loginMember, isAuthPage])
-    
+
     // 현재 경로가 바뀔 때 관리자 권한 다시 확인 (특히 /admin 페이지 방문 시)
     useEffect(() => {
         if (isAuthPage) return;
-        
+
         if (pathname && pathname.startsWith('/admin') && isLogin) {
             checkAdminPermission()
         }
     }, [pathname, isLogin, isAuthPage])
-    
+
     // 관리자 권한 확인 함수
     const checkAdminPermission = async () => {
         try {
-            const accessToken = localStorage.getItem('accessToken')
-            
-            if (!accessToken) {
-                setIsAdmin(false)
-                return
-            }
-            
             // fetchApi 사용으로 변경
             const response = await fetchApi('/api/v1/admin/check', {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
+
                 },
             })
-            
+
             // 인증/권한 오류도 일반 로그로 출력
             if (response.status === 401 || response.status === 403) {
                 console.log(`인증 오류: 권한이 없음 (상태 코드: ${response.status})`)
                 setIsAdmin(false)
                 return
             }
-            
+
             // 그 외 서버 오류는 중요한 에러이므로 error로 출력
             if (!response.ok) {
                 console.error(`서버 오류: 관리자 권한 확인 실패 (상태 코드: ${response.status})`)
                 setIsAdmin(false)
                 return
             }
-            
+
             // boolean 값으로 응답이 오므로 이를 처리
             const isAdminResult = await response.json()
-            
+
             if (isAdminResult === true) {
                 setIsAdmin(true)
             } else {
@@ -125,10 +118,10 @@ export default function Header() {
 
         // POST API에서 토큰으로 userId를 추출해서 academyCode를 조회하기 때문에
         // 프론트엔드에서 별도로 academyCode를 체크할 필요가 없음
-        
+
         // 검색 페이지로 이동 (등록일순, 제목 검색 조건 포함)
         router.push(`/post?keyword=${encodeURIComponent(searchQuery.trim())}&sortType=${encodeURIComponent('등록일순')}&filterType=${encodeURIComponent('제목')}`)
-        
+
         // 검색 후 검색창 초기화
         setSearchQuery('')
     }
@@ -219,7 +212,7 @@ export default function Header() {
 
                     {/* 오른쪽: 검색과 로그인/로그아웃 */}
                     <div className="flex items-center space-x-2 md:space-x-3">
-              {/* 검색 입력창 - 관리자가 아닐 때만 표시 */}
+                        {/* 검색 입력창 - 관리자가 아닐 때만 표시 */}
                         {!isAdmin && (
                             <div className="relative w-full max-w-[180px] md:max-w-[220px]">
                                 <form onSubmit={handleSearchSubmit}>
@@ -260,8 +253,8 @@ export default function Header() {
 
                         {/* 로그인 상태 디버깅 표시 */}
                         <div className="hidden">
-                            로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'}, 
-                            ID: {loginMember?.id || 'None'}, 
+                            로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'},
+                            ID: {loginMember?.id || 'None'},
                             Token: {localStorage.getItem('accessToken') ? '있음' : '없음'}
                         </div>
 

@@ -10,10 +10,12 @@
     min-height: 900px;
     /* 👈 최소 높이 지정 */
 }
+
 /* 기본 글꼴을 부드럽고 말랑하게 */
 .fc {
-    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    font-family: 'Gaegu', 'Pretendard', 'Noto Sans KR', sans-serif;
     color: #444;
+    letter-spacing: 0.5px;
 }
 
 /* 툴바 타이틀 */
@@ -62,18 +64,58 @@
 
 /* 이벤트도 말랑하게 */
 .fc-event {
-    background-color: #c4b5fd !important;
-    border-radius: 8px;
+    background-color: #ddd6fe !important;
+    border-radius: 12px !important;
     border: none;
-    font-size: 0.85rem;
-    padding: 3px 6px;
-    color: white;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    color: #5b21b6 !important;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(139, 92, 246, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(139, 92, 246, 0.2);
 }
 
 /* FullCalendar 기본 칸 크기 늘리기 */
 .fc .fc-daygrid-day-frame {
     min-height: 120px;
+    position: relative;
+    cursor: pointer;
     /* 각 날짜 칸의 높이를 더 넉넉하게 */
+}
+
+/* 날짜 셀에 hover 효과 추가 */
+.fc .fc-daygrid-day-frame:hover::after {
+    content: '+';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    color: #a78bfa;
+    opacity: 0.6;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+/* 날짜 숫자 스타일링 */
+.fc .fc-daygrid-day-number {
+    font-size: 1rem;
+    color: #6b21a8;
+    font-weight: 500;
+    padding: 8px;
+}
+
+/* 요일 헤더 스타일링 */
+.fc .fc-col-header-cell-cushion {
+    font-size: 0.95rem;
+    color: #7c3aed;
+    font-weight: 600;
+    padding: 8px 4px;
 }
 
 /* 모바일 대응 */
@@ -198,4 +240,57 @@
     border-radius: 6px;
     font-size: 0.7rem;
     padding: 1px 4px;
+}
+
+/* 캘린더 전체 wrapper - 모바일 대응 */
+.calendar-wrapper {
+    max-width: 90vw;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    min-height: 500px;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .calendar-wrapper {
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .fc-toolbar-title {
+        font-size: 1.1rem;
+        text-align: center;
+    }
+
+    .fc .fc-button {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        border-radius: 9999px;
+    }
+
+    .fc .fc-button-group {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .fc .fc-daygrid-day-frame {
+        min-height: 60px;
+    }
+}
+
+.fc-event-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+input,
+textarea {
+    width: 100%;
+    box-sizing: border-box;
 }
