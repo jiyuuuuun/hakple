@@ -11,8 +11,8 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import '@/app/calendar/calendar.css' // ➕ 커스텀 스타일 적용할 파일
 
-// 스타일시트를 위한 import 추가
-import 'material-icons/iconfont/material-icons.css'
+// 스타일시트를 위한 import 추가 - CDN 방식으로 헤드에 추가는 layout에서 처리
+// 대신 SVG 아이콘 컴포넌트를 직접 사용합니다
 
 // 댓글 인터페이스
 interface Comment {
@@ -220,7 +220,8 @@ export default function HomePage() {
             } else {
                 setPosts([])
             }
-        } catch (error) {
+        } catch {
+            // 변수 자체를 제거
             setPosts([])
         } finally {
             setLoading(false)
@@ -236,7 +237,17 @@ export default function HomePage() {
             if (!res.ok) return
 
             const data = await res.json()
-            const mappedEvents = data.map((item: any) => ({
+
+            // 서버 응답 타입 명시
+            interface ScheduleItem {
+                id: number | string
+                title: string
+                startDate: string
+                endDate: string
+                color?: string
+            }
+
+            const mappedEvents = (data as ScheduleItem[]).map((item) => ({
                 id: String(item.id),
                 title: item.title,
                 start: item.startDate,
@@ -424,7 +435,7 @@ export default function HomePage() {
                                 <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-8">
                                     <div className="p-6">
                                         {/* 작성자 정보 */}
-                                        <div className="flex justify-between items-center mb-5">
+                                        <div className="flex justify-between items-center mb-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
                                                     <svg
@@ -449,80 +460,135 @@ export default function HomePage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <span className="text-sm text-[#666666] pl-[20px]">{post.nickname}</span>
-                                            <span className="text-xs text-[#999999] pl-[10px]">•</span>
-                                            <span className="text-sm text-[#999999] pl-[10px]">
-                                                {formatDate(post.creationTime)}
-                                            </span>
-                                        </div>
-
-                                        <div className="relative">
-                                            <button
-                                                className="text-gray-400 menu-button"
-                                                onClick={(e) => togglePostMenu(e, post.id)}
-                                            >
-                                                <span className="material-icons">more_horiz</span>
-                                            </button>
-                                            {showPostMenu === post.id && (
-                                                <div
-                                                    ref={(el) => {
-                                                        postMenuRefs.current[post.id] = el
-                                                    }}
-                                                    className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md z-10 w-32 py-1 border border-gray-200"
+                                            <div className="relative">
+                                                <button
+                                                    className="text-gray-400 menu-button"
+                                                    onClick={(e) => togglePostMenu(e, post.id)}
                                                 >
-                                                    <button
-                                                        className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-gray-100 menu-item"
-                                                        onClick={() => handleReport(post.id)}
-                                                        disabled={post.isReported || isReporting}
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-6 w-6"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
                                                     >
-                                                        <span
-                                                            className={`material-icons ${
-                                                                post.isReported ? 'text-gray-400' : 'text-gray-500'
-                                                            } mr-2`}
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                                {showPostMenu === post.id && (
+                                                    <div
+                                                        ref={(el) => {
+                                                            postMenuRefs.current[post.id] = el
+                                                        }}
+                                                        className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md z-10 w-32 py-1 border border-gray-200"
+                                                    >
+                                                        <button
+                                                            className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-gray-100 menu-item"
+                                                            onClick={() => handleReport(post.id)}
+                                                            disabled={post.isReported || isReporting}
                                                         >
-                                                            flag
-                                                        </span>
-                                                        {post.isReported ? '신고 완료' : '글 신고'}
-                                                    </button>
-                                                </div>
-                                            )}
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className="h-4 w-4 mr-2"
+                                                                viewBox="0 0 20 20"
+                                                                fill="currentColor"
+                                                            >
+                                                                <path
+                                                                    fillRule="evenodd"
+                                                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 100-2 1 1 0 000 2zM12 13a1 1 0 100-2 1 1 0 000 2z"
+                                                                    clipRule="evenodd"
+                                                                />
+                                                            </svg>
+                                                            {post.isReported ? '신고 완료' : '글 신고'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <Link href={`/post/${post.id}`} className="block mb-3 no-underline pl-[20px]">
-                                        <h3 className="text-lg font-semibold text-[#333333] hover:text-[#980ffa]">
-                                            {post.title}
-                                        </h3>
-                                    </Link>
+                                        {/* 게시글 제목 */}
+                                        <Link href={`/post/${post.id}`} className="block mb-3 no-underline">
+                                            <h3 className="text-xl font-semibold text-[#333333] hover:text-[#980ffa] mt-1">
+                                                {post.title}
+                                            </h3>
+                                        </Link>
 
-                                    {/* 게시글 이미지 영역 (옵션) */}
-                                    {post.content.includes('<img') && (
-                                        <div className="bg-gray-100 rounded-md h-48 flex items-center justify-center mb-4 overflow-hidden">
-                                            <img
-                                                src={post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
-                                                alt=""
-                                                className="w-full h-full object-cover"
-                                            />
+                                        {/* 통계 정보 */}
+                                        <div className="flex items-center justify-end gap-[10px] pr-[10px] mb-3">
+                                            <div className="flex items-center gap-1">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-4 w-4 text-gray-400"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={1.5}
+                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                    />
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={1.5}
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                    />
+                                                </svg>
+                                                <span className="text-xs text-[#999999]">{post.viewCount}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-4 w-4 text-gray-400"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={1.5}
+                                                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                                    />
+                                                </svg>
+                                                <span className="text-xs text-[#999999]">{post.commentCount}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-4 w-4 text-gray-400"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={1.5}
+                                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                    />
+                                                </svg>
+                                                <span className="text-xs text-[#999999]">{post.likeCount}</span>
+                                            </div>
                                         </div>
-                                    )}
 
-                                    <div className="flex items-center justify-end gap-[10px] pr-[10px] mb-2">
-                                        <div className="flex items-center gap-1">
-                                            <span className="material-icons text-sm text-[#999999]">visibility</span>
-                                            <span className="text-xs text-[#999999]">{post.viewCount}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="material-icons text-sm text-[#999999]">
-                                                chat_bubble_outline
-                                            </span>
-                                            <span className="text-xs text-[#999999]">{post.commentCount}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="material-icons text-sm text-[#999999]">
-                                                favorite_border
-                                            </span>
-                                            <span className="text-xs text-[#999999]">{post.likeCount}</span>
-                                        </div>
+                                        {/* 게시글 이미지 영역 (옵션) */}
+                                        {post.content.includes('<img') && (
+                                            <div className="bg-gray-100 rounded-md h-48 flex items-center justify-center mb-3 overflow-hidden">
+                                                <img
+                                                    src={post.content.match(/<img[^>]+src="([^">]+)"/)?.[1] || ''}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))
