@@ -42,4 +42,8 @@ public class Schedule {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    @Column(length = 20)
+    private String color;
+
 }

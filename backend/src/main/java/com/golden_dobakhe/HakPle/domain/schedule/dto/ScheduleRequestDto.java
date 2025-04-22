@@ -22,4 +22,7 @@ public class ScheduleRequestDto {
     private LocalDateTime endDate;
 
     private String description;
+
+    private String color;
+
 }

@@ -29,8 +29,8 @@ public class ScheduleController {
     @Operation(summary = "일정 등록")
     @PostMapping
     public ResponseEntity<ScheduleResponseDto> create(@Valid @RequestBody ScheduleRequestDto dto,
-                                           @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(scheduleService.create(dto, user));
+                                           @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(scheduleService.create(dto, principal.getUser()));
     }
 
     @Operation(summary = "내 일정 전체 조회")
@@ -43,23 +43,23 @@ public class ScheduleController {
     @Operation(summary = "일정 상세 조회")
     @GetMapping("/{id}")
     public ResponseEntity<ScheduleResponseDto> getById(@PathVariable(name = "id") Long id,
-                                            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(scheduleService.findDtoById(id, user));
+                                            @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(scheduleService.findDtoById(id, principal.getUser()));
     }
 
     @Operation(summary = "일정 수정")
     @PutMapping("/{id}")
     public ResponseEntity<ScheduleResponseDto > update(@PathVariable(name = "id") Long id,
                                            @Valid @RequestBody ScheduleRequestDto dto,
-                                           @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(scheduleService.update(id, dto, user));
+                                           @AuthenticationPrincipal CustomUserDetails principal) {
+        return ResponseEntity.ok(scheduleService.update(id, dto, principal.getUser()));
     }
 
     @Operation(summary = "일정 삭제")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable(name = "id") Long id,
-                                       @AuthenticationPrincipal User user) {
-        scheduleService.delete(id, user);
+                                       @AuthenticationPrincipal CustomUserDetails principal) {
+        scheduleService.delete(id, principal.getUser());
         return ResponseEntity.noContent().build();
     }
 
