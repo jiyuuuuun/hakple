@@ -1,5 +1,7 @@
 package com.golden_dobakhe.HakPle.domain.user.admin.controller;
 
+
+import com.golden_dobakhe.HakPle.domain.post.post.dto.TotalBoardResponse;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
@@ -7,6 +9,7 @@ import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +19,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -102,6 +109,24 @@ public class ApiV1AdminController {
         List<User> adminUsers = adminService.getAdminUsers();
         return ResponseEntity.ok(adminUsers);
     }
+
+    @GetMapping("/boards")
+    @Operation(summary = "게시글 전체 조회", description = "상태, 학원코드 없이 전체 게시글 리스트 조회 가능")
+    public ResponseEntity<Page<TotalBoardResponse>> getBoards(
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name="size",defaultValue = "10") int size,
+            @RequestParam(name = "status", required = false) Status status,
+            @RequestParam(name = "academyCode", required = false) String academyCode,
+            @RequestParam(name = "sortBy" , defaultValue = "creationTime") String sortBy,
+            @RequestParam(name = "direction", defaultValue = "desc") String direction) {
+        Pageable pageable = PageRequest.of(page - 1, size,
+                direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending());
+
+        Page<TotalBoardResponse> result = adminService.getBoardsByFilterNullable(status, academyCode, pageable);
+        return ResponseEntity.ok(result);
+    }
+
+
 
 
 }

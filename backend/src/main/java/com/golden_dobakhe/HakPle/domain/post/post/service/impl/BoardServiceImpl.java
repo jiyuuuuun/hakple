@@ -119,7 +119,8 @@ public class BoardServiceImpl implements BoardService {
         }
 
         // 게시글 상태 검증 (삭제된 게시글인지 확인)
-        board.validateStatus();
+        //board.validateStatus(); 신고된 게시물에서도 불러와야 하므로 비뢀성화
+        //게시물 목록에서 불러올 때 이미 Active인 게시물 만 볼러와지니깐 괜춘..?
         boardRepository.save(board);
 
         return createBoardResponse(board);

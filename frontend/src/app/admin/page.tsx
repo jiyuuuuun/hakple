@@ -131,7 +131,7 @@ export default function AdminPage() {
       <div className="mb-8">
         <h2 className="text-2xl font-semibold mb-4 border-b pb-2 text-[#8C4FF2]">📝 게시글 관리</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link href="/admin/posts" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+          <Link href="/admin/boards" className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
             <h2 className="text-xl font-semibold mb-2">📑 게시글 목록 조회</h2>
             <p className="text-gray-600">모든 게시글 목록을 조회합니다</p>
           </Link>
