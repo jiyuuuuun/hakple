@@ -13,4 +13,6 @@ public class ScheduleResponseDto {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private String description;
+    private String color;
+
 }

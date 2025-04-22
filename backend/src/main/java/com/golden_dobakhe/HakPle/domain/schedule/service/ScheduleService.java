@@ -29,6 +29,7 @@ public class ScheduleService {
         s.setEndDate(dto.getEndDate());
         s.setDescription(dto.getDescription());
         s.setUser(user);
+        s.setColor(dto.getColor());
         Schedule saved = scheduleRepository.save(s);
         return toDto(saved);
     }
@@ -55,6 +56,7 @@ public class ScheduleService {
         s.setStartDate(dto.getStartDate());
         s.setEndDate(dto.getEndDate());
         s.setDescription(dto.getDescription());
+        s.setColor(dto.getColor());
         Schedule updated = scheduleRepository.save(s);
         return toDto(updated);
     }
@@ -72,7 +74,8 @@ public class ScheduleService {
                 s.getTitle(),
                 s.getStartDate(),
                 s.getEndDate(),
-                s.getDescription()
+                s.getDescription(),
+                s.getColor()
         );
     }
 
