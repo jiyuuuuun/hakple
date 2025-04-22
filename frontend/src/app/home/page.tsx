@@ -7,6 +7,9 @@ import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
 // API 유틸리티 추가
 import { fetchApi } from '@/utils/api'
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import '@/app/calendar/calendar.css'; // ➕ 커스텀 스타일 적용할 파일
 
 // 댓글 인터페이스
 interface Comment {
@@ -216,7 +219,7 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <main className="max-w-screen-lg mx-auto px-4 py-6">
+            <main className="max-w-[1200px] mx-auto px-1 sm:px-2 md:px-3 py-6">
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* 왼쪽 사이드바 - 학원 목록 */}
                     <aside className="w-full md:w-64 shrink-0">
@@ -241,6 +244,19 @@ export default function HomePage() {
                                 )}
                             </div>
                         </div>
+                        <div className="bg-white rounded-lg shadow p-4 mb-6">
+                        <h2 className="text-lg font-semibold mb-4 text-gray-800">캘린더</h2>
+                        <div className="mini-calendar">
+                        <FullCalendar
+                        plugins={[dayGridPlugin]}
+                        initialView="dayGridMonth"
+                        headerToolbar={false}
+                        contentHeight={220}
+                        fixedWeekCount={false}
+                        />
+                    </div>
+                </div>
+
                     </aside>
 
                     {/* 메인 피드 영역 */}

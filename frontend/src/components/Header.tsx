@@ -197,7 +197,7 @@ export default function Header() {
                                         인기글
                                     </Link>
                                     <Link
-                                        href="/community"
+                                        href="/calendar"
                                         className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
                                         캘린더

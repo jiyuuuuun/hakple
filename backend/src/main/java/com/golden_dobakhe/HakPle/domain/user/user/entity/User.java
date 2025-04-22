@@ -1,6 +1,7 @@
 package com.golden_dobakhe.HakPle.domain.user.user.entity;
 
 import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
+import com.golden_dobakhe.HakPle.domain.schedule.entity.Schedule;
 import com.golden_dobakhe.HakPle.global.entity.BaseEntity;
 import com.golden_dobakhe.HakPle.global.Status;
 import jakarta.persistence.*;
@@ -11,7 +12,9 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -61,4 +64,8 @@ public class User extends BaseEntity {
     // private int reportedCount; // 신고 누적 수
     @Column(name = "reported_count", nullable = false)
     private int reportedCount = 0; // 신고 누적 수
+
+    // (선택) 일정 연관관계
+    @OneToMany(mappedBy = "user")
+    private List<Schedule> schedules = new ArrayList<>();
 }
