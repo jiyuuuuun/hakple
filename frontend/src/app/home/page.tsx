@@ -310,15 +310,15 @@ export default function HomePage() {
                             </div>
                         ) : posts.length > 0 ? (
                             posts.map((post) => (
-                                <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-8">
+                                <div key={post.id} className="bg-white rounded-lg shadow overflow-hidden mb-8 transition-all duration-200 hover:shadow-lg hover:bg-gray-50">
                                     <div className="p-6">
                                         {/* 작성자 정보 */}
                                         <div className="flex justify-between items-center mb-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-7 w-7 text-gray-400"
+                                                        className="h-6 w-6 text-gray-400"
                                                         fill="none"
                                                         viewBox="0 0 24 24"
                                                         stroke="currentColor"
@@ -331,14 +331,13 @@ export default function HomePage() {
                                                         />
                                                     </svg>
                                                 </div>
-                                                <div>
-                                                    <div className="font-medium text-lg">{post.nickname}</div>
-                                                    <div className="text-base text-gray-500">
-                                                        {formatDate(post.creationTime)}
-                                                    </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium">{post.nickname}</span>
+                                                    <span className="text-gray-500 text-sm">•</span>
+                                                    <span className="text-sm text-gray-500">{formatDate(post.creationTime)}</span>
                                                 </div>
                                             </div>
-                                            <button className="text-gray-400">
+                                            <button className="text-gray-400 hover:text-[#9C50D4] transition-colors">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     className="h-6 w-6"
@@ -350,21 +349,21 @@ export default function HomePage() {
                                                         strokeLinecap="round"
                                                         strokeLinejoin="round"
                                                         strokeWidth={2}
-                                                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                                                        d="M14 5l7 7m0 0l-7 7m7-7H3"
                                                     />
                                                 </svg>
                                             </button>
                                         </div>
 
                                         {/* 게시글 제목 및 내용 */}
-                                        <Link href={`/post/${post.id}`} className="no-underline">
-                                            <h3 className="text-lg font-semibold mb-2 hover:text-[#9C50D4]">
+                                        <Link href={`/post/${post.id}`} className="no-underline group">
+                                            <h3 className="text-lg font-semibold mb-2 group-hover:text-[#9C50D4] transition-colors">
                                                 {post.title}
                                             </h3>
+                                            <p className="mb-4 text-gray-700 line-clamp-3">
+                                                {post.content.replace(/<[^>]*>?/gm, '')}
+                                            </p>
                                         </Link>
-                                        <p className="mb-4 text-gray-700 line-clamp-3">
-                                            {post.content.replace(/<[^>]*>?/gm, '')}
-                                        </p>
 
                                         {/* 게시글 이미지 영역 (옵션) */}
                                         {post.content.includes('<img') && (
@@ -383,7 +382,7 @@ export default function HomePage() {
                                                 {post.tags.map((tag, idx) => (
                                                     <span
                                                         key={idx}
-                                                        className="text-sm text-[#9C50D4] bg-purple-50 px-2 py-1 rounded-full"
+                                                        className="text-sm text-[#9C50D4] bg-purple-50 px-2 py-1 rounded-full hover:bg-purple-100 transition-colors"
                                                     >
                                                         #{tag}
                                                     </span>
@@ -392,11 +391,11 @@ export default function HomePage() {
                                         )}
 
                                         {/* 좋아요 및 댓글 수 */}
-                                        <div className="flex items-center gap-6 text-gray-500 text-sm">
-                                            <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-6 text-gray-600">
+                                            <div className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors cursor-pointer">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5"
+                                                    className="h-6 w-6"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -408,12 +407,12 @@ export default function HomePage() {
                                                         d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                                                     />
                                                 </svg>
-                                                {post.likeCount}
+                                                <span>{post.likeCount}</span>
                                             </div>
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors cursor-pointer">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5"
+                                                    className="h-6 w-6"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -425,12 +424,12 @@ export default function HomePage() {
                                                         d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
                                                     />
                                                 </svg>
-                                                {post.commentCount}
+                                                <span>{post.commentCount}</span>
                                             </div>
-                                            <div className="flex items-center gap-1 ml-auto">
+                                            <div className="flex items-center gap-2 ml-auto">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5"
+                                                    className="h-6 w-6"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -448,7 +447,7 @@ export default function HomePage() {
                                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                                                     />
                                                 </svg>
-                                                {post.viewCount}
+                                                <span>{post.viewCount}</span>
                                             </div>
                                         </div>
                                     </div>
