@@ -1,10 +1,13 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
+
+// 스타일시트를 위한 import 추가
+import 'material-icons/iconfont/material-icons.css'
 
 // 댓글 인터페이스
 interface Comment {
@@ -34,6 +37,7 @@ interface Post {
     tags: string[]
     boardComments?: Comment[]
     boardLikes?: Like[]
+    isReported?: boolean
 }
 
 // API 응답 타입
@@ -51,6 +55,9 @@ export default function HomePage() {
     const [academyCode, setAcademyCode] = useState<string | null>(null)
     const [posts, setPosts] = useState<Post[]>([])
     const [loading, setLoading] = useState<boolean>(true)
+    const [showPostMenu, setShowPostMenu] = useState<number | null>(null)
+    const [isReporting, setIsReporting] = useState(false)
+    const postMenuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({})
 
     // localStorage 관련 디버깅 함수
     const checkAndUpdateAcademyInfo = () => {
@@ -145,6 +152,30 @@ export default function HomePage() {
         }
     }, [isLogin, router])
 
+    // 외부 클릭 감지 - 메뉴 닫기
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            // 메뉴 버튼 클릭은 무시
+            const target = event.target as Element
+            if (target.closest('.menu-button') || target.closest('.menu-item')) {
+                return
+            }
+
+            // 활성화된 메뉴가 있을 때만 체크
+            if (showPostMenu !== null) {
+                const activeRef = postMenuRefs.current[showPostMenu]
+                if (activeRef && !activeRef.contains(event.target as Node)) {
+                    setShowPostMenu(null)
+                }
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showPostMenu])
+
     // 최신 게시글 가져오기
     const fetchLatestPosts = async () => {
         setLoading(true)
@@ -201,6 +232,57 @@ export default function HomePage() {
             return `${Math.floor(diffMinutes / 60)}시간 전`
         } else {
             return `${date.toLocaleDateString()}`
+        }
+    }
+
+    // 메뉴 토글 함수
+    const togglePostMenu = (e: React.MouseEvent, postId: number) => {
+        e.stopPropagation()
+        e.preventDefault()
+        setShowPostMenu(showPostMenu === postId ? null : postId)
+    }
+
+    // 게시글 신고 함수
+    const handleReport = async (postId: number) => {
+        if (!isLogin) {
+            alert('로그인이 필요한 기능입니다.')
+            router.push('/login')
+            return
+        }
+
+        if (isReporting) return
+
+        const confirmed = window.confirm('정말로 이 게시글을 신고하시겠습니까?')
+        if (!confirmed) return
+
+        setIsReporting(true)
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/report`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.message || '게시글 신고에 실패했습니다.')
+            }
+
+            // 신고 상태 업데이트
+            setPosts((prevPosts) =>
+                prevPosts.map((post) => (post.id === postId ? { ...post, isReported: true } : post)),
+            )
+
+            alert('게시글이 신고되었습니다.')
+            setShowPostMenu(null)
+        } catch (error) {
+            console.error('게시글 신고 중 오류:', error)
+            alert(error instanceof Error ? error.message : '게시글 신고 중 오류가 발생했습니다.')
+        } finally {
+            setIsReporting(false)
         }
     }
 
@@ -308,22 +390,37 @@ export default function HomePage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button className="text-gray-400">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-6 w-6"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
+                                            <div className="relative">
+                                                <button
+                                                    className="text-gray-400 menu-button"
+                                                    onClick={(e) => togglePostMenu(e, post.id)}
                                                 >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                                                    />
-                                                </svg>
-                                            </button>
+                                                    <span className="material-icons">more_horiz</span>
+                                                </button>
+                                                {showPostMenu === post.id && (
+                                                    <div
+                                                        ref={(el) => {
+                                                            postMenuRefs.current[post.id] = el
+                                                        }}
+                                                        className="absolute right-0 top-full mt-1 bg-white shadow-lg rounded-md z-10 w-32 py-1 border border-gray-200"
+                                                    >
+                                                        <button
+                                                            className="flex items-center w-full text-left px-4 py-2 text-sm hover:bg-gray-100 menu-item"
+                                                            onClick={() => handleReport(post.id)}
+                                                            disabled={post.isReported || isReporting}
+                                                        >
+                                                            <span
+                                                                className={`material-icons ${
+                                                                    post.isReported ? 'text-gray-400' : 'text-gray-500'
+                                                                } mr-2`}
+                                                            >
+                                                                flag
+                                                            </span>
+                                                            {post.isReported ? '신고 완료' : '글 신고'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* 게시글 제목 및 내용 */}
@@ -332,7 +429,7 @@ export default function HomePage() {
                                                 {post.title}
                                             </h3>
                                         </Link>
-                                        <p className="mb-4 text-gray-700 line-clamp-3">
+                                        <p className="mb-4 text-gray-700 line-clamp-1">
                                             {post.content.replace(/<[^>]*>?/gm, '')}
                                         </p>
 
@@ -347,8 +444,8 @@ export default function HomePage() {
                                             </div>
                                         )}
 
-                                        {/* 해시태그 */}
-                                        {post.tags && post.tags.length > 0 && (
+                                        {/* 해시태그 - 숨김 처리 */}
+                                        {/* {post.tags && post.tags.length > 0 && (
                                             <div className="flex gap-2 mb-4 flex-wrap">
                                                 {post.tags.map((tag, idx) => (
                                                     <span
@@ -359,7 +456,7 @@ export default function HomePage() {
                                                     </span>
                                                 ))}
                                             </div>
-                                        )}
+                                        )} */}
 
                                         {/* 좋아요 및 댓글 수 */}
                                         <div className="flex items-center gap-6 text-gray-500 text-sm">
