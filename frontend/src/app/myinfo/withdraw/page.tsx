@@ -15,7 +15,7 @@ export default function Withdraw() {
         agreement: false,
     })
 
-    const handleWithdraw = () => {
+    const handleWithdraw = async () => {
         // 필드 유효성 검사
         const newErrors = {
             password: !password,
@@ -30,9 +30,35 @@ export default function Withdraw() {
             return
         }
 
-        // 실제 탈퇴 로직은 여기에 구현
-        // 현재는 단순히 홈으로 이동
-        router.push('/')
+        try {
+            // 쿠키에서 accessToken 가져오기
+            const cookies = document.cookie.split(';');
+            const accessTokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='));
+            const accessToken = accessTokenCookie ? accessTokenCookie.split('=')[1].trim() : '';
+
+            const response = await fetch('http://localhost:8090/api/v1/users/withdraw', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                //이게 있어야지 인증이 된다
+                credentials: 'include',
+                body: JSON.stringify({
+                    password: password
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('탈퇴 처리 중 오류가 발생했습니다.');
+            }
+
+            // 성공 시 알림 표시 후 홈으로 이동
+            alert('탈퇴 처리 완료');
+            router.push('/');
+        } catch (error) {
+            console.error('탈퇴 처리 중 오류:', error);
+            alert('탈퇴 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
     }
 
     return (
