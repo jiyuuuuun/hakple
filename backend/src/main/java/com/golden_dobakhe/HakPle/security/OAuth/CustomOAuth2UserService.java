@@ -6,6 +6,7 @@ import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.service.AuthService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -47,10 +48,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String profileImgUrl = attributesProperties.get("profile_image");
         //유저명은 이렇게 설정을 해둔다
         String username = providerTypeCode + "__" + oauthId;
+        System.out.println("이미지 : " + profileImgUrl);
 
 
         //그리고 가입
-        User user = testUserService.modifyOrJoin(username, nickname);
+        User user = testUserService.modifyOrJoin(username, nickname, profileImgUrl);
 
 
         //그리고 시큐리티에게 알려줄 객체를 만든다
