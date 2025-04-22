@@ -68,7 +68,18 @@ export async function fetchJson<T>(url: string, options?: RequestInit): Promise<
 
   // 응답이 ok가 아니면 에러 발생
   if (!response.ok) {
-    throw new Error(`API 요청 실패 (${response.status}): ${response.statusText}`);
+    // 에러 상태에 따른 처리
+    if (response.status === 400 || response.status === 403) {
+      // 클라이언트 에러는 일반 로그로 처리
+      console.log(`클라이언트 에러 발생 (${response.status}):`, response.statusText);
+    } else if (response.status >= 500) {
+      // 서버 에러는 경고 로그로 처리
+      console.warn(`서버 에러 발생 (${response.status}):`, response.statusText);
+    } else {
+      // 기타 에러는 info 레벨로 처리
+      console.info(`API 요청 실패 (${response.status}):`, response.statusText);
+    }
+    throw new Error(`API 요청 실패: ${response.statusText}`);
   }
 
   // 응답 텍스트 체크
