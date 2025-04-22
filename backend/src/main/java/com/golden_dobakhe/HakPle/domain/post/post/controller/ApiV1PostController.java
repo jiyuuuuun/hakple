@@ -52,8 +52,8 @@ public class ApiV1PostController {
     @Operation(summary = "게시물 ID로 조회", description = "특정 ID의 게시물을 조회합니다.")
     @GetMapping("/{id}")
     public ResponseEntity<BoardResponse> getBoard(
-            @PathVariable("id") Long id,
-            @RequestParam(required = false, defaultValue = "true") Boolean postView) {
+            @PathVariable(name = "id") Long id,
+            @RequestParam(name = "postView",required = false, defaultValue = "true") Boolean postView) {
         // 로그인 여부와 관계없이 게시글 조회 가능
         return ResponseEntity.ok(boardService.getBoard(id, postView));
     }

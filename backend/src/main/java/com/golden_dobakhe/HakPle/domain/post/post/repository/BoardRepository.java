@@ -133,4 +133,9 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             @Param("sortType") String sortType,
             @Param("minLikes") Integer minLikes,
             Pageable pageable);
+
+    Page<Board> findByStatus(Status status, Pageable pageable);
+    Page<Board> findByStatusAndAcademyCode(Status status, String academyCode, Pageable pageable);
+    Page<Board> findByAcademyCode(String academyCode, Pageable pageable);
+
 }
