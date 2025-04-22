@@ -3,15 +3,12 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
-// TODO : 나중에 배포시
 const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao'
 const redirectUrlAfterSocialLogin = 'http://localhost:3000'
 
 export default function LoginPage() {
-    const router = useRouter()
     const { setLoginMember, checkAdminAndRedirect } = useGlobalLoginMember()
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
@@ -42,26 +39,26 @@ export default function LoginPage() {
 
             const data = await response.json()
             console.log('로그인 성공 데이터:', data)
-            
+
             // 로그인이 성공하면 setLoginMember 호출하여 전역 상태 업데이트
-            setLoginMember(data);
-            
+            setLoginMember(data)
+
             // 관리자 권한 확인
-            console.log('관리자 권한 확인 시작');
-            const isAdmin = await checkAdminAndRedirect();
-            console.log('관리자 권한 확인 결과:', isAdmin);
-            
+            console.log('관리자 권한 확인 시작')
+            const isAdmin = await checkAdminAndRedirect()
+            console.log('관리자 권한 확인 결과:', isAdmin)
+
             // 약간의 지연 후 리다이렉트 (상태 업데이트를 위한 시간 확보)
             setTimeout(() => {
                 // 관리자인 경우 관리자 페이지로, 일반 사용자인 경우 홈 페이지로 이동
                 if (isAdmin) {
-                    console.log('관리자로 로그인 - 관리자 페이지로 이동');
-                    window.location.href = '/admin';
+                    console.log('관리자로 로그인 - 관리자 페이지로 이동')
+                    window.location.href = '/admin'
                 } else {
-                    console.log('일반 사용자로 로그인 - 홈 페이지로 이동');
-                    window.location.href = '/home';
+                    console.log('일반 사용자로 로그인 - 홈 페이지로 이동')
+                    window.location.href = '/home'
                 }
-            }, 500);
+            }, 500)
         } catch (error) {
             console.error('로그인 에러:', error)
             setError(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.')

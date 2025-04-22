@@ -15,26 +15,26 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT b FROM Board b WHERE b.academyCode = :academyCode AND b.status = :status " +
-           "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
-           "ORDER BY " +
-           "CASE " +
-           "   WHEN :sortType = '조회순' THEN b.viewCount " +
-           "   ELSE 0 " +
-           "END DESC, " +
-           "CASE " +
-           "   WHEN :sortType = '댓글순' THEN SIZE(b.comments) " +
-           "   ELSE 0 " +
-           "END DESC, " +
-           "CASE " +
-           "   WHEN :sortType = '좋아요순' THEN SIZE(b.boardLikes) " +
-           "   ELSE 0 " +
-           "END DESC, " +
-           "CASE " +
-           "   WHEN :sortType = '등록일순' OR :sortType NOT IN ('조회순', '댓글순', '좋아요순') THEN b.creationTime " +
-           "   ELSE b.creationTime " +
-           "END DESC")
+            "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
+            "ORDER BY " +
+            "CASE " +
+            "   WHEN :sortType = '조회순' THEN b.viewCount " +
+            "   ELSE 0 " +
+            "END DESC, " +
+            "CASE " +
+            "   WHEN :sortType = '댓글순' THEN SIZE(b.comments) " +
+            "   ELSE 0 " +
+            "END DESC, " +
+            "CASE " +
+            "   WHEN :sortType = '좋아요순' THEN SIZE(b.boardLikes) " +
+            "   ELSE 0 " +
+            "END DESC, " +
+            "CASE " +
+            "   WHEN :sortType = '등록일순' OR :sortType NOT IN ('조회순', '댓글순', '좋아요순') THEN b.creationTime " +
+            "   ELSE b.creationTime " +
+            "END DESC")
     Page<Board> findByAcademyCodeAndStatus(
-            @Param("academyCode") String academyCode, 
+            @Param("academyCode") String academyCode,
             @Param("status") Status status,
             @Param("sortType") String sortType,
             @Param("minLikes") Integer minLikes,
@@ -42,31 +42,31 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT b FROM Board b WHERE b.academyCode = :academyCode AND b.status = 'ACTIVE' " +
-           "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
-           "OR LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
-           "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
-           "ORDER BY " +
-           "CASE " +
-           "   WHEN :sortType = '조회순' THEN b.viewCount " +
-           "   ELSE 0 " +
-           "END DESC, " +
-           "CASE " +
-           "   WHEN :sortType = '댓글순' THEN SIZE(b.comments) " +
-           "   ELSE 0 " +
-           "END DESC, " +
-           "CASE " +
-           "   WHEN :sortType = '좋아요순' THEN SIZE(b.boardLikes) " +
-           "   ELSE 0 " +
-           "END DESC, " +
-           "CASE " +
-           "   WHEN :sortType = '등록일순' OR :sortType NOT IN ('조회순', '댓글순', '좋아요순') THEN b.creationTime " +
-           "   ELSE b.creationTime " +
-           "END DESC")
+            "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
+            "OR LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
+            "AND ((:minLikes IS NULL) OR (SIZE(b.boardLikes) >= :minLikes)) " +
+            "ORDER BY " +
+            "CASE " +
+            "   WHEN :sortType = '조회순' THEN b.viewCount " +
+            "   ELSE 0 " +
+            "END DESC, " +
+            "CASE " +
+            "   WHEN :sortType = '댓글순' THEN SIZE(b.comments) " +
+            "   ELSE 0 " +
+            "END DESC, " +
+            "CASE " +
+            "   WHEN :sortType = '좋아요순' THEN SIZE(b.boardLikes) " +
+            "   ELSE 0 " +
+            "END DESC, " +
+            "CASE " +
+            "   WHEN :sortType = '등록일순' OR :sortType NOT IN ('조회순', '댓글순', '좋아요순') THEN b.creationTime " +
+            "   ELSE b.creationTime " +
+            "END DESC")
     Page<Board> searchBoards(@Param("academyCode") String academyCode,
-                           @Param("keyword") String keyword,
-                           @Param("sortType") String sortType,
-                           @Param("minLikes") Integer minLikes,
-                           Pageable pageable);
+                             @Param("keyword") String keyword,
+                             @Param("sortType") String sortType,
+                             @Param("minLikes") Integer minLikes,
+                             Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT DISTINCT b FROM Board b " +
@@ -93,10 +93,10 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             "   ELSE b.creationTime " +
             "END DESC")
     Page<Board> findByTagAndAcademyCode(@Param("academyCode") String academyCode,
-                                      @Param("tag") String tag,
-                                      @Param("sortType") String sortType,
-                                      @Param("minLikes") Integer minLikes,
-                                      Pageable pageable);
+                                        @Param("tag") String tag,
+                                        @Param("sortType") String sortType,
+                                        @Param("minLikes") Integer minLikes,
+                                        Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT DISTINCT b FROM Board b " +
@@ -104,7 +104,8 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             "WHERE b.academyCode = :academyCode " +
             "AND b.status = 'ACTIVE' " +
             "AND (" +
-            "   (:searchType = '태그' AND EXISTS (SELECT 1 FROM b.tags tag WHERE LOWER(tag.hashtag.hashtagName) LIKE CONCAT('%', LOWER(:keyword), '%'))) " +
+            "   (:searchType = '태그' AND EXISTS (SELECT 1 FROM b.tags tag WHERE LOWER(tag.hashtag.hashtagName) LIKE CONCAT('%', LOWER(:keyword), '%'))) "
+            +
             "   OR (:searchType = '작성자' AND LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
             "   OR (:searchType = '제목' AND LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
             ") " +
@@ -135,7 +136,10 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             Pageable pageable);
 
     Page<Board> findByStatus(Status status, Pageable pageable);
+
     Page<Board> findByStatusAndAcademyCode(Status status, String academyCode, Pageable pageable);
+
     Page<Board> findByAcademyCode(String academyCode, Pageable pageable);
 
+    Page<Board> findByUserId(Long userId, Pageable pageable);
 }

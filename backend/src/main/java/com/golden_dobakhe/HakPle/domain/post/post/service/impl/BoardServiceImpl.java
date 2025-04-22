@@ -1,42 +1,47 @@
 package com.golden_dobakhe.HakPle.domain.post.post.service.impl;
 
 
+import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardRequest;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TagResponse;
-import com.golden_dobakhe.HakPle.domain.post.post.entity.*;
+import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
+import com.golden_dobakhe.HakPle.domain.post.post.entity.BoardLike;
+import com.golden_dobakhe.HakPle.domain.post.post.entity.BoardReport;
+import com.golden_dobakhe.HakPle.domain.post.post.entity.Hashtag;
+import com.golden_dobakhe.HakPle.domain.post.post.entity.TagMapping;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
-import com.golden_dobakhe.HakPle.domain.post.post.repository.*;
+import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardLikeRepository;
+import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardReportRepository;
+import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
+import com.golden_dobakhe.HakPle.domain.post.post.repository.HashtagRepository;
+import com.golden_dobakhe.HakPle.domain.post.post.repository.TagMappingRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
-
 import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
-
-import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentRepository;
-
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
-import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.hibernate.Hibernate;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
-public class BoardServiceImpl implements BoardService {
+public
+class BoardServiceImpl implements BoardService {
 
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
@@ -68,7 +73,9 @@ public class BoardServiceImpl implements BoardService {
 
         if (request.getTags() != null) {
             for (String tagName : request.getTags()) {
-                if (!StringUtils.hasText(tagName)) continue;
+                if (!StringUtils.hasText(tagName)) {
+                    continue;
+                }
 
                 Hashtag hashtag = hashtagRepository.findByHashtagNameAndAcademyCode(tagName, user.getAcademyId())
                         .orElseGet(() -> hashtagRepository.save(Hashtag.builder()
@@ -83,7 +90,6 @@ public class BoardServiceImpl implements BoardService {
 
                 board.getTags().add(tagMapping);
 
-
                 tagMappingRepository.save(tagMapping);
             }
         }
@@ -96,7 +102,6 @@ public class BoardServiceImpl implements BoardService {
                     .build();
             imageRepository.save(postFile);
         }
-
 
         return createBoardResponse(board);
     }
@@ -199,7 +204,6 @@ public class BoardServiceImpl implements BoardService {
             }
         }
 
-
         List<String> imageUrls = extractImageUrls(request.getContent());
         for (String imageUrl : imageUrls) {
             Image postFile = Image.builder()
@@ -280,7 +284,7 @@ public class BoardServiceImpl implements BoardService {
 
         User user = userRepository.findById(board.getUser().getId())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
-        
+
         // 자신의 게시글은 신고할 수 없음
         if (board.getUser().getId().equals(userId)) {
             throw BoardException.cannotReportOwnPost();
@@ -378,7 +382,9 @@ public class BoardServiceImpl implements BoardService {
     @Transactional(readOnly = true)
     public Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        if (academyCode == null) throw BoardException.notFound();
+        if (academyCode == null) {
+            throw BoardException.notFound();
+        }
 
         return boardRepository.findByAcademyCodeAndStatus(academyCode, Status.ACTIVE, sortType, minLikes, pageable)
                 .map(board -> {
@@ -389,9 +395,12 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes, Pageable pageable) {
+    public Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes,
+                                                    Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        if (academyCode == null) throw BoardException.notFound();
+        if (academyCode == null) {
+            throw BoardException.notFound();
+        }
 
         return boardRepository.searchBoards(academyCode, keyword, sortType, minLikes, pageable)
                 .map(board -> {
@@ -402,9 +411,12 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes, Pageable pageable) {
+    public Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes,
+                                                       Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        if (academyCode == null) throw BoardException.notFound();
+        if (academyCode == null) {
+            throw BoardException.notFound();
+        }
 
         return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, minLikes, pageable)
                 .map(board -> {
@@ -431,16 +443,17 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> searchBoardsByType(String academyCode, String searchType, String keyword, String sortType, Pageable pageable) {
+    public Page<BoardResponse> searchBoardsByType(String academyCode, String searchType, String keyword,
+                                                  String sortType, Pageable pageable) {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword) || !StringUtils.hasText(searchType)) {
             throw BoardException.invalidRequest();
         }
-        
+
         // 검색 유형이 유효한지 체크
         if (!searchType.equals("태그") && !searchType.equals("작성자") && !searchType.equals("제목")) {
             throw BoardException.invalidRequest();
         }
-        
+
         return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
@@ -451,9 +464,12 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType, Integer minLikes, Pageable pageable) {
+    public Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword,
+                                                           String sortType, Integer minLikes, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
-        if (academyCode == null) throw BoardException.notFound();
+        if (academyCode == null) {
+            throw BoardException.notFound();
+        }
 
         return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, minLikes, pageable)
                 .map(board -> {
@@ -490,7 +506,33 @@ public class BoardServiceImpl implements BoardService {
     public boolean isBoardOwner(Long boardId, Long userId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound());
-        
+
         return board.getUser().getId().equals(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BoardResponse> getMyBoards(Long userId, Pageable pageable) {
+        return boardRepository.findByUserId(userId, pageable)
+                .map(board -> {
+                    List<String> tagNames = board.getTags().stream()
+                            .map(tagMapping -> {
+                                return tagMapping.getHashtag().getHashtagName();
+                            })
+                            .toList();
+                    return BoardResponse.from(board, tagNames);
+                });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BoardResponse> getLikedBoards(Long userId, Pageable pageable) {
+        return boardLikeRepository.findLikedBoardsByUserId(userId, pageable)
+                .map(board -> {
+                    List<String> tagNames = board.getTags().stream()
+                            .map(tagMapping -> tagMapping.getHashtag().getHashtagName())
+                            .toList();
+                    return BoardResponse.from(board, tagNames);
+                });
     }
 }

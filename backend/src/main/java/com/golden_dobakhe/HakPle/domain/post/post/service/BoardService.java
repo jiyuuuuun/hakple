@@ -3,10 +3,9 @@ package com.golden_dobakhe.HakPle.domain.post.post.service;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardRequest;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TagResponse;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
-import java.util.List;
 
 public interface BoardService {
     BoardResponse createBoard(BoardRequest request, Long userId);
@@ -20,19 +19,25 @@ public interface BoardService {
 
     Page<BoardResponse> getBoards(String academyCode, String sortType, Pageable pageable);
 
-    Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes, Pageable pageable);
+    Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes,
+                                             Pageable pageable);
 
     Page<BoardResponse> searchBoards(String academyCode, String keyword, String sortType, Pageable pageable);
 
-    Page<BoardResponse> searchBoardsByType(String academyCode, String searchType, String keyword, String sortType, Pageable pageable);
+    Page<BoardResponse> searchBoardsByType(String academyCode, String searchType, String keyword, String sortType,
+                                           Pageable pageable);
 
-    Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType, Integer minLikes, Pageable pageable);
+    Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword, String sortType,
+                                                    Integer minLikes, Pageable pageable);
 
     BoardResponse updateBoard(Long id, BoardRequest request, Long userId);
+
     void deleteBoard(Long id, Long userId);
+
     void toggleLike(Long id, Long userId);
 
-    Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes, Pageable pageable);
+    Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes,
+                                                Pageable pageable);
 
     Page<BoardResponse> getBoardsByTag(String academyCode, String tag, String sortType, Pageable pageable);
 
@@ -55,4 +60,8 @@ public interface BoardService {
     boolean isLikedByUser(Long boardId, Long userId);
 
     boolean isBoardOwner(Long boardId, Long userId);
+
+    Page<BoardResponse> getMyBoards(Long userId, Pageable pageable);
+
+    Page<BoardResponse> getLikedBoards(Long userId, Pageable pageable);
 }
