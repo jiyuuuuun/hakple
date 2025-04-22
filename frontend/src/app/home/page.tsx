@@ -153,7 +153,6 @@ export default function HomePage() {
             const url = `${
                 process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
             }/api/v1/posts?page=1&size=5&sortType=creationTime,desc`
-            }/api/v1/posts?page=1&size=5&sortType=creationTime,dec`
 
             // API 요청
             const response = await fetch(url, {
