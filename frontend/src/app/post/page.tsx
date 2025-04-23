@@ -490,13 +490,19 @@ export default function PostPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-[1600px] mx-auto px-4 py-6">
+    <main className="min-h-screen bg-gray-50 flex flex-col justify-between">
+      <div className="max-w-[1600px] mx-auto px-4 py-6 flex-grow flex flex-col">
         <div className="flex flex-col gap-6">
           {/* 페이지 타이틀 */}
           <div className="bg-white rounded-lg shadow p-4">
             <h1 className="text-2xl font-bold text-gray-800">
-              {loginMember?.academyName ? `${loginMember.academyName}의 게시판` : '게시판'}
+              {loginMember?.academyName
+                ? minLikes
+                  ? `${loginMember.academyName}의 인기글`
+                  : `${loginMember.academyName}의 게시판`
+                : minLikes
+                  ? '인기글'
+                  : '게시판'}
             </h1>
           </div>
 
@@ -652,8 +658,8 @@ export default function PostPage() {
                 </div>
               )}
 
-              {/* 페이지네이션 */}
-              {posts.length > 0 && (
+              {/* 페이지네이션 or 여백 */}
+              {posts.length > 0 ? (
                 <div className="bg-white rounded-lg shadow p-4 mt-6">
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     <select
@@ -688,7 +694,10 @@ export default function PostPage() {
                     </div>
                   </div>
                 </div>
+              ) : (
+                <div className="h-24" /> // 게시물이 없을 때 페이지 하단 여백
               )}
+
             </>
           )}
         </div>
@@ -703,20 +712,23 @@ function Tag({ text, count, active = false, onClick }: { text: string; count: st
     <button
       onClick={onClick}
       className={`
-        inline-flex items-center px-3 py-1.5 text-sm rounded-full transition-colors
+        inline-flex items-center px-3 py-1 text-sm rounded-full transition-colors cursor-pointer
         ${active
-          ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          ? 'bg-[#9C50D4] text-white'
+          : 'bg-purple-50 text-[#9C50D4] hover:bg-purple-100'
         }
       `}
     >
       #{text}
-      <span className="ml-1.5 text-xs text-gray-500">
-        ({count})
-      </span>
+      {count && (
+        <span className="ml-1 text-xs text-gray-400">
+          ({count})
+        </span>
+      )}
     </button>
   );
 }
+
 
 // 필터 드롭다운
 function FilterDropdown({ value, onChange }: { value: string; onChange: (type: string) => void }) {
@@ -849,16 +861,21 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             {title}
           </h2>
 
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tags.map((tag, index) => (
-              <span
-                key={index}
-                className="inline-flex px-2 py-1 text-xs text-gray-500 bg-gray-50 rounded-md"
-              >
-                #{tag}
-              </span>
-            ))}
+          <div className="flex flex-wrap gap-2 mb-4 min-h-[28px]">
+            {tags?.length > 0 ? (
+              tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer"
+                >
+                  #{tag}
+                </span>
+              ))
+            ) : (
+              <span className="invisible inline-block px-2 py-1 text-xs">#태그자리</span>
+            )}
           </div>
+
         </Link>
 
         <div className="flex items-center gap-6 text-gray-500">
@@ -882,7 +899,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             </svg>
             <span className="text-sm group-hover/like:text-[#9C50D4]">{likeCount}</span>
           </button>
-          <Link 
+          <Link
             href={`/post/${id}`}
             className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
             <svg
@@ -977,14 +994,11 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
 
         <div className="flex flex-wrap gap-2 mb-4">
           {tags.map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex px-2 py-1 text-xs text-gray-500 bg-gray-50 rounded-md"
-            >
-              #{tag}
-            </span>
+            <span key={index} className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer">#{tag}</span>
           ))}
         </div>
+
+
 
         <div className="flex items-center gap-6 text-gray-500">
           <button

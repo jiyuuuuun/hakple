@@ -487,13 +487,13 @@ export default function HomePage() {
     // 좋아요 처리 함수
     const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
         event.preventDefault(); // Link 컴포넌트의 기본 동작 방지
-        
+
         if (likingPosts.has(post.id)) return; // 이미 처리 중인 경우 중복 요청 방지
 
         const isLiked = post.isLiked || false;
-        
+
         setLikingPosts(prev => new Set([...prev, post.id]));
-        
+
         try {
             await handleLike({
                 post,
@@ -777,7 +777,7 @@ export default function HomePage() {
                                         </Link>
 
                                         {/* 해시태그 */}
-                                        {post.tags && post.tags.length > 0 && (
+                                        {/* {post.tags && post.tags.length > 0 && (
                                             <div className="flex gap-2 mb-4 flex-wrap">
                                                 {post.tags.map((tag, idx) => (
                                                     <span
@@ -788,11 +788,11 @@ export default function HomePage() {
                                                     </span>
                                                 ))}
                                             </div>
-                                        )}
+                                        )} */}
 
                                         {/* 좋아요, 댓글, 조회수 카운트 */}
                                         <div className="flex items-center gap-6 text-gray-500">
-                                            <button 
+                                            <button
                                                 onClick={(e) => handleLikeClick(post, e)}
                                                 className={`flex items-center gap-2 group/like transition-all ${post.isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'}`}
                                                 disabled={likingPosts.has(post.id)}
@@ -813,7 +813,7 @@ export default function HomePage() {
                                                 </svg>
                                                 <span className="text-base">{post.likeCount}</span>
                                             </button>
-                                            <Link 
+                                            <Link
                                                 href={`/post/${post.id}`}
                                                 className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors group">
                                                 <svg

@@ -171,32 +171,42 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
   };
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-[5px] w-full border-none py-[8px] px-3 bg-[#ffffff]">
-        {/* 태그 렌더링 */}
+    <div className="border-2 border-gray-100 rounded-[15px] p-2 transition-all duration-300
+                   hover:border-[#980ffa]/30 hover:shadow-md bg-[#fcfaff]">
+      <div className="flex flex-wrap items-center gap-2">
+        {/* 태그 목록 */}
         {tags.map((tag, index) => (
           <div
             key={`tag-${index}-${tag}`}
-            className="flex items-center bg-[#980ffa] text-[#ffffff] rounded-[10px] p-[5px] cursor-pointer hover:bg-[#8a40c0] transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f0e7ff] rounded-full
+                     border-2 border-[#e6d6ff] text-[#6b21a8]
+                     hover:bg-[#e6d6ff] hover:border-[#d8b4fe]
+                     transition-all duration-300 cursor-pointer group/tag"
             onClick={() => removeTag(tag)}
             title="클릭하여 제거"
           >
-            <span className="text-sm font-medium">{tag}</span>
+            <span className="text-sm font-medium">#{tag}</span>
+            <span className="material-icons text-sm opacity-0 group-hover/tag:opacity-100 transition-opacity">
+              close
+            </span>
           </div>
         ))}
-
-        {/* 입력 필드 - 이벤트 핸들러 개선 */}
-        <input
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          onCompositionStart={handleCompositionStart}
-          onCompositionEnd={handleCompositionEnd}
-          placeholder="    태그 입력 (쉼표 또는 엔터키로 등록)"
-          className="flex-grow min-w-[180px] py-[6px] px-[15px] text-sm focus:outline-none border-none bg-transparent"
-        />
+        
+        {/* 태그 입력 필드 */}
+        <div className="relative flex-grow min-w-[200px]">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            onCompositionStart={handleCompositionStart}
+            onCompositionEnd={handleCompositionEnd}
+            placeholder="태그 입력 후 쉼표(,) 또는 엔터"
+            className="w-full py-1.5 px-3 bg-transparent text-sm focus:outline-none
+                     placeholder:text-gray-400"
+          />
+        </div>
       </div>
     </div>
   );
@@ -275,18 +285,35 @@ const NewPostPage = () => {
 
       if (!response.ok) {
         let errorMsg = '게시글 등록에 실패했습니다.';
-        try {
-          const contentType = response.headers.get("content-type");
-          if (contentType && contentType.indexOf("application/json") !== -1) {
+        
+        // 서버 응답의 Content-Type 확인
+        const contentType = response.headers.get("content-type");
+        
+        // JSON 응답인 경우 에러 메시지 파싱 시도
+        if (contentType && contentType.includes("application/json")) {
+          try {
             const errorData = await response.json();
-            errorMsg = errorData.message || errorMsg;
-          } else {
-            errorMsg = `서버 오류: ${response.status}`;
+            errorMsg = errorData.message || errorData.error || errorMsg;
+          } catch (parseError) {
+            console.error('JSON 파싱 오류:', parseError);
           }
-        } catch {
-          errorMsg = `서버 오류: ${response.status}`;
         }
-        throw new Error(errorMsg);
+        
+        // HTTP 상태 코드에 따른 사용자 친화적 메시지 설정
+        if (response.status === 400) {
+          errorMsg = '입력한 내용을 다시 확인해주세요.';
+        } else if (response.status === 401) {
+          errorMsg = '로그인이 필요합니다. 다시 로그인해주세요.';
+          router.push('/login');
+          return;
+        } else if (response.status === 403) {
+          errorMsg = '글쓰기 권한이 없습니다.';
+        } else if (response.status >= 500) {
+          errorMsg = '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        }
+        
+        setError(errorMsg);
+        return;
       }
 
       // 응답 데이터 확인 (서버가 태그를 분리했는지 확인)
@@ -311,83 +338,98 @@ const NewPostPage = () => {
   return (
 
     <main className="bg-[#f9fafc] min-h-screen pb-8">
-      <div className="max-w-[1140px] mx-auto px-4">
-        <div className="pt-14">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">새 글쓰기</h1>
-            <button
-              onClick={() => router.push('/post')}
-              className="flex items-center gap-2 text-gray-600 hover:text-[#980ffa] transition-colors"
-            >
-              <span className="material-icons">arrow_back</span>
-              <span>목록으로</span>
-            </button>
-          </div>
-          <div className="bg-white p-6 sm:p-8 rounded-[20px] shadow-lg border border-[#F9FAFB] transition-shadow hover:shadow-xl">
-            {/* 제목 입력 */}
-            <div className="w-full mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">제목</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="제목을 입력해주세요"
-                className="w-full border border-gray-200 rounded-[15px] py-4 px-5 text-base focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent transition-shadow hover:shadow-sm"
-              />
-            </div>
-
-            {/* Tiptap 에디터 적용 */}
-            <div className="w-full mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
-              <div className="border border-gray-200 rounded-[15px] overflow-hidden transition-shadow hover:shadow-sm">
-                <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
-                  <TiptapEditor content={content} onChange={setContent} />
-                </div>
-              </div>
-            </div>
-
-            {/* 태그 입력 */}
-            <div className="w-full mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">태그</label>
-              <div className="border border-gray-200 rounded-[15px] transition-shadow hover:shadow-sm">
-                <TagInput tags={tags} onTagsChange={handleTagsChange} />
-              </div>
-            </div>
-
-            {/* 에러 메시지 */}
-            {error && (
-              <div className="w-full mb-6 px-4 py-3 rounded-[15px] bg-red-50 border border-red-100">
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            )}
-
-            {/* 등록 버튼 */}
-            <div className="flex justify-end gap-3">
+        <div className="max-w-[1140px] mx-auto px-4">
+          <div className="pt-14">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">새 글쓰기</h1>
               <button
                 onClick={() => router.push('/post')}
-                className="px-6 py-3 rounded-[15px] text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-2 text-gray-600 hover:text-[#980ffa] transition-colors"
               >
-                취소
+                <span className="material-icons">arrow_back</span>
+                <span>목록으로</span>
               </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="px-6 py-3 rounded-[15px] text-white bg-[#980ffa] hover:bg-[#8400df] transition-all transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
-                    <span>등록 중...</span>
+            </div>
+            <div className="bg-white p-6 sm:p-8 rounded-[20px] shadow-lg border border-[#F9FAFB] transition-shadow hover:shadow-xl">
+              {/* 제목 입력 */}
+              <div className="w-full mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">제목</label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="제목을 입력해주세요"
+                    className="w-full bg-[#fcfaff] border-2 border-gray-100 rounded-[15px] py-4 px-5 text-base 
+                             transition-all duration-300 ease-in-out
+                             focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent 
+                             group-hover:border-[#980ffa]/30 group-hover:shadow-md 
+                             placeholder:text-gray-400"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#980ffa]/5 to-transparent opacity-0 
+                                group-hover:opacity-100 rounded-[15px] pointer-events-none transition-opacity duration-300"/>
+                </div>
+              </div>
+
+              {/* Tiptap 에디터 적용 */}
+              <div className="w-full mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
+                <div className="border-2 border-gray-100 rounded-[15px] overflow-hidden transition-all duration-300
+                              hover:border-[#980ffa]/30 hover:shadow-md group">
+                  <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
+                    <TiptapEditor content={content} onChange={setContent} />
                   </div>
-                ) : (
-                  '등록하기'
-                )}
-              </button>
+                </div>
+              </div>
+
+              {/* 태그 입력 */}
+              <div className="w-full mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">태그</label>
+                <TagInput tags={tags} onTagsChange={handleTagsChange} />
+                <p className="text-xs text-gray-500 mt-2 ml-1">
+                  여러 개의 태그는 쉼표(,) 또는 엔터키로 구분하여 입력할 수 있습니다
+                </p>
+              </div>
+
+              {/* 에러 메시지 */}
+              {error && (
+                <div className="w-full mb-6 px-4 py-3 rounded-[15px] bg-red-50 border border-red-100">
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+              )}
+
+              {/* 등록 버튼 */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => router.push('/post')}
+                  className="px-6 py-3 rounded-[15px] text-gray-600 bg-gray-100 hover:bg-gray-200 
+                           transition-all duration-300"
+                >
+                  취소
+                </button>
+                <button 
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="px-6 py-3 rounded-[15px] text-white bg-[#980ffa] 
+                           hover:bg-[#8400df] transition-all duration-300 transform
+                           hover:scale-105 hover:shadow-lg
+                           disabled:opacity-50 disabled:hover:scale-100 
+                           disabled:cursor-not-allowed shadow-md"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
+                      <span>등록 중...</span>
+                    </div>
+                  ) : (
+                    '등록하기'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
 
   );
 };

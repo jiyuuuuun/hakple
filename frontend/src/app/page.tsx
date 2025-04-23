@@ -1,98 +1,181 @@
-'use client'
-
-import Link from 'next/link'
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
-    console.log(process.env.NEXT_PUBLIC_API_BASE_URL)
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-white to-purple-50">
+      {/* Hero Section */}
+      <section className="relative h-[600px] overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNGM0LjQxOCAwIDgtMy41ODIgOC04cy0zLjU4Mi04LTgtOC04IDMuNTgyLTggOCAzLjU4MiA4IDggOHoiIHN0cm9rZT0iI0VERTlGRSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9nPjwvc3ZnPg==')] opacity-10"></div>
 
-    return (
-        <>
-            <main className="flex flex-col items-center justify-center py-12 px-4 max-w-screen-lg mx-auto">
-                <section className="w-full text-center mb-15">
-                    <h1 className="text-3xl font-bold mb-4">
-                        학원 생활의 시작,
-                        <br />
-                        지금 학플과 함께하세요!
-                    </h1>
-                    <p className="text-gray-600 mb-9">
-                        3분 만에 가입하고
-                        <br />내 학원 정보와 커뮤니티를 무료로 이용해보세요
-                    </p>
-                    <Link href="/signup">
-                        <button className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-3 px-8 rounded-md">
-                            3분 만에 회원가입 하기
-                        </button>
-                    </Link>
-                </section>
+        <div className="max-w-[1400px] mx-auto px-4 h-full flex flex-col md:flex-row items-center justify-center gap-12">
+          {/* Left Content */}
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent mb-6">
+              학원생들을 위한<br />특별한 커뮤니티
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
+              HakPle와 함께 성장하는 학습 여정을 시작하세요.<br />
+              동료들과 함께 지식을 나누고, 경험을 공유하세요.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              <Link
+                href="/signup"
+                className="inline-flex items-center px-8 py-3 rounded-full bg-[#9C50D4] text-white font-medium hover:bg-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-purple-200"
+              >
+                지금 시작하기
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center px-8 py-3 rounded-full bg-white text-[#9C50D4] font-medium border-2 border-[#9C50D4] hover:bg-purple-50 transform hover:scale-105 transition-all duration-200"
+              >
+                로그인하기
+              </Link>
+            </div>
+          </div>
 
-                <section className="w-full mb-10 py-5">
-                    <h2 className="text-2xl font-bold text-center mb-12">회원가입 시 누릴 수 있는 혜택</h2>
+          {/* Right Content - Floating Cards */}
+          <div className="relative flex-1 h-[400px]">
+            {/* Card 1 */}
+            <div className="absolute top-0 left-[10%] w-[280px] bg-white rounded-2xl shadow-xl p-6 transform -rotate-6 hover:rotate-0 transition-all duration-300">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <span className="material-icons text-[#9C50D4]">school</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">학습 커뮤니티</h3>
+                  <p className="text-sm text-gray-500">함께 성장하는 공간</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-2 bg-purple-100 rounded-full w-3/4"></div>
+                <div className="h-2 bg-purple-100 rounded-full w-1/2"></div>
+              </div>
+            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-7 mb-7 bg-purple-100 rounded-full">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-14 w-14 text-purple-500"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                    />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-bold mb-4">무료 커뮤니티 이용</h3>
-                            <p className="text-gray-600">학원생들과 자유롭게 소통하며 유용한 정보를 교환해보세요.</p>
-                        </div>
+            {/* Card 2 */}
+            <div className="absolute top-[30%] right-[10%] w-[280px] bg-white rounded-2xl shadow-xl p-6 transform rotate-6 hover:rotate-0 transition-all duration-300">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <span className="material-icons text-[#9C50D4]">forum</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">지식 공유</h3>
+                  <p className="text-sm text-gray-500">경험과 노하우 공유</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-2 bg-purple-100 rounded-full w-2/3"></div>
+                <div className="h-2 bg-purple-100 rounded-full w-4/5"></div>
+              </div>
+            </div>
 
-                        <div className="flex flex-col items-center text-center">
-                            <div className="p-7 mb-7 bg-purple-100 rounded-full">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-14 w-14 text-purple-500"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                                    />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-bold mb-4">실시간 리뷰</h3>
-                            <p className="text-gray-600">실제 학생들의 생생한 학원 리뷰를 확인해보세요.</p>
-                        </div>
-                    </div>
-                </section>
+            {/* Card 3 */}
+            <div className="absolute bottom-0 left-[20%] w-[280px] bg-white rounded-2xl shadow-xl p-6 transform rotate-3 hover:rotate-0 transition-all duration-300">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <span className="material-icons text-[#9C50D4]">calendar_today</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">일정 관리</h3>
+                  <p className="text-sm text-gray-500">체계적인 학습 계획</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-2 bg-purple-100 rounded-full w-5/6"></div>
+                <div className="h-2 bg-purple-100 rounded-full w-2/3"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                <section className="w-full text-center mb-10">
-                    <div className="mb-3">
-                        <div className="w-40 h-40 mx-auto flex items-center justify-center">
-                            <img
-                                src="logo.png"
-                                alt="지금 바로 시작하세요"
-                                width={200}
-                                height={200}
-                                className="mx-auto"
-                            />
-                        </div>
-                    </div>
-                    <h2 className="text-2xl font-bold mb-4">지금 바로 시작하세요</h2>
-                    <p className="text-gray-600 mb-6">
-                        더 이상 고민하지 마세요.
-                        <br />
-                        학플에서 여러분이 원하는 학원생활을 만들어보세요.
-                    </p>
-                </section>
-            </main>
-        </>
-    )
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-[1400px] mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-16">
+            HakPle만의 특별한 기능
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="group bg-white rounded-2xl p-8 text-center hover:bg-purple-50 transition-all duration-300">
+              <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <span className="material-icons text-3xl text-[#9C50D4]">groups</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                학원별 커뮤니티
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                같은 학원 학생들과 소통하며<br />
+                함께 성장할 수 있는 공간
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="group bg-white rounded-2xl p-8 text-center hover:bg-purple-50 transition-all duration-300">
+              <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <span className="material-icons text-3xl text-[#9C50D4]">edit_note</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                지식 공유 게시판
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                학습 경험과 노하우를<br />
+                자유롭게 공유하는 공간
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="group bg-white rounded-2xl p-8 text-center hover:bg-purple-50 transition-all duration-300">
+              <div className="w-16 h-16 rounded-2xl bg-purple-100 flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <span className="material-icons text-3xl text-[#9C50D4]">event_available</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                일정 관리
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                체계적인 학습 계획을<br />
+                관리할 수 있는 캘린더
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Join Section */}
+      <section className="py-20 bg-gradient-to-b from-purple-50 to-white">
+        <div className="max-w-[1000px] mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+            지금 바로 HakPle과 함께하세요
+          </h2>
+          <p className="text-lg text-gray-600 mb-12 leading-relaxed">
+            새로운 배움의 여정을 시작하고, 동료들과 함께 성장하세요.<br />
+            HakPle이 여러분의 성공적인 학습을 응원합니다.
+          </p>
+          
+          <div className="flex flex-wrap gap-6 justify-center">
+            <Link
+              href="/signup"
+              className="inline-flex items-center px-8 py-4 rounded-full bg-[#9C50D4] text-white font-medium hover:bg-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-purple-200"
+            >
+              <span className="material-icons mr-2">person_add</span>
+              회원가입
+            </Link>
+            <Link
+              href="/post"
+              className="inline-flex items-center px-8 py-4 rounded-full bg-white text-[#9C50D4] font-medium border-2 border-[#9C50D4] hover:bg-purple-50 transform hover:scale-105 transition-all duration-200"
+            >
+              <span className="material-icons mr-2">article</span>
+              게시판 둘러보기
+            </Link>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }
