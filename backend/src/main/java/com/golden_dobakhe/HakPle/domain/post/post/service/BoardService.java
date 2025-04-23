@@ -64,4 +64,6 @@ public interface BoardService {
     Page<BoardResponse> getMyBoards(Long userId, Pageable pageable);
 
     Page<BoardResponse> getLikedBoards(Long userId, Pageable pageable);
+
+    List<Long> getLikedBoardIds(Long userId);
 }

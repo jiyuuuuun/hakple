@@ -46,6 +46,36 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
     });
 
     clearTimeout(timeoutId);
+
+    // 401 에러 처리
+    if (response.status === 401 && !url.includes('/api/v1/auth/login')) {
+      // 로그인 페이지로 리다이렉트
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
+
+    // myInfos API가 아닌 다른 API 요청에서 200 응답을 받았을 때
+    if (response.ok && !url.includes('/api/v1/myInfos')) {
+      try {
+        // 사용자 정보 갱신
+        const userInfoResponse = await fetch(`${BASE_URL}/api/v1/myInfos`, {
+          credentials: 'include',
+        });
+
+        if (userInfoResponse.ok) {
+          const userInfo = await userInfoResponse.json();
+          // localStorage에 최신 학원 정보 저장
+          if (typeof window !== 'undefined' && userInfo.academyCode) {
+            localStorage.setItem('academyCode', userInfo.academyCode);
+            localStorage.setItem('academyName', userInfo.academyName || '등록된 학원');
+          }
+        }
+      } catch (error) {
+        console.error('사용자 정보 갱신 실패:', error);
+      }
+    }
+
     return response;
   } catch (error) {
     if (error instanceof Error) {

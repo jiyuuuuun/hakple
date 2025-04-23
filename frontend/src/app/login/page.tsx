@@ -20,7 +20,7 @@ export default function LoginPage() {
         setError('')
 
         try {
-            console.log('로그인 요청 시작:', username)
+            console.log('로그인 요청 시작')
             const response = await fetch('http://localhost:8090/api/v1/auth/login', {
                 method: 'POST',
                 headers: {
@@ -38,10 +38,21 @@ export default function LoginPage() {
             }
 
             const data = await response.json()
-            console.log('로그인 성공 데이터:', data)
+            console.log('로그인 응답 데이터:', data)
 
-            // 로그인이 성공하면 setLoginMember 호출하여 전역 상태 업데이트
-            setLoginMember(data)
+            // 로그인 성공 후 사용자 정보 조회
+            const userInfoResponse = await fetch('http://localhost:8090/api/v1/myInfos', {
+                credentials: 'include',
+            })
+
+            if (userInfoResponse.ok) {
+                const userInfo = await userInfoResponse.json()
+                console.log('MyInfo 응답 데이터:', userInfo)
+                setLoginMember(userInfo)
+            } else {
+                console.error('사용자 정보 조회 실패')
+                setLoginMember(data)
+            }
 
             // 관리자 권한 확인
             console.log('관리자 권한 확인 시작')
@@ -127,22 +138,27 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center mb-8">
-                        <input
-                            type="checkbox"
-                            id="remember"
-                            className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        />
-                        <label htmlFor="remember" className="ml-3 text-base text-gray-600">
-                            로그인 상태 유지
-                        </label>
-                        <div className="ml-auto flex space-x-4">
-                            <Link href="/forgot-username" className="text-base text-gray-600 hover:text-purple-600">
-                                아이디 찾기
-                            </Link>
-                            <Link href="/forgot-password" className="text-base text-gray-600 hover:text-purple-600">
-                                비밀번호 찾기
-                            </Link>
+                    <div className="flex items-center justify-between mb-8 text-sm">
+                        <div className="flex items-center min-w-fit">
+                            <input
+                                type="checkbox"
+                                id="remember"
+                                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer flex-shrink-0"
+                            />
+                            <label htmlFor="remember" className="ml-2 text-gray-600 cursor-pointer select-none whitespace-nowrap">
+                                로그인 상태 유지
+                            </label>
+                        </div>
+                        <div className="flex items-center min-w-fit">
+                            <div className="flex items-center space-x-2">
+                                <Link href="/forgot-username" className="text-gray-600 hover:text-purple-600 hover:underline whitespace-nowrap">
+                                    아이디 찾기
+                                </Link>
+                                <span className="text-gray-300">|</span>
+                                <Link href="/forgot-password" className="text-gray-600 hover:text-purple-600 hover:underline whitespace-nowrap">
+                                    비밀번호 찾기
+                                </Link>
+                            </div>
                         </div>
                     </div>
 

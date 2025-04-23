@@ -276,4 +276,15 @@ public class ApiV1PostController {
         Page<BoardResponse> likedPosts = boardService.getLikedBoards(userId, pageable);
         return ResponseEntity.ok(likedPosts);
     }
+
+    @GetMapping("/my/like-status")
+    @Operation(summary = "내가 좋아요한 게시글 ID 목록 조회")
+    public ResponseEntity<List<Long>> getLikedPostIds() {
+        Long userId = getCurrentUserId(); // 현재 로그인 유저 ID 가져오기
+        List<Long> likedIds = boardService.getLikedBoardIds(userId); // 서비스에서 ID만 추출
+        return ResponseEntity.ok(likedIds);
+    }
+
+
+
 }
