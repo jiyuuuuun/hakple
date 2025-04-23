@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { useRouter } from "next/navigation";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
     const { 
@@ -28,6 +29,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         logoutAndHome,
         checkAdminAndRedirect
     }
+
+    const router = useRouter()
 
     //[]최초 요청시 api를 보낸다, 요청시에도 저게 돌아간다고 한다
     useEffect(() => {
@@ -75,35 +78,39 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 // 로그인 페이지에 있을 경우 홈으로 리다이렉트 (특별 페이지가 아닌 경우에만)
                 if (currentPath === '/login' && !isSpecialPage) {
                     console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
-                    window.location.href = '/'
+                    router.replace("/")
+                    //window.location.href = '/'
                 }
             })
             .catch((error) => {
+                console.log(error.status);
                 // 로그인 안됨
                 console.log('로그인 되어있지 않음', error)
 
                 // 로그인 상태 초기화
-                setNoLoginMember()
+   //             setNoLoginMember()
 
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 // 특별 페이지가 아닌 경우에만 리다이렉트
                 if (!isPublicPage && !isSpecialPage) {
                     console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
-                    window.location.href = '/login'
+                    router.replace("/login")
+                   
                 }
             })
             .finally(() => {
                 console.log('로그인 상태 확인 완료, 현재 로그인 상태:', isLogin, '현재 페이지:', currentPath, '공개 페이지 여부:', isPublicPage)
             })
+            
     }, [])
 
-    useEffect(() => {
-        console.log('로그인 상태 변경:', isLogin, loginMember)
-    }, [isLogin, loginMember])
-
     if (isLoginMemberPending) {
-        return <div className="flex justify-center items-center h-screen">로그인 중...</div>
-    }
+        return (
+          <div className="flex-1 flex justify-center items-center text-muted-foreground">
+            로그인중...
+          </div>
+        );
+      }
 
     return (
         //나중에 내부적으로 접근이 가능하게 된다, 그리고 value를 통하여 전역적으로 접근이 가능하게 된다

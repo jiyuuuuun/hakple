@@ -33,6 +33,11 @@ public class AuthService {
     private final JwtTokenizer jwtTokenizer;
     private static final String UPLOAD_DIR = "uploads/profile/";
 
+    @Transactional(readOnly = true)
+    public Optional<User> findByIdWithRoles(Long id) {
+        return userRepository.findByIdWithRoles(id);
+    }
+
     //일단 간단하게 있는지 없는지 체크
     @Transactional(readOnly = true)
     public User findByUserName(String userName) {
