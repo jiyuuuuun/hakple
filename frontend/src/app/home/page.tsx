@@ -72,6 +72,7 @@ type UserInfo = {
     creationTime: string
     academyCode: string
     academyName?: string
+    profileImageUrl?: string
     email?: string
     postCount?: number
     commentCount?: number
@@ -92,7 +93,7 @@ export default function HomePage() {
     const postMenuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({})
     const [popularPosts, setPopularPosts] = useState<Post[]>([])
     const [popularTags, setPopularTags] = useState<{ name: string; count: number }[]>([])
-    const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
+    const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set())
 
     // 학원 이름 찾기 함수 (학원 코드로부터)
     const getAcademyNameFromCode = (code: string): string => {
@@ -180,13 +181,13 @@ export default function HomePage() {
                 const [postsResponse, commentsResponse, likesResponse] = await Promise.all([
                     fetchApi('/api/v1/posts/my?page=0&size=1', { credentials: 'include' }),
                     fetchApi('/api/v1/comments/my?page=0&size=1', { credentials: 'include' }),
-                    fetchApi('/api/v1/posts/my/likes?page=0&size=1', { credentials: 'include' })
+                    fetchApi('/api/v1/posts/my/likes?page=0&size=1', { credentials: 'include' }),
                 ])
 
                 const [postsData, commentsData, likesData] = await Promise.all([
                     postsResponse.ok ? postsResponse.json() : { totalElements: 0 },
                     commentsResponse.ok ? commentsResponse.json() : { totalElements: 0 },
-                    likesResponse.ok ? likesResponse.json() : { totalElements: 0 }
+                    likesResponse.ok ? likesResponse.json() : { totalElements: 0 },
                 ])
 
                 // 통계 정보 추가
@@ -194,12 +195,13 @@ export default function HomePage() {
                     ...userData,
                     postCount: postsData.totalElements || 0,
                     commentCount: commentsData.totalElements || 0,
-                    likeCount: likesData.totalElements || 0
+                    likeCount: likesData.totalElements || 0,
                 }
 
                 // 학원 정보 처리
                 if (userInfoWithStats.academyCode) {
-                    const academyName = userInfoWithStats.academyName || getAcademyNameFromCode(userInfoWithStats.academyCode)
+                    const academyName =
+                        userInfoWithStats.academyName || getAcademyNameFromCode(userInfoWithStats.academyCode)
                     userInfoWithStats.academyName = academyName
                     localStorage.setItem('academyName', academyName)
                     localStorage.setItem('academyCode', userInfoWithStats.academyCode)
@@ -315,7 +317,7 @@ export default function HomePage() {
                             console.error('좋아요 상태 확인 중 오류:', error)
                             return { ...post, isLiked: false }
                         }
-                    })
+                    }),
                 )
 
                 setPosts(postsWithLikeStatus)
@@ -367,7 +369,7 @@ export default function HomePage() {
     const fetchPopularPosts = async () => {
         try {
             // API 요청 URL 구성 (좋아요 10개 이상, 최대 5개 게시글)
-            const url = `/api/v1/posts?page=1&size=5&sortType=좋아요순&minLikes=10`;
+            const url = `/api/v1/posts?page=1&size=5&sortType=좋아요순&minLikes=10`
 
             const response = await fetchApi(url, {
                 headers: {
@@ -500,36 +502,28 @@ export default function HomePage() {
                 isLiked,
                 isLogin,
                 setIsLiked: (newLiked: boolean) => {
-                    setPosts(prevPosts =>
-                        prevPosts.map(p =>
-                            p.id === post.id ? { ...p, isLiked: newLiked } : p
-                        )
-                    );
+                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? { ...p, isLiked: newLiked } : p)))
                 },
                 setPost: (updateFn: (prev: Post) => Post) => {
-                    setPosts(prevPosts =>
-                        prevPosts.map(p =>
-                            p.id === post.id ? updateFn(p) : p
-                        )
-                    );
+                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? updateFn(p) : p)))
                 },
                 setIsLiking: () => {
-                    setLikingPosts(prev => {
-                        const next = new Set(prev);
-                        next.delete(post.id);
-                        return next;
-                    });
+                    setLikingPosts((prev) => {
+                        const next = new Set(prev)
+                        next.delete(post.id)
+                        return next
+                    })
                 },
-            });
+            })
         } catch (error) {
-            console.error('좋아요 처리 중 오류:', error);
-            setLikingPosts(prev => {
-                const next = new Set(prev);
-                next.delete(post.id);
-                return next;
-            });
+            console.error('좋아요 처리 중 오류:', error)
+            setLikingPosts((prev) => {
+                const next = new Set(prev)
+                next.delete(post.id)
+                return next
+            })
         }
-    };
+    }
 
     // 로그인하지 않은 경우 로딩 화면 대신 로그인 페이지로 리다이렉트
     if (!isLogin) {
@@ -560,7 +554,9 @@ export default function HomePage() {
                             <div className="space-y-2">
                                 {userInfo?.academyCode ? (
                                     <div className="p-2 rounded-md flex items-center justify-between">
-                                        <span className="text-gray-700 text-lg font-medium">{userInfo.academyName || '등록된 학원'}</span>
+                                        <span className="text-gray-700 text-lg font-medium">
+                                            {userInfo.academyName || '등록된 학원'}
+                                        </span>
                                         <div className="flex items-center text-[#9C50D4]">
                                             <span className="w-2 h-2 bg-[#9C50D4] rounded-full mr-1"></span>
                                             <span className="text-sm">활성</span>
@@ -581,12 +577,15 @@ export default function HomePage() {
                         <div className="bg-white rounded-lg shadow p-4 mb-6">
                             <h2 className="text-lg font-semibold text-gray-800 mb-4">인기글 TOP 5</h2>
                             <div className="space-y-3">
-                                {popularPosts.length > 0 ? (
-                                    popularPosts.map((post, index) => (
+                                {popularPosts.length > 0
+                                    ? popularPosts.map((post, index) => (
                                         <Link key={post.id} href={`/post/${post.id}`}>
                                             <div className="group p-3 rounded-md hover:bg-purple-50 transition-colors">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`font-bold ${index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'}`}>
+                                                    <span
+                                                        className={`font-bold ${index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'
+                                                            }`}
+                                                    >
                                                         {index + 1}
                                                     </span>
                                                     <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
@@ -595,16 +594,43 @@ export default function HomePage() {
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
                                                     <div className="flex items-center gap-1">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-4 w-4"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                            />
                                                         </svg>
                                                         {post.likeCount}
                                                     </div>
                                                     <span className="text-gray-300">•</span>
                                                     <div className="flex items-center gap-1">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-4 w-4"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                            />
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                            />
                                                         </svg>
                                                         {post.viewCount}
                                                     </div>
@@ -612,12 +638,14 @@ export default function HomePage() {
                                             </div>
                                         </Link>
                                     ))
-                                ) : (
-                                    // 인기글이 없을 때 1-5위 자리 표시
+                                    : // 인기글이 없을 때 1-5위 자리 표시
                                     Array.from({ length: 5 }, (_, index) => (
                                         <div key={index} className="p-3 rounded-md bg-gray-50">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className={`font-bold ${index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'}`}>
+                                                <span
+                                                    className={`font-bold ${index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'
+                                                        }`}
+                                                >
                                                     {index + 1}
                                                 </span>
                                                 <div className="flex-1">
@@ -626,23 +654,49 @@ export default function HomePage() {
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-gray-400">
                                                 <div className="flex items-center gap-1">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-4 w-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                        />
                                                     </svg>
                                                     -
                                                 </div>
                                                 <span className="text-gray-300">•</span>
                                                 <div className="flex items-center gap-1">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-4 w-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                        />
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                        />
                                                     </svg>
                                                     -
                                                 </div>
                                             </div>
                                         </div>
-                                    ))
-                                )}
+                                    ))}
                             </div>
                         </div>
 
@@ -653,7 +707,9 @@ export default function HomePage() {
                                 <Link href="/post/notice1" className="block">
                                     <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#980ffa] text-white rounded">필독</span>
+                                            <span className="px-2 py-1 text-xs bg-[#980ffa] text-white rounded">
+                                                필독
+                                            </span>
                                             <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
                                                 학플 커뮤니티 이용규칙 안내 및 게시글 작성 가이드
                                             </h3>
@@ -664,7 +720,9 @@ export default function HomePage() {
                                 <Link href="/post/notice2" className="block">
                                     <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">공지</span>
+                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">
+                                                공지
+                                            </span>
                                             <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
                                                 4월 서비스 업데이트 및 시스템 점검 안내 (4/25)
                                             </h3>
@@ -675,7 +733,9 @@ export default function HomePage() {
                                 <Link href="/post/notice3" className="block">
                                     <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">공지</span>
+                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">
+                                                공지
+                                            </span>
                                             <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
                                                 커뮤니티 신규 기능 추가 - 일정 관리와 학원별 게시판
                                             </h3>
@@ -717,7 +777,10 @@ export default function HomePage() {
                             </div>
                         ) : posts.length > 0 ? (
                             posts.map((post) => (
-                                <div key={post.id} className="bg-white rounded-lg shadow-md overflow-hidden mb-8 transition-all duration-200 hover:shadow-lg hover:bg-gray-50/50">
+                                <div
+                                    key={post.id}
+                                    className="bg-white rounded-lg shadow-md overflow-hidden mb-8 transition-all duration-200 hover:shadow-lg hover:bg-gray-50/50"
+                                >
                                     <div className="p-6">
                                         {/* 작성자 정보 - 한 줄로 정리 */}
                                         <div className="flex justify-between items-center mb-5">
@@ -741,7 +804,9 @@ export default function HomePage() {
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-medium text-gray-900">{post.nickname}</span>
                                                     <span className="text-gray-400">•</span>
-                                                    <span className="text-gray-500">{formatDate(post.creationTime)}</span>
+                                                    <span className="text-gray-500">
+                                                        {formatDate(post.creationTime)}
+                                                    </span>
                                                 </div>
                                             </div>
                                             <Link
@@ -794,13 +859,15 @@ export default function HomePage() {
                                         <div className="flex items-center gap-6 text-gray-500">
                                             <button
                                                 onClick={(e) => handleLikeClick(post, e)}
-                                                className={`flex items-center gap-2 group/like transition-all ${post.isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'}`}
+                                                className={`flex items-center gap-2 group/like transition-all ${post.isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'
+                                                    }`}
                                                 disabled={likingPosts.has(post.id)}
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${likingPosts.has(post.id) ? 'animate-pulse' : ''}`}
-                                                    fill={post.isLiked ? "currentColor" : "none"}
+                                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${likingPosts.has(post.id) ? 'animate-pulse' : ''
+                                                        }`}
+                                                    fill={post.isLiked ? 'currentColor' : 'none'}
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
                                                 >
@@ -815,7 +882,8 @@ export default function HomePage() {
                                             </button>
                                             <Link
                                                 href={`/post/${post.id}`}
-                                                className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors group">
+                                                className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors group"
+                                            >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     className="h-7 w-7 group-hover:scale-110 transition-transform"
@@ -886,26 +954,40 @@ export default function HomePage() {
                             {/* 프로필 섹션 */}
                             <div className="flex flex-col items-center pb-6 border-b border-gray-100">
                                 <div className="w-24 h-24 rounded-full bg-purple-50 flex items-center justify-center mb-4 ring-4 ring-purple-100">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-12 w-12 text-[#9C50D4]"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        strokeWidth={1.5}
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                    {userInfo?.profileImageUrl ? (
+                                        <img
+                                            src={userInfo.profileImageUrl}
+                                            alt="프로필 이미지"
+                                            className="h-full w-full object-cover rounded-full"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement
+                                                target.src = 'https://via.placeholder.com/96?text=사용자'
+                                            }}
                                         />
-                                    </svg>
+                                    ) : (
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-12 w-12 text-[#9C50D4]"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            strokeWidth={1.5}
+                                            stroke="currentColor"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                            />
+                                        </svg>
+                                    )}
                                 </div>
                                 <h3 className="text-xl font-semibold text-gray-900 mb-1">
                                     {userInfo?.nickName || '사용자'}
                                 </h3>
                                 <div className="flex items-center gap-2 mb-4">
-                                    <span className="text-sm text-gray-500">@{userInfo?.userName || '사용자 이름'}</span>
+                                    <span className="text-sm text-gray-500">
+                                        @{userInfo?.userName || '사용자 이름'}
+                                    </span>
                                     <span className="h-1 w-1 rounded-full bg-gray-300"></span>
                                     <span className="text-sm text-[#9C50D4]">일반회원</span>
                                 </div>
@@ -913,15 +995,19 @@ export default function HomePage() {
                                     href="/myinfo/update"
                                     className="text-sm px-4 py-2 bg-purple-50 text-[#9C50D4] rounded-full hover:bg-purple-100 transition-colors flex items-center gap-2"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
                                         className="h-4 w-4"
                                         fill="none"
                                         viewBox="0 0 24 24"
-                                        stroke="currentColor">
-                                        <path strokeLinecap="round"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
                                             strokeLinejoin="round"
                                             strokeWidth={2}
-                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                        />
                                     </svg>
                                     프로필 수정
                                 </Link>
@@ -957,41 +1043,57 @@ export default function HomePage() {
 
                             {/* 빠른 링크 */}
                             <div className="pt-4 border-t border-gray-100">
-                                <Link href="/calendar"
-                                    className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors">
+                                <Link
+                                    href="/calendar"
+                                    className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors"
+                                >
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
                                                 className="h-5 w-5 text-[#9C50D4]"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
-                                                stroke="currentColor">
-                                                <path strokeLinecap="round"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
                                                     strokeLinejoin="round"
                                                     strokeWidth={2}
-                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                />
                                             </svg>
                                         </div>
-                                        <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">내 일정</span>
+                                        <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">
+                                            내 일정
+                                        </span>
                                     </div>
                                     <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#9C50D4]" />
                                 </Link>
-                                <Link href="/myinfo"
-                                    className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors">
+                                <Link
+                                    href="/myinfo"
+                                    className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors"
+                                >
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
                                                 className="h-5 w-5 text-[#9C50D4]"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
-                                                stroke="currentColor">
-                                                <path strokeLinecap="round"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
                                                     strokeLinejoin="round"
                                                     strokeWidth={2}
-                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                />
                                             </svg>
                                         </div>
-                                        <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">내 정보 관리</span>
+                                        <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">
+                                            내 정보 관리
+                                        </span>
                                     </div>
                                     <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#9C50D4]" />
                                 </Link>
@@ -1027,41 +1129,44 @@ export default function HomePage() {
                             <div className="mt-6">
                                 <h3 className="text-lg font-semibold mb-4 text-gray-800">오늘의 일정</h3>
                                 <div className="space-y-3">
-                                    {events.filter(event => {
-                                        const today = new Date()
-                                        const eventDate = new Date(event.start)
-                                        return (
-                                            eventDate.getDate() === today.getDate() &&
-                                            eventDate.getMonth() === today.getMonth() &&
-                                            eventDate.getFullYear() === today.getFullYear()
-                                        )
-                                    }).map((event) => (
-                                        <div
-                                            key={event.id}
-                                            className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                                        >
+                                    {events
+                                        .filter((event) => {
+                                            const today = new Date()
+                                            const eventDate = new Date(event.start)
+                                            return (
+                                                eventDate.getDate() === today.getDate() &&
+                                                eventDate.getMonth() === today.getMonth() &&
+                                                eventDate.getFullYear() === today.getFullYear()
+                                            )
+                                        })
+                                        .map((event) => (
                                             <div
-                                                className="w-2 h-2 mt-2 rounded-full shrink-0"
-                                                style={{ backgroundColor: event.color || '#9C50D4' }}
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-medium text-gray-900 truncate">
-                                                    {event.title}
-                                                </h4>
-                                                <p className="text-sm text-gray-500">
-                                                    {new Date(event.start).toLocaleTimeString('ko-KR', {
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                    })}
-                                                    {event.end && ` - ${new Date(event.end).toLocaleTimeString('ko-KR', {
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                    })}`}
-                                                </p>
+                                                key={event.id}
+                                                className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                                            >
+                                                <div
+                                                    className="w-2 h-2 mt-2 rounded-full shrink-0"
+                                                    style={{ backgroundColor: event.color || '#9C50D4' }}
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-medium text-gray-900 truncate">
+                                                        {event.title}
+                                                    </h4>
+                                                    <p className="text-sm text-gray-500">
+                                                        {new Date(event.start).toLocaleTimeString('ko-KR', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        })}
+                                                        {event.end &&
+                                                            ` - ${new Date(event.end).toLocaleTimeString('ko-KR', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                            })}`}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                    {events.filter(event => {
+                                        ))}
+                                    {events.filter((event) => {
                                         const today = new Date()
                                         const eventDate = new Date(event.start)
                                         return (

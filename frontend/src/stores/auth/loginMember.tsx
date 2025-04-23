@@ -3,13 +3,14 @@ import { useRouter } from 'next/navigation'
 
 //이 부분은 나중에 DTO에 맞게 변경할거임
 export interface User {
-    nickname: string;
-    userName: string;
-    phoneNum?: string;
-    creationTime: string;
-    modificationTime: string;
-    academyCode?: string;
-    academyName?: string;
+    nickname: string
+    userName: string
+    phoneNum?: string
+    creationTime: string
+    modificationTime: string
+    academyCode?: string
+    academyName?: string
+    profileImageUrl?: string
 }
 
 // 백엔드 응답 타입 - MyInfoResponseDto와 일치하도록
@@ -20,7 +21,8 @@ type BackendUser = {
     userName?: string // 사용자 아이디
     phoneNum?: string
     academyCode?: string // 학원 코드
-    academyName?: string  // Added academyName field
+    academyName?: string // Added academyName field
+    profileImageUrl?: string
     creationTime?: string
     modificationTime?: string
     [key: string]: unknown // any 대신 unknown 사용
@@ -38,12 +40,12 @@ export const LoginMemberContext = createContext<{
     checkAdminAndRedirect: () => Promise<boolean>
 }>({
     loginMember: createEmptyMember(),
-    setLoginMember: () => { },
-    setNoLoginMember: () => { },
+    setLoginMember: () => {},
+    setNoLoginMember: () => {},
     isLoginMemberPending: true,
     isLogin: false,
-    logout: () => { },
-    logoutAndHome: () => { },
+    logout: () => {},
+    logoutAndHome: () => {},
     checkAdminAndRedirect: async () => false,
 })
 
@@ -55,7 +57,8 @@ function createEmptyMember(): User {
         creationTime: '',
         modificationTime: '',
         academyCode: '',
-        academyName: ''
+        academyName: '',
+        profileImageUrl: '',
     }
 }
 
@@ -72,25 +75,24 @@ export function useLoginMember() {
 
     //pending이 false되어서 로그인이 되었다고 판단함
     const setLoginMember = (member: BackendUser) => {
-        console.group('LoginMember Store - setLoginMember');
-        console.log('백엔드 응답 데이터:', member);
+        console.group('LoginMember Store - setLoginMember')
+        console.log('백엔드 응답 데이터:', member)
 
         // 닉네임 처리 (nickname 또는 nickName 사용)
         const nickname =
             typeof member.nickName === 'string'
                 ? member.nickName
                 : typeof member.nickname === 'string'
-                    ? member.nickname
-                    : '';
+                ? member.nickname
+                : ''
 
         // academyId를 academyCode로 처리
         const academyCode =
             typeof member.academyCode === 'string'
                 ? member.academyCode
                 : typeof member.academyId === 'string'
-                    ? member.academyId
-                    : '';
-
+                ? member.academyId
+                : ''
 
         const user: User = {
             nickname: nickname,
@@ -99,13 +101,14 @@ export function useLoginMember() {
             creationTime: member.creationTime || '',
             modificationTime: member.modificationTime || '',
             academyCode: academyCode,
-            academyName: member.academyName || ''
-        };
+            academyName: member.academyName || '',
+            profileImageUrl: member.profileImageUrl || '',
+        }
 
-        console.log('생성된 User 객체:', user);
-        _setLoginMember(user);
-        setLoginMemberPending(false);
-        console.groupEnd();
+        console.log('생성된 User 객체:', user)
+        _setLoginMember(user)
+        setLoginMemberPending(false)
+        console.groupEnd()
     }
 
     const setNoLoginMember = () => {
@@ -113,7 +116,7 @@ export function useLoginMember() {
     }
 
     //로그인이 되었냐
-    const isLogin = !!loginMember.userName;
+    const isLogin = !!loginMember.userName
 
     const logout = (callback: () => void) => {
         fetch('http://localhost:8090/api/v1/auth/logout', {
@@ -136,7 +139,7 @@ export function useLoginMember() {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
             })
 

@@ -36,12 +36,18 @@ public class MyInfoService {
             throw new RuntimeException("Academy not found");
         }
 
+        String profileImageUrl = null;
+        if (user.getProfileImage() != null) {
+            profileImageUrl = user.getProfileImage().getFilePath();
+        }
+
         return MyInfoResponseDto.builder()
                 .nickName(user.getNickName())
                 .userName(user.getUserName())
                 .phoneNum(user.getPhoneNum())
                 .creationTime(user.getCreationTime())
                 .academyCode(academyCode)
+                .profileImageUrl(profileImageUrl)
                 .academyName(academy.getAcademyName())
                 .build();
     }
