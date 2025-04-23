@@ -28,23 +28,23 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     runtimeOnly("com.h2database:h2")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
-//  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
     implementation("org.springframework.boot:spring-boot-starter-security") //security
-    testImplementation ("org.testcontainers:mysql:1.19.3")
-    testImplementation ("org.testcontainers:junit-jupiter:1.19.3")
-    testImplementation ("org.springframework.security:spring-security-test")
-    implementation ("org.springframework.boot:spring-boot-starter-validation")
+    testImplementation("org.testcontainers:mysql:1.19.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
+    testImplementation("org.springframework.security:spring-security-test")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
 
     // JWT & JSON
-	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
-	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
-	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
+    implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
-	// Gson - JSON 메시지를 다루기 위한 라이브러리
-	implementation("com.google.code.gson:gson")
+    // Gson - JSON 메시지를 다루기 위한 라이브러리
+    implementation("com.google.code.gson:gson")
 
-	// Validation
+    // Validation
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
     //누리고
@@ -52,8 +52,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
-	// Oauth2
-	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+    // Oauth2
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+
+    // AWS S3
+    implementation("org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE")
 
 }
 
