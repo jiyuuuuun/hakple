@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+
 @Builder
 @Schema(description = "사용자 정보 응답 DTO")
 public class MyInfoResponseDto { //사용자 정보 조회용
@@ -24,4 +25,7 @@ public class MyInfoResponseDto { //사용자 정보 조회용
 
     @Schema(description = "등록된 학원 코드", example = "LLN1234XYZ")
     private String academyCode;
+
+    @Schema(description = "프로필 이미지 url")
+    private String profileImageUrl;
 }

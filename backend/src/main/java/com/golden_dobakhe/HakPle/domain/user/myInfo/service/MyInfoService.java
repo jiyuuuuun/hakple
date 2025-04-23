@@ -9,14 +9,12 @@ import com.golden_dobakhe.HakPle.domain.user.myInfo.validator.PhoneNumValidator;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-@Slf4j
 public class MyInfoService {
     private final UserRepository userRepository;
 
@@ -28,12 +26,18 @@ public class MyInfoService {
         // academyId 값을 MyInfoResponseDto의 academyCode 필드에 매핑
         String academyCode = user.getAcademyId();
 
+        String profileImageUrl = null;
+        if (user.getProfileImage() != null) {
+            profileImageUrl = user.getProfileImage().getFilePath();
+        }
+
         return MyInfoResponseDto.builder()
                 .nickName(user.getNickName())
                 .userName(user.getUserName())
                 .phoneNum(user.getPhoneNum())
                 .creationTime(user.getCreationTime())
                 .academyCode(academyCode)
+                .profileImageUrl(profileImageUrl)
                 .build();
     }
 
