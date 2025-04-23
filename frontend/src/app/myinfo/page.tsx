@@ -16,6 +16,7 @@ type MyInfo = {
     creationTime: string
     academyCode: string
     academyName?: string
+    profileImageUrl?: string
     postCount?: number
     commentCount?: number
     likeCount?: number
@@ -202,6 +203,7 @@ export default function MyInfoPage() {
         postCount: postCount,
         commentCount: commentCount,
         likeCount: likeCount,
+        profileImageUrl: userInfo?.profileImageUrl || loginMember.profileImageUrl || '',
     }
 
     // 카운트 데이터 가져오기 공통 함수
@@ -247,27 +249,26 @@ export default function MyInfoPage() {
         const checkAdminPermission = async () => {
             setAdminChecking(true)
             try {
-                const accessToken = localStorage.getItem('accessToken')
+                // const accessToken = localStorage.getItem('accessToken')
 
-                if (!accessToken) {
-                    setIsAdmin(false)
-                    setAdminChecking(false)
-                    return
-                }
+                // if (!accessToken) {
+                //     setIsAdmin(false)
+                //     setAdminChecking(false)
+                //     return
+                // }
 
                 // 네트워크 타임아웃 설정 (5초)
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), 5000)
 
                 try {
-
                     // fetchApi 유틸리티 함수 사용으로 변경
                     const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
                         credentials: 'include',
                         headers: {
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${accessToken}`,
+                            //Authorization: `Bearer ${accessToken}`,
                         },
                         signal: controller.signal,
                     })
@@ -339,24 +340,24 @@ export default function MyInfoPage() {
                             : getAcademyNameFromCode(data.academyCode))
 
                     // 토큰에서 추가 정보 확인 (백업)
-                    const token = localStorage.getItem('accessToken')
-                    if (token) {
-                        try {
-                            const payload = JSON.parse(atob(token.split('.')[1]))
-                            const academyIdFromToken =
-                                payload.academyId || payload.academyCode || payload.academy_code || null
+                    // const token = localStorage.getItem('accessToken')
+                    // if (token) {
+                    //     try {
+                    //         const payload = JSON.parse(atob(token.split('.')[1]))
+                    //         const academyIdFromToken =
+                    //             payload.academyId || payload.academyCode || payload.academy_code || null
 
-                            // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
-                            if (!finalAcademyCode && academyIdFromToken) {
-                                finalAcademyCode = String(academyIdFromToken)
-                                finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
-                            }
-                        } catch (e) {
-                            console.error('토큰 파싱 중 오류:', e)
-                        }
-                    } catch (e) {
-                        console.log('토큰 파싱 중 오류:', e);
-                    }
+                    //         // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
+                    //         if (!finalAcademyCode && academyIdFromToken) {
+                    //             finalAcademyCode = String(academyIdFromToken)
+                    //             finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
+                    //         }
+                    //     } catch (e) {
+                    //         console.error('토큰 파싱 중 오류:', e)
+                    //     }
+                    // } catch (e) {
+                    //     console.log('토큰 파싱 중 오류:', e);
+                    // }
 
                     // 정보 업데이트
                     localStorage.setItem('academyCode', finalAcademyCode)
@@ -427,18 +428,51 @@ export default function MyInfoPage() {
                     <div className="relative h-56 bg-[#f2edf4] rounded-t-lg mt-4 mx-4">
                         <div className="absolute left-8 bottom-0 translate-y-23">
                             <div className="relative">
-                                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white bg-white">
-                                    <Image
-                                        src="/profile.png"
-                                        alt="프로필 이미지"
-                                        width={112}
-                                        height={112}
-                                        className="object-cover"
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement
-                                            target.src = 'https://via.placeholder.com/112?text=사용자'
-                                        }}
-                                    />
+                                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white bg-white relative group">
+                                    {combinedUserInfo.profileImageUrl ? (
+                                        <Image
+                                            src={combinedUserInfo.profileImageUrl}
+                                            alt="프로필 이미지"
+                                            width={112}
+                                            height={112}
+                                            className="object-cover"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement
+                                                target.src = 'https://via.placeholder.com/112?text=사용자'
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-purple-50 flex items-center justify-center">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-16 w-16 text-[#9C50D4]"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                strokeWidth={1.5}
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                                />
+                                            </svg>
+                                        </div>
+                                    )}
+                                    <Link
+                                        href="/myinfo/profile-image"
+                                        className="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 transition-colors"
+                                        title="프로필 이미지 변경"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            className="h-5 w-5 text-purple-600"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                        </svg>
+                                    </Link>
                                 </div>
                             </div>
                             <div className="mt-5 text-left pl-1">

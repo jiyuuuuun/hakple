@@ -1,104 +1,131 @@
 package com.golden_dobakhe.HakPle.domain.resource.image.service;
 
-import com.golden_dobakhe.HakPle.domain.resource.image.dto.ProfileImageRequestDto;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
-import com.golden_dobakhe.HakPle.domain.resource.image.exception.ImageErrorCode;
-import com.golden_dobakhe.HakPle.domain.resource.image.exception.ProfileImageException;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
-import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ProfileImageService {
 
-    private final UserRepository userRepository;
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
+
     private final ImageRepository imageRepository;
+    private final UserRepository userRepository;
 
-    private static final String UPLOAD_DIR = "uploads/profile/";
+    private final AmazonS3 amazonS3;
 
-    // 프로필 사진 등록, 수정
-    @Transactional
-    public String uploadProfileImage(ProfileImageRequestDto dto, MultipartFile file) throws IOException {
-        // 유저 조회
-        User user = userRepository.findByUserName(dto.getUserName())
-                .orElseThrow(() -> new ProfileImageException(ImageErrorCode.USER_NOT_FOUND));
+    // 파일명을 난수화하기 위해 UUID 를 활용하여 난수를 돌린다.
+    public String createFileName(String fileName) {
+        return UUID.randomUUID().toString().concat(getFileExtension(fileName));
+    }
 
-        // 파일 유효성 검사
-        if (file == null || file.isEmpty()) {
-            throw new ProfileImageException(ImageErrorCode.FILE_EMPTY);
-        }
+    //  "."의 존재 유무만 판단
+    private String getFileExtension(String fileName) {
+        try {
+            //파일 형식 구하기
+            String ext = fileName.split("\\.")[1];
+//        String ext = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
 
-        // 디렉토리 확인 및 생성
-        String uploadPath = System.getProperty("user.dir") + File.separator + UPLOAD_DIR;
-        File uploadFolder = new File(uploadPath);
-        if (!uploadFolder.exists()) {
-            uploadFolder.mkdirs();
-        }
-
-        // 파일 저장
-        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-        File destinationFile = new File(uploadFolder, fileName);
-        file.transferTo(destinationFile);
-
-        // 이미지 DB 저장
-        String relativePath = "/" + UPLOAD_DIR + fileName;
-
-        Image existingImage = imageRepository.findByUser(user);
-        // 수정
-        if (existingImage != null) {
-            String oldFilePath = System.getProperty("user.dir") + existingImage.getFilePath();
-            File oldFile = new File(oldFilePath);
-            if (oldFile.exists()) {
-                oldFile.delete();
+            String contentType = "";
+            //content type을 지정해서 올려주지 않으면 자동으로 "application/octet-stream"으로 고정이 되서 링크 클릭시 웹에서 열리는게 아니라 자동 다운이 시작됨.
+            switch (ext) {
+                case "jpeg":
+                    contentType = "image/jpeg";
+                    break;
+                case "png":
+                    contentType = "image/png";
+                    break;
+                case "txt":
+                    contentType = "text/plain";
+                    break;
+                case "csv":
+                    contentType = "text/csv";
+                    break;
             }
-
-            existingImage.setFilePath(relativePath);
-            imageRepository.save(existingImage);
+            return contentType;
+        } catch (StringIndexOutOfBoundsException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 형식의 파일" + fileName + ") 입니다.");
         }
-        // 등록
-        else {
-            Image newImage = Image.builder()
-                    .user(user)
-                    .filePath(relativePath)
-                    .build();
-            imageRepository.save(newImage);
-            user.setProfileImage(newImage);
-            userRepository.save(user);
+    }
+
+    @Transactional
+    public String uploadProfileImage(String userName, MultipartFile multipartFile) {
+        User user = userRepository.findByUserName(userName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자 없음"));
+
+        // 기존 이미지가 있다면 삭제
+        Image existingImage = user.getProfileImage();
+        if (existingImage != null) {
+            deleteS3Image(existingImage.getFilePath());
+            imageRepository.delete(existingImage);
+            user.setProfileImage(null);
         }
 
-        return relativePath;
+        String fileName = createFileName(multipartFile.getOriginalFilename());
+
+        try {
+            ObjectMetadata objectMetadata = new ObjectMetadata();
+            objectMetadata.setContentType(fileName);
+
+            //S3에 파일 업로드
+            amazonS3.putObject(new PutObjectRequest(bucket, fileName, multipartFile.getInputStream(), objectMetadata)
+                    .withCannedAcl(CannedAccessControlList.PublicRead));
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다.");
+        }
+
+        //db에 새 이미지 저장
+        String profileImageUrl = amazonS3.getUrl(bucket, fileName).toString();
+        Image newImage = Image.builder()
+                .filePath(profileImageUrl)
+                .user(user)
+                .build();
+        imageRepository.save(newImage);
+        user.setProfileImage(newImage);
+        userRepository.save(user);
+
+        return profileImageUrl;
     }
 
     // 프로필 사진 삭제
+    @Transactional
     public void deleteProfileImage(String userName) {
-        // 유저 조회
         User user = userRepository.findByUserName(userName)
-                .orElseThrow(() -> new ProfileImageException(ImageErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자 없음"));
 
-        Image image = imageRepository.findByUser(user);
-        if (image == null) {
-            throw new ProfileImageException(ImageErrorCode.IMAGE_NOT_FOUND);
+        Image existingImage = user.getProfileImage();
+        if (existingImage != null) {
+            deleteS3Image(existingImage.getFilePath());
+
+            imageRepository.delete(existingImage);
+            user.setProfileImage(null);
+            userRepository.save(user);
         }
+    }
 
-        // 파일 삭제
-        String deletePath = System.getProperty("user.dir") + image.getFilePath();
-        File file = new File(deletePath);
-        if (file.exists()) {
-            file.delete();
+    private void deleteS3Image(String fileName) {
+        try {
+            String key = fileName.contains(".com/") ? fileName.split(".com/")[1] : fileName;
+            amazonS3.deleteObject(bucket, key);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 이미지 삭제 실패");
         }
-
-        user.setProfileImage(null);
-        userRepository.save(user);
-
-        imageRepository.delete(image);
     }
 }

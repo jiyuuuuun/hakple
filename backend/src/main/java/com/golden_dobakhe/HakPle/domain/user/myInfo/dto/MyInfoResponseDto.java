@@ -24,4 +24,10 @@ public class MyInfoResponseDto { //사용자 정보 조회용
 
     @Schema(description = "등록된 학원 코드", example = "LLN1234XYZ")
     private String academyCode;
+
+    @Schema(description = "등록된 학원 이름", example = "ㅇㅇ학원")
+    private String academyName;
+
+    @Schema(description = "프로필 이미지 url")
+    private String profileImageUrl;
 }

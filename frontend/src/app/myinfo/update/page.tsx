@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import Link from 'next/link'
 
 // 휴대폰 번호 형식화 함수 (하이픈 추가)
 const formatPhoneNumber = (phoneNum: string): string => {
@@ -29,7 +30,7 @@ const formatPhoneNumber = (phoneNum: string): string => {
 
 export default function ProfileUpdatePage() {
     const router = useRouter()
-    const { isLogin } = useGlobalLoginMember()
+    const { isLogin, loginMember } = useGlobalLoginMember()
     const [currentNickname, setCurrentNickname] = useState('')
     const [nickname, setNickname] = useState('')
     const [phoneNumber, setPhoneNumber] = useState('')
@@ -500,6 +501,72 @@ export default function ProfileUpdatePage() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="space-y-10">
+                                {/* 프로필 이미지 섹션 */}
+                                <div>
+                                    <h3 className="text-lg font-medium text-gray-800 mb-4">프로필 이미지</h3>
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <div className="relative">
+                                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100 bg-gray-50">
+                                                {loginMember?.profileImageUrl ? (
+                                                    <img
+                                                        src={loginMember.profileImageUrl}
+                                                        alt="프로필 이미지"
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            const target = e.target as HTMLImageElement
+                                                            target.src = 'https://via.placeholder.com/112?text=사용자'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-purple-50 flex items-center justify-center">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-12 w-12 text-[#9C50D4]"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            strokeWidth={1.5}
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <Link
+                                            href="/myinfo/profile-image"
+                                            className="text-sm px-4 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-[#8C4FF2] transition-colors flex items-center gap-2"
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-4 w-4"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                                />
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                                                />
+                                            </svg>
+                                            프로필 이미지 변경
+                                        </Link>
+                                    </div>
+                                </div>
+
                                 {/* 닉네임 입력 */}
                                 <div>
                                     <h3 className="text-lg font-medium text-gray-800 mb-2">닉네임</h3>

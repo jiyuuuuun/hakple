@@ -3,12 +3,15 @@ package com.golden_dobakhe.HakPle.domain.schedule.controller;
 import com.golden_dobakhe.HakPle.domain.schedule.dto.ScheduleRequestDto;
 import com.golden_dobakhe.HakPle.domain.schedule.dto.ScheduleResponseDto;
 import com.golden_dobakhe.HakPle.domain.schedule.service.ScheduleService;
+import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
+import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -30,12 +33,16 @@ public class ScheduleController {
     @PostMapping
     public ResponseEntity<ScheduleResponseDto> create(@Valid @RequestBody ScheduleRequestDto dto,
                                            @AuthenticationPrincipal CustomUserDetails principal) {
+        if(principal.getUser()==null)
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
         return ResponseEntity.ok(scheduleService.create(dto, principal.getUser()));
     }
 
     @Operation(summary = "내 일정 전체 조회")
     @GetMapping
     public ResponseEntity<List<ScheduleResponseDto>> getAll(@AuthenticationPrincipal CustomUserDetails principal) {
+        if(principal.getUser()==null)
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
         List<ScheduleResponseDto> result = scheduleService.findDtosByUser(principal.getUser());
         return ResponseEntity.ok(result);
     }
@@ -44,6 +51,8 @@ public class ScheduleController {
     @GetMapping("/{id}")
     public ResponseEntity<ScheduleResponseDto> getById(@PathVariable(name = "id") Long id,
                                             @AuthenticationPrincipal CustomUserDetails principal) {
+        if(principal.getUser()==null)
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
         return ResponseEntity.ok(scheduleService.findDtoById(id, principal.getUser()));
     }
 
@@ -52,6 +61,8 @@ public class ScheduleController {
     public ResponseEntity<ScheduleResponseDto > update(@PathVariable(name = "id") Long id,
                                            @Valid @RequestBody ScheduleRequestDto dto,
                                            @AuthenticationPrincipal CustomUserDetails principal) {
+        if(principal.getUser()==null)
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
         return ResponseEntity.ok(scheduleService.update(id, dto, principal.getUser()));
     }
 
@@ -59,6 +70,8 @@ public class ScheduleController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable(name = "id") Long id,
                                        @AuthenticationPrincipal CustomUserDetails principal) {
+        if(principal.getUser()==null)
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
         scheduleService.delete(id, principal.getUser());
         return ResponseEntity.noContent().build();
     }
