@@ -178,13 +178,19 @@ export default function Header() {
                                         홈
                                     </Link>
                                     <Link
+                                        href={isLogin && loginMember?.academyId ? `/post/notice/${loginMember.academyId}` : '/post/notice'}
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                    >
+                                        공지사항
+                                    </Link>
+                                    <Link
                                         href="/post"
                                         className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
-                                        게시판
+                                        자유게시판
                                     </Link>
                                     <Link
-                                        href="/post?minLikes=10"
+                                        href="/post?type=popular"
                                         className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
                                         인기글
@@ -321,14 +327,20 @@ export default function Header() {
                                         홈
                                     </Link>
                                     <Link
-                                        href="/post"
-                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                        href={isLogin && loginMember?.academyId ? `/post/notice/${loginMember.academyId}` : '/post/notice'}
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
-                                        게시판
+                                        공지사항
                                     </Link>
                                     <Link
-                                        href="/boad"
-                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                        href="/post"
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                    >
+                                        자유게시판
+                                    </Link>
+                                    <Link
+                                        href="/post?type=popular"
+                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
                                         인기글
                                     </Link>

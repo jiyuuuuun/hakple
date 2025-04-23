@@ -2,6 +2,7 @@ package com.golden_dobakhe.HakPle.domain.post.post.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
+import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,6 +22,7 @@ public class TotalBoardResponse {
     private String academyCode;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
+    private boolean hasImage;
 
 
     public static TotalBoardResponse from(Board board) {
@@ -31,7 +33,23 @@ public class TotalBoardResponse {
                 board.getViewCount(),
                 board.getStatus(),
                 board.getAcademyCode(),
-                board.getCreationTime()
+                board.getCreationTime(),
+                board.getImages() != null && !board.getImages().isEmpty()
+        );
+    }
+    
+    public static TotalBoardResponse from(Board board, ImageRepository imageRepository) {
+        boolean hasImage = imageRepository.existsByBoardId(board.getId());
+        
+        return new TotalBoardResponse(
+                board.getId(),
+                board.getTitle(),
+                board.getUser().getUserName(), // 또는 username
+                board.getViewCount(),
+                board.getStatus(),
+                board.getAcademyCode(),
+                board.getCreationTime(),
+                hasImage
         );
     }
 }

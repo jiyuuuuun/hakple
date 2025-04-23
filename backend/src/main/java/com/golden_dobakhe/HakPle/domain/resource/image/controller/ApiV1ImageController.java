@@ -1,6 +1,7 @@
 package com.golden_dobakhe.HakPle.domain.resource.image.controller;
 
 
+import com.golden_dobakhe.HakPle.domain.resource.image.dto.ImageUpdateRequest;
 import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,7 +27,11 @@ public class ApiV1ImageController {
     private final FileService fileService;
 
     @PostMapping("/upload_local")
-    public ResponseEntity<?> uploadFile1(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadFile1(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "saveEntity", defaultValue = "false") boolean saveEntity,
+            @RequestParam(value = "boardId", required = false) Long boardId,
+            @RequestParam(value = "tempId", required = false) String tempId) {
         try {
             // 파일이 비어있는지 확인
             if (file.isEmpty()) {
@@ -42,14 +48,22 @@ public class ApiV1ImageController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
             
-            // 로컬에 파일 저장
-            String filePath = fileService.saveFile(file);
+            // 만약 tempId가 제공되지 않았다면 생성
+            if (tempId == null || tempId.isEmpty()) {
+                tempId = UUID.randomUUID().toString();
+            }
+            
+            // 로컬에 파일 저장 (saveEntity와 boardId 매개변수 전달)
+            Map<String, Object> result = fileService.saveFileWithTempId(file, saveEntity, boardId, tempId);
             
             // 로그 출력
-            System.out.println("파일 저장 경로: " + filePath);
+            System.out.println("파일 저장 경로: " + result.get("filePath"));
+            System.out.println("이미지 엔티티 저장 여부: " + saveEntity);
+            System.out.println("게시글 ID: " + (boardId != null ? boardId : "없음"));
+            System.out.println("임시 식별자: " + tempId);
             
             // 성공 응답 반환
-            return ResponseEntity.ok(filePath);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             // 오류 로그 출력
             System.err.println("파일 업로드 오류: " + e.getMessage());
@@ -58,6 +72,26 @@ public class ApiV1ImageController {
             // 오류 응답 반환
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("message", "파일 업로드 중 오류가 발생했습니다: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    // 임시 이미지를 게시글에 연결하는 API
+    @PutMapping("/link-to-board")
+    public ResponseEntity<?> linkImagesToBoard(@RequestBody ImageUpdateRequest request) {
+        try {
+            // tempIds와 boardId로 이미지 연결
+            int updatedCount = fileService.linkImagesToBoard(request.getTempIds(), request.getBoardId());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "이미지가 게시글에 연결되었습니다.");
+            response.put("updatedCount", updatedCount);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", "이미지 연결 중 오류가 발생했습니다: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }

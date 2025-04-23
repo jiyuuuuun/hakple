@@ -187,5 +187,20 @@ public class AdminService {
         return boards.map(TotalBoardResponse::from);
     }
 
+    public Page<TotalBoardResponse> getFreeBoards(String academyCode, Pageable pageable) {
+        // 타입이 null이거나 'free'인 게시물만 조회 (자유게시판)
+        Page<Board> boards = boardRepository.findByAcademyCodeAndTypeNullOrFree(academyCode, Status.ACTIVE, pageable);
+        return boards.map(TotalBoardResponse::from);
+    }
+
+    /**
+     * 학원 코드로 학원 정보 조회
+     * @param academyCode 학원 코드
+     * @return 학원 정보
+     */
+    public Academy getAcademyByCode(String academyCode) {
+        return academyRepository.findByAcademyCode(academyCode)
+                .orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
+    }
 
 }

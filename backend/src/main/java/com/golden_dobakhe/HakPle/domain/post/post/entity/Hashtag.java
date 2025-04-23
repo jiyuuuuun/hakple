@@ -15,9 +15,12 @@ import java.util.List;
 @NoArgsConstructor
 @SuperBuilder
 @ToString
+@Table(uniqueConstraints = {
+    @UniqueConstraint(name = "uk_hashtag_name_academy", columnNames = {"hashtagName", "academyCode"})
+})
 public class Hashtag extends BaseEntity {
-    @Column(length=255, unique=true, nullable=false)
-    String hashtagName; // 해시태그 이름 (유니크 설정됨)
+    @Column(length=255, nullable=false)
+    String hashtagName; // 해시태그 이름
 
     @Column(nullable = false)
     private String academyCode; // 학원 코드로 구분
