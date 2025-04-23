@@ -290,16 +290,15 @@ public class ApiV1PostController {
     }
 
     @GetMapping("/notice")
-    @Operation(summary = "공지사항 목록 조회", description = "해당 아카데미의 공지사항 목록을 조회합니다.")
+    @Operation(summary = "공지사항 목록 조회")
     public ResponseEntity<Page<BoardResponse>> getNoticeBoards(
-            @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size,
-            @RequestParam(name = "keyword", required = false) String keyword,
-            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
-            @RequestParam(name = "searchType", required = false) String searchType,
-            @RequestParam(name = "academyCode", required = false) String academyCode,
-            @RequestParam(name = "type", required = false) String type,
-            @PageableDefault(size = 10, sort = "creationTime", direction = Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "등록일순") String sortType,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String searchType,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String academyCode) {
 
         Long userId = getCurrentUserId();
 
@@ -313,11 +312,11 @@ public class ApiV1PostController {
         // 정렬 방식에 따라 적절한 Pageable 객체 생성
         if (sortType.equals("조회순")) {
             adjustedPageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "viewCount", "creationTime"));
-        // } else if (sortType.equals("댓글순")) {
-        //     // 댓글 수로 정렬 - 데이터베이스 쿼리에서 처리됨
-        //     adjustedPageable = PageRequest.of(page - 1, size);
+        } else if (sortType.equals("댓글순")) {
+            // 댓글 수로 정렬은 JPQL 쿼리에서 처리됨 (Pageable에 적용하지 않음)
+            adjustedPageable = PageRequest.of(page - 1, size);
         } else if (sortType.equals("좋아요순")) {
-            // 좋아요 수로 정렬 - 데이터베이스 쿼리에서 처리됨
+            // 좋아요 수로 정렬은 JPQL 쿼리에서 처리됨 (Pageable에 적용하지 않음)
             adjustedPageable = PageRequest.of(page - 1, size);
         } else {
             // 기본 등록일순
@@ -336,8 +335,8 @@ public class ApiV1PostController {
             // 일반 검색 (제목 또는 작성자) - type 파라미터 추가하여 전달
             return ResponseEntity.ok(boardService.searchNoticeBoards(academyCode, keyword, type, adjustedPageable));
         } else {
-            // 기본 조회
-            return ResponseEntity.ok(boardService.getNoticeBoards(academyCode, adjustedPageable));
+            // 기본 조회 - sortType 파라미터 전달
+            return ResponseEntity.ok(boardService.getNoticeBoards(academyCode, sortType, adjustedPageable));
         }
     }
 

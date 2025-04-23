@@ -132,23 +132,45 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
-    @Query("SELECT b FROM Board b " +
-           "WHERE b.academyCode = :academyCode " +
-           "AND b.status = :status " +
-           "AND (:type IS NULL OR :type = '' OR b.type = :type) " +
-           "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
-           "     OR LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
-           "ORDER BY " +
-           "CASE WHEN :sortType = '조회순' THEN b.viewCount ELSE 0 END DESC, " +
-           "CASE WHEN :sortType = '댓글순' THEN SIZE(b.comments) ELSE 0 END DESC, " +
-           "CASE WHEN :sortType = '좋아요순' THEN SIZE(b.boardLikes) ELSE 0 END DESC, " +
-           "b.creationTime DESC")
-    Page<Board> searchNoticeBoardsWithType(
+    @Query(value = "SELECT DISTINCT b FROM Board b " +
+            "LEFT JOIN b.comments c " +
+            "LEFT JOIN b.boardLikes bl " +
+            "WHERE b.academyCode = :academyCode " +
+            "AND b.status = :status " +
+            "AND (:type IS NULL OR :type = '' OR b.type = :type) " +
+            "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
+            "     OR LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
+            "GROUP BY b " +
+            "ORDER BY " +
+            "CASE WHEN :sortType = '조회순' THEN b.viewCount ELSE 0 END DESC, " +
+            "CASE WHEN :sortType = '댓글순' THEN COUNT(CASE WHEN c.status = 'ACTIVE' THEN 1 ELSE NULL END) ELSE 0 END DESC, " +
+            "CASE WHEN :sortType = '좋아요순' THEN COUNT(bl) ELSE 0 END DESC, " +
+            "b.creationTime DESC")
+    Page<Board> searchNoticeBoardsWithTypeAndCounts(
             @Param("academyCode") String academyCode,
             @Param("status") Status status,
             @Param("keyword") String keyword,
             @Param("sortType") String sortType,
             @Param("type") String type,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
+    @Query(value = "SELECT DISTINCT b FROM Board b " +
+            "LEFT JOIN b.comments c " +
+            "LEFT JOIN b.boardLikes bl " +
+            "WHERE b.academyCode = :academyCode AND b.status = :status " +
+            "AND (:type IS NULL OR :type = '' OR b.type = :type) " +
+            "GROUP BY b " +
+            "ORDER BY " +
+            "CASE WHEN :sortType = '조회순' THEN b.viewCount ELSE 0 END DESC, " +
+            "CASE WHEN :sortType = '댓글순' THEN COUNT(CASE WHEN c.status = 'ACTIVE' THEN 1 ELSE NULL END) ELSE 0 END DESC, " +
+            "CASE WHEN :sortType = '좋아요순' THEN COUNT(bl) ELSE 0 END DESC, " +
+            "b.creationTime DESC")
+    Page<Board> findByAcademyCodeAndStatusAndTypeWithCounts(
+            @Param("academyCode") String academyCode,
+            @Param("status") Status status,
+            @Param("type") String type,
+            @Param("sortType") String sortType,
             Pageable pageable);
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})

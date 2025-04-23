@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
-import { fetchApi } from '@/utils/api';
 
 interface Post {
     id: number;
@@ -288,8 +287,20 @@ export default function PostDetailPage() {
 
         setIsLiking(true);
         try {
+            // URL 파라미터에서 academyCode 가져오기
+            const searchParams = new URLSearchParams(window.location.search);
+            const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+
+            // URL 구성 (academyCode 포함)
+            let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/likes`;
+            if (currentAcademyCode) {
+                url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+            }
+
+            console.log('좋아요 API 요청 URL:', url);
+
             // 백엔드의 토글 API 호출 - 이미 좋아요 했으면 취소, 안했으면 좋아요 추가
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/like`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -731,21 +742,19 @@ export default function PostDetailPage() {
         try {
             // 백엔드 API 요구사항에 맞춰 수정
             const commentData = {
-                id: editingCommentId,
-                boardId: post.id,
-                content: editCommentContent,
-                commenterId: editingCommentId
+                commenterId: editingCommentId,
+                content: editCommentContent.trim()
             };
 
-            console.log('댓글 수정 요청 데이터:', commentData, 'ID가 포함되어 있는지 확인:', editingCommentId);
+            console.log('댓글 수정 요청 데이터:', commentData, 'commenterId:', editingCommentId);
 
-            // POST 메서드 사용 (PUT은 지원되지 않음)
+            // 백엔드가 POST 메서드만 지원
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/update`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ content: editCommentContent.trim() }),
+                body: JSON.stringify(commentData),
                 credentials: 'include'
             });
 
@@ -764,8 +773,9 @@ export default function PostDetailPage() {
                     setLastEditedCommentId(null);
                 }, 5000);
             } else {
-                console.error('댓글 수정 실패');
-                alert('댓글 수정에 실패했습니다.');
+                const errorText = await response.text();
+                console.error('댓글 수정 실패:', errorText);
+                alert(`댓글 수정에 실패했습니다. 오류: ${errorText || '알 수 없는 오류'}`);
             }
         } catch (error) {
             console.error('댓글 수정 중 오류:', error);
@@ -1336,7 +1346,22 @@ export default function PostDetailPage() {
                 {/* 목록으로 돌아가기 버튼 */}
                 <div className="flex justify-center mt-8">
                     <button
-                        onClick={() => router.push('/post')}
+                        onClick={() => {
+                            // 공지사항인 경우와 일반 게시글인 경우 분기
+                            if (isNoticePost(post)) {
+                                // URL 파라미터에서 academyCode 가져오기
+                                const searchParams = new URLSearchParams(window.location.search);
+                                const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+                                // 공지사항 목록으로 이동 (academyCode와 type=notice 포함)
+                                const noticeUrl = currentAcademyCode 
+                                    ? `/post/notice?academyCode=${currentAcademyCode}&type=notice` 
+                                    : '/post/notice?type=notice';
+                                router.push(noticeUrl);
+                            } else {
+                                // 일반 게시글 목록으로 이동
+                                router.push('/post');
+                            }
+                        }}
                         className="px-6 py-3 rounded-[15px] text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all flex items-center gap-2"
                     >
                         <span className="material-icons">arrow_back</span>

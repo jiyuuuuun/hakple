@@ -42,8 +42,10 @@ import org.springframework.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
 
@@ -445,13 +447,13 @@ public class BoardServiceImpl implements BoardService {
     }
 
     private BoardResponse createBoardResponse(Board board) {
-        List<String> tags = board.getTags().stream()
+        List<String> tagNames = board.getTags().stream()
                 .map(tagMapping -> tagMapping.getHashtag().getHashtagName())
                 .collect(Collectors.toList());
-
+                
         int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
-
-        return BoardResponse.from(board, tags, commentCount);
+                
+        return BoardResponse.from(board, tagNames, commentCount, imageRepository);
     }
 
     private void validateBoardRequest(BoardRequest request) {
@@ -646,7 +648,8 @@ public class BoardServiceImpl implements BoardService {
                                 return tagMapping.getHashtag().getHashtagName();
                             })
                             .toList();
-                    return BoardResponse.from(board, tagNames);
+                    int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
+                    return BoardResponse.from(board, tagNames, commentCount, imageRepository);
                 });
     }
 
@@ -658,37 +661,78 @@ public class BoardServiceImpl implements BoardService {
                     List<String> tagNames = board.getTags().stream()
                             .map(tagMapping -> tagMapping.getHashtag().getHashtagName())
                             .toList();
-                    return BoardResponse.from(board, tagNames);
+                    int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
+                    return BoardResponse.from(board, tagNames, commentCount, imageRepository);
                 });
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> getNoticeBoards(String academyCode, Pageable pageable) {
-        // 정렬 타입 추출 또는 기본값 설정
-        String sortType = "등록일순";
-        if (pageable.getSort().isSorted()) {
-            Sort.Order order = pageable.getSort().iterator().next();
-            if (order.getProperty().equals("viewCount")) {
-                sortType = "조회순";
-            } else if (order.getProperty().contains("comments")) {
-                sortType = "댓글순";
-            } else if (order.getProperty().contains("boardLikes")) {
-                sortType = "좋아요순";
-            }
+    public Page<BoardResponse> getNoticeBoards(String academyCode, String sortType, Pageable pageable) {
+        log.info("공지사항 조회 - 정렬 방식: {}", sortType);
+        
+        // 정렬 방식이 없으면 기본값 설정
+        if (sortType == null || sortType.isEmpty()) {
+            sortType = "등록일순";
         }
 
-        // type이 'notice'인 게시글만 조회 - 수정된 유연한 메서드 사용
-        Page<Board> boards = boardRepository.findByAcademyCodeAndStatusAndTypeFlexible(
-                academyCode, Status.ACTIVE, "notice", sortType, pageable);
+        // 더 단순한 방법으로 접근: 정렬 처리를 수동으로 수행
+        Page<Board> boards;
+        if (sortType.equals("조회순")) {
+            // 조회수 정렬은 쿼리에서 처리
+            Pageable viewPageable = PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                Sort.by(Sort.Direction.DESC, "viewCount", "creationTime")
+            );
+            boards = boardRepository.findByAcademyCodeAndStatusAndTypeFlexible(
+                academyCode, Status.ACTIVE, "notice", sortType, viewPageable);
+        } else {
+            // 기본 정렬(등록일순)으로 전체 데이터 가져오기 - 페이징 고려 X
+            boards = boardRepository.findByAcademyCodeAndStatusAndTypeFlexible(
+                academyCode, Status.ACTIVE, "notice", "등록일순", Pageable.unpaged());
+                
+            // JPQL에서 처리하기 어려운 댓글 및 좋아요 수 정렬은 Java에서 처리
+            List<Board> sortedList = new ArrayList<>(boards.getContent());
+            if (sortType.equals("댓글순")) {
+                sortedList.sort((b1, b2) -> {
+                    int count1 = commentRepository.countByBoardIdAndStatus(b1.getId(), Status.ACTIVE);
+                    int count2 = commentRepository.countByBoardIdAndStatus(b2.getId(), Status.ACTIVE);
+                    return Integer.compare(count2, count1); // 내림차순
+                });
+            } else if (sortType.equals("좋아요순")) {
+                sortedList.sort((b1, b2) -> {
+                    int count1 = b1.getBoardLikes().size();
+                    int count2 = b2.getBoardLikes().size();
+                    return Integer.compare(count2, count1); // 내림차순
+                });
+            }
+            
+            // 정렬된 결과에서 페이징 처리
+            int start = (int) pageable.getOffset();
+            int end = Math.min((start + pageable.getPageSize()), sortedList.size());
+            
+            if (start > sortedList.size()) {
+                start = 0;
+                end = 0;
+            }
+            
+            List<Board> pageContent = start < end ? sortedList.subList(start, end) : new ArrayList<>();
+            boards = new org.springframework.data.domain.PageImpl<>(
+                pageContent, pageable, sortedList.size());
+        }
 
-        // 결과를 BoardResponse로 변환 (공지사항은 댓글 수 0, 태그 빈 리스트로 처리)
+        // 결과를 BoardResponse로 변환
         return boards.map(board -> {
-            // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
-            List<String> emptyTags = new ArrayList<>();
+            // 공지사항 태그 리스트
+            List<String> tags = board.getTags().stream()
+                    .map(tagMapping -> tagMapping.getHashtag().getHashtagName())
+                    .collect(Collectors.toList());
 
-            // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
-            return BoardResponse.from(board, emptyTags, 0);
+            // 댓글 수 조회
+            int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
+            
+            return BoardResponse.from(board, tags, commentCount, imageRepository);
         });
     }
 
@@ -705,22 +749,71 @@ public class BoardServiceImpl implements BoardService {
             Sort.Order order = pageable.getSort().iterator().next();
             if (order.getProperty().equals("viewCount")) {
                 sortType = "조회순";
+            } else if (order.getProperty().contains("comments")) {
+                sortType = "댓글순";
             } else if (order.getProperty().contains("boardLikes")) {
                 sortType = "좋아요순";
             }
         }
 
-        // 키워드로 공지사항 검색
-        Page<Board> boards = boardRepository.searchNoticeBoards(
-                academyCode, Status.ACTIVE, keyword, sortType, pageable);
+        // 더 단순한 방법으로 접근: 우선 기본 정렬로 검색 데이터 가져오기
+        Page<Board> boards;
+        
+        if (sortType.equals("조회순")) {
+            // 조회수 정렬은 쿼리에서 처리
+            Pageable viewPageable = PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                Sort.by(Sort.Direction.DESC, "viewCount", "creationTime")
+            );
+            boards = boardRepository.searchNoticeBoards(
+                academyCode, Status.ACTIVE, keyword, sortType, viewPageable);
+        } else {
+            // 기본 정렬(등록일순)으로 전체 데이터 가져오기 - 페이징 고려 X
+            boards = boardRepository.searchNoticeBoards(
+                academyCode, Status.ACTIVE, keyword, "등록일순", Pageable.unpaged());
+                
+            // JPQL에서 처리하기 어려운 댓글 및 좋아요 수 정렬은 Java에서 처리
+            List<Board> sortedList = new ArrayList<>(boards.getContent());
+            if (sortType.equals("댓글순")) {
+                sortedList.sort((b1, b2) -> {
+                    int count1 = commentRepository.countByBoardIdAndStatus(b1.getId(), Status.ACTIVE);
+                    int count2 = commentRepository.countByBoardIdAndStatus(b2.getId(), Status.ACTIVE);
+                    return Integer.compare(count2, count1); // 내림차순
+                });
+            } else if (sortType.equals("좋아요순")) {
+                sortedList.sort((b1, b2) -> {
+                    int count1 = b1.getBoardLikes().size();
+                    int count2 = b2.getBoardLikes().size();
+                    return Integer.compare(count2, count1); // 내림차순
+                });
+            }
+            
+            // 정렬된 결과에서 페이징 처리
+            int start = (int) pageable.getOffset();
+            int end = Math.min((start + pageable.getPageSize()), sortedList.size());
+            
+            if (start > sortedList.size()) {
+                start = 0;
+                end = 0;
+            }
+            
+            List<Board> pageContent = start < end ? sortedList.subList(start, end) : new ArrayList<>();
+            boards = new org.springframework.data.domain.PageImpl<>(
+                pageContent, pageable, sortedList.size());
+        }
 
         // 결과를 BoardResponse로 변환
         return boards.map(board -> {
-            // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
-            List<String> emptyTags = new ArrayList<>();
+            // 공지사항 태그 리스트 가져오기
+            List<String> tags = board.getTags().stream()
+                    .map(tagMapping -> tagMapping.getHashtag().getHashtagName())
+                    .collect(Collectors.toList());
 
-            // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
-            return BoardResponse.from(board, emptyTags, 0);
+            // 댓글 수 조회
+            int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
+            
+            return BoardResponse.from(board, tags, commentCount, imageRepository);
         });
     }
 
@@ -744,17 +837,64 @@ public class BoardServiceImpl implements BoardService {
             }
         }
 
-        // 키워드로 공지사항 검색 - type 파라미터 추가
-        Page<Board> boards = boardRepository.searchNoticeBoardsWithType(
-                academyCode, Status.ACTIVE, keyword, sortType, type, pageable);
+        // 더 단순한 방법으로 접근: 우선 기본 정렬로 검색 데이터 가져오기
+        Page<Board> boards;
+        
+        if (sortType.equals("조회순")) {
+            // 조회수 정렬은 쿼리에서 처리
+            Pageable viewPageable = PageRequest.of(
+                pageable.getPageNumber(), 
+                pageable.getPageSize(), 
+                Sort.by(Sort.Direction.DESC, "viewCount", "creationTime")
+            );
+            boards = boardRepository.searchNoticeBoardsWithTypeAndCounts(
+                academyCode, Status.ACTIVE, keyword, sortType, type, viewPageable);
+        } else {
+            // 기본 정렬(등록일순)으로 전체 데이터 가져오기 - 페이징 고려 X
+            boards = boardRepository.searchNoticeBoardsWithTypeAndCounts(
+                academyCode, Status.ACTIVE, keyword, "등록일순", type, Pageable.unpaged());
+                
+            // JPQL에서 처리하기 어려운 댓글 및 좋아요 수 정렬은 Java에서 처리
+            List<Board> sortedList = new ArrayList<>(boards.getContent());
+            if (sortType.equals("댓글순")) {
+                sortedList.sort((b1, b2) -> {
+                    int count1 = commentRepository.countByBoardIdAndStatus(b1.getId(), Status.ACTIVE);
+                    int count2 = commentRepository.countByBoardIdAndStatus(b2.getId(), Status.ACTIVE);
+                    return Integer.compare(count2, count1); // 내림차순
+                });
+            } else if (sortType.equals("좋아요순")) {
+                sortedList.sort((b1, b2) -> {
+                    int count1 = b1.getBoardLikes().size();
+                    int count2 = b2.getBoardLikes().size();
+                    return Integer.compare(count2, count1); // 내림차순
+                });
+            }
+            
+            // 정렬된 결과에서 페이징 처리
+            int start = (int) pageable.getOffset();
+            int end = Math.min((start + pageable.getPageSize()), sortedList.size());
+            
+            if (start > sortedList.size()) {
+                start = 0;
+                end = 0;
+            }
+            
+            List<Board> pageContent = start < end ? sortedList.subList(start, end) : new ArrayList<>();
+            boards = new org.springframework.data.domain.PageImpl<>(
+                pageContent, pageable, sortedList.size());
+        }
 
         // 결과를 BoardResponse로 변환
         return boards.map(board -> {
-            // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
-            List<String> emptyTags = new ArrayList<>();
+            // 공지사항 태그 리스트 가져오기
+            List<String> tags = board.getTags().stream()
+                    .map(tagMapping -> tagMapping.getHashtag().getHashtagName())
+                    .collect(Collectors.toList());
 
-            // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
-            return BoardResponse.from(board, emptyTags, 0);
+            // 댓글 수 조회
+            int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
+            
+            return BoardResponse.from(board, tags, commentCount, imageRepository);
         });
     }
 
@@ -804,8 +944,37 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private Hashtag retryGetHashtag(String tagName, String academyCode) {
+    public Hashtag retryGetHashtag(String tagName, String academyCode) {
         return hashtagRepository.findByHashtagNameAndAcademyCode(tagName, academyCode)
                 .orElse(null);
     }
+
+
+    @Override
+    public List<Long> getLikedBoardIds(Long userId) {
+        return boardLikeRepository.findByUserId(userId)
+                .stream()
+                .map(like -> like.getBoard().getId())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BoardResponse> getNoticeBoards(String academyCode, Pageable pageable) {
+        // 정렬 타입 추출 또는 기본값 설정
+        String sortType = "등록일순";
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            if (order.getProperty().equals("viewCount")) {
+                sortType = "조회순";
+            } else if (order.getProperty().contains("comments")) {
+                sortType = "댓글순";
+            } else if (order.getProperty().contains("boardLikes")) {
+                sortType = "좋아요순";
+            }
+        }
+        
+        return getNoticeBoards(academyCode, sortType, pageable);
+    }
+
 }

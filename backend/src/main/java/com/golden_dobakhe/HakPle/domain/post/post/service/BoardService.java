@@ -4,6 +4,8 @@ import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardRequest;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TagResponse;
 import java.util.List;
+
+import com.golden_dobakhe.HakPle.domain.post.post.entity.Hashtag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -28,6 +30,11 @@ public interface BoardService {
      * 아카데미 코드로 공지사항 조회
      */
     Page<BoardResponse> getNoticeBoards(String academyCode, Pageable pageable);
+
+    /**
+     * 아카데미 코드와 정렬 방식으로 공지사항 조회
+     */
+    Page<BoardResponse> getNoticeBoards(String academyCode, String sortType, Pageable pageable);
 
     Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes, String type, Pageable pageable);
 
@@ -96,4 +103,6 @@ public interface BoardService {
     Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, Pageable pageable);
 
     List<Long> getLikedBoardIds(Long userId);
+
+    Hashtag retryGetHashtag(String tagName, String academyCode);
 }

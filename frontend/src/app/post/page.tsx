@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
-import { fetchApi } from '@/utils/api';
+import { fetchApi, post } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 
@@ -690,6 +690,7 @@ export default function PostPage() {
                         isLiked={post.isLiked}
                         onLikeClick={(e) => handleLikeClick(post, e)}
                         likingPosts={likingPosts}
+                        hasImage={post.hasImage || false}
                       />
                     ))}
                   </div>
@@ -709,6 +710,7 @@ export default function PostPage() {
                           isLiked={post.isLiked}
                           onLikeClick={(e) => handleLikeClick(post, e)}
                           likingPosts={likingPosts}
+                          hasImage={post.hasImage || false}
                         />
                         {index < posts.length - 1 && (
                           <div className="mx-6 border-b border-gray-200"></div>
@@ -878,7 +880,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
 }
 
 // 게시물 아이템 컴포넌트 (카드형)
-function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts }: {
+function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
   id: number;
   title: string;
   nickname: string;
@@ -890,6 +892,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   isLiked?: boolean;
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
+  hasImage: boolean;
 }) {
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-200 border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
@@ -922,6 +925,9 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
         <Link href={`/post/${id}`} className="block no-underline">
           <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-[#9C50D4] transition-colors line-clamp-2">
             {title}
+            {hasImage && (
+              <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
+            )}
           </h3>
         </Link>
         
@@ -1004,7 +1010,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
 }
 
 // 리스트형 게시물 컴포넌트
-function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts }: {
+function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
   id: number;
   title: string;
   nickname: string;
@@ -1016,6 +1022,7 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   isLiked?: boolean;
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
+  hasImage: boolean;
 }) {
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
@@ -1046,6 +1053,9 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
 
         <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
           {title}
+          {hasImage && (
+            <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
+          )}
         </h2>
 
         <div className="flex flex-wrap gap-2 mb-4">
