@@ -6,17 +6,22 @@ import com.golden_dobakhe.HakPle.domain.user.myInfo.dto.MyInfoResponseDto;
 import com.golden_dobakhe.HakPle.domain.user.myInfo.dto.MyInfoUpdateRequestDto;
 import com.golden_dobakhe.HakPle.domain.user.myInfo.validator.NickNameValidator;
 import com.golden_dobakhe.HakPle.domain.user.myInfo.validator.PhoneNumValidator;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.AcademyRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class MyInfoService {
     private final UserRepository userRepository;
+    private final AcademyRepository academyRepository;
 
     //사용자 정보 가져오기
     public MyInfoResponseDto getMyInfo(String userName) {
@@ -25,6 +30,11 @@ public class MyInfoService {
 
         // academyId 값을 MyInfoResponseDto의 academyCode 필드에 매핑
         String academyCode = user.getAcademyId();
+
+        Academy academy = academyRepository.findByAcademyCode(academyCode).orElse(null);
+        if (academy == null) {
+            throw new RuntimeException("Academy not found");
+        }
 
         String profileImageUrl = null;
         if (user.getProfileImage() != null) {
@@ -38,6 +48,7 @@ public class MyInfoService {
                 .creationTime(user.getCreationTime())
                 .academyCode(academyCode)
                 .profileImageUrl(profileImageUrl)
+                .academyName(academy.getAcademyName())
                 .build();
     }
 

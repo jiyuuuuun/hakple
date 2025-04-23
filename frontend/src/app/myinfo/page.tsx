@@ -247,26 +247,27 @@ export default function MyInfoPage() {
         const checkAdminPermission = async () => {
             setAdminChecking(true)
             try {
-                const accessToken = localStorage.getItem('accessToken')
+                // const accessToken = localStorage.getItem('accessToken')
 
-                if (!accessToken) {
-                    setIsAdmin(false)
-                    setAdminChecking(false)
-                    return
-                }
+                // if (!accessToken) {
+                //     setIsAdmin(false)
+                //     setAdminChecking(false)
+                //     return
+                // }
 
                 // 네트워크 타임아웃 설정 (5초)
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), 5000)
 
                 try {
+
                     // fetchApi 유틸리티 함수 사용으로 변경
                     const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
                         credentials: 'include',
                         headers: {
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${accessToken}`,
+                            //Authorization: `Bearer ${accessToken}`,
                         },
                         signal: controller.signal,
                     })
@@ -337,7 +338,7 @@ export default function MyInfoPage() {
                             ? storedAcademyName
                             : getAcademyNameFromCode(data.academyCode))
 
-                    // // 토큰에서 추가 정보 확인 (백업)
+                    // 토큰에서 추가 정보 확인 (백업)
                     // const token = localStorage.getItem('accessToken')
                     // if (token) {
                     //     try {

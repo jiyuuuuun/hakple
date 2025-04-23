@@ -535,4 +535,12 @@ class BoardServiceImpl implements BoardService {
                     return BoardResponse.from(board, tagNames);
                 });
     }
+
+    public List<Long> getLikedBoardIds(Long userId) {
+        return boardLikeRepository.findByUserId(userId)
+                .stream()
+                .map(like -> like.getBoard().getId())
+                .collect(Collectors.toList());
+    }
+
 }

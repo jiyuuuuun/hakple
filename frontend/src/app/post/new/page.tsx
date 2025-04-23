@@ -30,11 +30,11 @@ const sanitizeTag = (input: string): string => {
   // 1. 입력값 유효성 검사
   // 인풋이 없거나 공백인 경우 빈 문자열 반환
   if (!input || typeof input !== 'string') return '';
-  
+
   // 2. 앞뒤 공백 제거
   const trimmed = input.trim();
   if (!trimmed) return '';
-  
+
   // 3. #으로 시작하면 # 제거
   return trimmed.startsWith('#') ? trimmed.substring(1).trim() : trimmed;
 };
@@ -43,7 +43,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
   // 상태 관리
   const [inputValue, setInputValue] = useState(''); // 입력 필드 값
   const [isComposing, setIsComposing] = useState(false); // IME 입력 상태 (조합 중인지 여부)
-  
+
   /**
    * 입력 필드 변경 처리 함수
    * 순서:
@@ -53,7 +53,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
    */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
+
     // 쉼표가 포함된 경우 특별 처리 (태그 추가)
     if (value.includes(',')) {
       // 쉼표를 기준으로 분리
@@ -71,11 +71,11 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
         return;
       }
     }
-    
+
     // 일반적인 경우 입력값 업데이트
     setInputValue(value);
   };
-  
+
   /**
    * 태그 추가 핵심 함수
    * 순서:
@@ -87,19 +87,19 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
   const addTag = (rawInput: string) => {
     // 1. 입력값 검증
     if (!rawInput || !rawInput.trim()) return false;
-    
+
     // 2. 태그 생성
     const newTag = sanitizeTag(rawInput);
     if (!newTag) return false;
-    
+
     // 3. 중복 검사
     if (tags.includes(newTag)) return false;
-    
+
     // 4. 태그 추가
     onTagsChange([...tags, newTag]);
     return true;
   };
-  
+
   /**
    * 현재 입력값으로 태그 추가
    * - addTag 함수를 호출하여 현재 입력값을 태그로 추가
@@ -122,7 +122,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
     // IME 입력 중이면 처리하지 않음 - 이것이 매우 중요!
     // 한글 등의 조합 문자가 완성되기 전에 이벤트가 발생하면 잘못된 입력이 될 수 있음
     if (isComposing) return;
-    
+
     if (e.key === 'Enter') {
       e.preventDefault();
       addCurrentTag();
@@ -131,7 +131,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
       // 쉼표 입력은 handleInputChange에서 처리되므로 여기서는 아무것도 하지 않음
     }
   };
-  
+
   /**
    * IME 입력 시작 이벤트 처리
    * - 조합형 문자 입력이 시작될 때 호출됨
@@ -140,7 +140,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
   const handleCompositionStart = () => {
     setIsComposing(true);
   };
-  
+
   /**
    * IME 입력 종료 이벤트 처리
    * - 조합형 문자 입력이 완료될 때 호출됨
@@ -175,7 +175,7 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
       <div className="flex flex-wrap items-center gap-[5px] w-full border-none py-[8px] px-3 bg-[#ffffff]">
         {/* 태그 렌더링 */}
         {tags.map((tag, index) => (
-          <div 
+          <div
             key={`tag-${index}-${tag}`}
             className="flex items-center bg-[#980ffa] text-[#ffffff] rounded-[10px] p-[5px] cursor-pointer hover:bg-[#8a40c0] transition-all"
             onClick={() => removeTag(tag)}
@@ -184,10 +184,10 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
             <span className="text-sm font-medium">{tag}</span>
           </div>
         ))}
-        
+
         {/* 입력 필드 - 이벤트 핸들러 개선 */}
         <input
-          type="text" 
+          type="text"
           value={inputValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -253,17 +253,17 @@ const NewPostPage = () => {
     try {
       setIsSubmitting(true);
       setError('');
-      
+
       // 빈 태그만 필터링하고, 태그 형식을 그대로 유지
       const finalTags = tags.filter(tag => tag.trim() !== '');
-      
+
       // API 호출을 위한 데이터 구성
       const postData = {
         title,
         content,
         tags: finalTags // 태그 배열을 그대로 전송
       };
-      
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
         method: 'POST',
         headers: {
@@ -309,71 +309,86 @@ const NewPostPage = () => {
   };
 
   return (
-    
-      <main className="bg-[#f9fafc] min-h-screen pb-8">
-        <div className="max-w-[1140px] mx-auto px-4">
-          <div className="pt-14">
-            <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">새 글쓰기</h1>
-            <div className="bg-white p-4 sm:p-6 rounded-[10px] shadow-md w-full border border-[#F9FAFB]">
-              {/* 제목 입력 */}
-              <div className="w-full mb-3 sm:mb-4 border border-[#eeeeee] rounded-[10px] overflow-hidden pb-[10px]">
-                <div className="p-2 sm:p-3">
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="  제목을 입력해주세요"
-                    className="w-full border border-[#eeeeee] rounded-[10px] py-[14px] px-[15px] px-3 text-sm focus:outline-none"
-                  />
-                </div>
-              </div>
 
-              {/* Tiptap 에디터 적용 */}
-              <div className="w-full mb-3 sm:mb-4 border border-[#eeeeee] rounded-[10px] overflow-hidden">
-                <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px]">
+    <main className="bg-[#f9fafc] min-h-screen pb-8">
+      <div className="max-w-[1140px] mx-auto px-4">
+        <div className="pt-14">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">새 글쓰기</h1>
+            <button
+              onClick={() => router.push('/post')}
+              className="flex items-center gap-2 text-gray-600 hover:text-[#980ffa] transition-colors"
+            >
+              <span className="material-icons">arrow_back</span>
+              <span>목록으로</span>
+            </button>
+          </div>
+          <div className="bg-white p-6 sm:p-8 rounded-[20px] shadow-lg border border-[#F9FAFB] transition-shadow hover:shadow-xl">
+            {/* 제목 입력 */}
+            <div className="w-full mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">제목</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="제목을 입력해주세요"
+                className="w-full border border-gray-200 rounded-[15px] py-4 px-5 text-base focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent transition-shadow hover:shadow-sm"
+              />
+            </div>
+
+            {/* Tiptap 에디터 적용 */}
+            <div className="w-full mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
+              <div className="border border-gray-200 rounded-[15px] overflow-hidden transition-shadow hover:shadow-sm">
+                <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
                   <TiptapEditor content={content} onChange={setContent} />
                 </div>
               </div>
+            </div>
 
-              {/* 태그 입력 */}
-              <div className="w-full mb-4 sm:mb-6 border border-[#eeeeee] rounded-[10px] overflow-hidden pb-[10px]">
-                <div className="p-2 sm:p-3 border-[#eeeeee]  ">
-                  <TagInput tags={tags} onTagsChange={handleTagsChange} />
-                </div>
+            {/* 태그 입력 */}
+            <div className="w-full mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">태그</label>
+              <div className="border border-gray-200 rounded-[15px] transition-shadow hover:shadow-sm">
+                <TagInput tags={tags} onTagsChange={handleTagsChange} />
               </div>
+            </div>
 
-              {/* 에러 메시지 */}
-              {error && (
-                <div className="w-full mb-4 text-red-500 text-sm">
-                  {error}
-                </div>
-              )}
+            {/* 에러 메시지 */}
+            {error && (
+              <div className="w-full mb-6 px-4 py-3 rounded-[15px] bg-red-50 border border-red-100">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
 
-              {/* 등록 버튼 */}
-              <div className="w-full border border-[#eeeeee] rounded-[10px] overflow-hidden">
-                <div className="p-2 sm:p-3">
-                  <div className="flex justify-between">
-                    <button
-                      onClick={() => router.push('/post')}
-                      className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
-                    >
-                      목록
-                    </button>
-                    <button 
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
-                    >
-                      {isSubmitting ? '등록 중...' : '등록하기'}
-                    </button>
+            {/* 등록 버튼 */}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => router.push('/post')}
+                className="px-6 py-3 rounded-[15px] text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="px-6 py-3 rounded-[15px] text-white bg-[#980ffa] hover:bg-[#8400df] transition-all transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
+                    <span>등록 중...</span>
                   </div>
-                </div>
-              </div>
+                ) : (
+                  '등록하기'
+                )}
+              </button>
             </div>
           </div>
         </div>
-      </main>
-    
+      </div>
+    </main>
+
   );
 };
 
