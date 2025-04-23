@@ -34,7 +34,7 @@ export default function Header() {
 
     // 컴포넌트 마운트 시 한 번 관리자 권한 확인
     useEffect(() => {
-        if (isAuthPage || !isLogin) return;
+        if (isAuthPage || !isLogin) return
         checkAdminPermission()
     }, [isAuthPage, isLogin])
 
@@ -68,7 +68,6 @@ export default function Header() {
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-
                 },
             })
 
@@ -117,7 +116,11 @@ export default function Header() {
         // 프론트엔드에서 별도로 academyCode를 체크할 필요가 없음
 
         // 검색 페이지로 이동 (등록일순, 제목 검색 조건 포함)
-        router.push(`/post?keyword=${encodeURIComponent(searchQuery.trim())}&sortType=${encodeURIComponent('등록일순')}&filterType=${encodeURIComponent('제목')}`)
+        router.push(
+            `/post?keyword=${encodeURIComponent(searchQuery.trim())}&sortType=${encodeURIComponent(
+                '등록일순',
+            )}&filterType=${encodeURIComponent('제목')}`,
+        )
 
         // 검색 후 검색창 초기화
         setSearchQuery('')
@@ -241,11 +244,7 @@ export default function Header() {
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                         />
-                                        <button
-                                            type="submit"
-                                            className="hidden"
-                                            aria-label="검색하기"
-                                        >
+                                        <button type="submit" className="hidden" aria-label="검색하기">
                                             검색
                                         </button>
                                     </div>
@@ -253,11 +252,9 @@ export default function Header() {
                             </div>
                         )}
 
-
                         {/* 로그인 상태 디버깅 표시 */}
                         <div className="hidden">
-                            로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'},
-                            ID: {loginMember?.userName || 'None'},
+                            로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'}, ID: {loginMember?.userName || 'None'},
                             Token: {localStorage.getItem('accessToken') ? '있음' : '없음'}
                         </div>
 
@@ -275,11 +272,34 @@ export default function Header() {
                                 {/* 프로필 이미지 */}
                                 <Link href="/myinfo" className="flex items-center">
                                     <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                                        <img
-                                            src="/profile.png"
-                                            alt="프로필"
-                                            className="min-w-full min-h-full object-cover"
-                                        />
+                                        {loginMember.profileImageUrl ? (
+                                            <img
+                                                src={loginMember.profileImageUrl}
+                                                alt="프로필"
+                                                className="min-w-full min-h-full object-cover"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement
+                                                    target.src = 'https://via.placeholder.com/40?text=사용자'
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full bg-purple-50 flex items-center justify-center">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-6 w-6 text-[#9C50D4]"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    strokeWidth={1.5}
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
                                 </Link>
                             </>
