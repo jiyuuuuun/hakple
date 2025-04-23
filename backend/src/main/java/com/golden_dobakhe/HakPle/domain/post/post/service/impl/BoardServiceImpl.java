@@ -34,14 +34,18 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 @RequiredArgsConstructor
-public
-class BoardServiceImpl implements BoardService {
+public class BoardServiceImpl implements BoardService {
 
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
@@ -51,22 +55,46 @@ class BoardServiceImpl implements BoardService {
     private final BoardReportRepository boardReportRepository;
     private final ImageRepository imageRepository;
     private final CommentRepository commentRepository;
+    private static final Logger log = LoggerFactory.getLogger(BoardServiceImpl.class);
 
     @Override
     @Transactional
-    public BoardResponse createBoard(BoardRequest request, Long userId) {
+    public BoardResponse createBoard(BoardRequest request, Long userId, String academyCode) {
         validateBoardRequest(request);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> BoardException.notFound());
 
+        // academyCode 처리 로직 수정
+        // 1. 요청 객체(request)의 academyCode를 먼저 확인
+        // 2. URL 파라미터의 academyCode 확인
+        // 3. 없으면 사용자의 academyId 사용
+        String resolvedAcademyCode;
+        
+        // 요청 객체에 academyCode가 포함되어 있는지 확인
+        if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
+            resolvedAcademyCode = request.getAcademyCode();
+            log.info("사용자 요청 academyCode 사용: {}", resolvedAcademyCode);
+        } 
+        // URL 파라미터로 전달된 academyCode 확인
+        else if (academyCode != null && !academyCode.isEmpty()) {
+            resolvedAcademyCode = academyCode;
+            log.info("URL 파라미터 academyCode 사용: {}", resolvedAcademyCode);
+        } 
+        // 사용자의 기본 academyId 사용
+        else {
+            resolvedAcademyCode = user.getAcademyId();
+            log.info("사용자 기본 academyCode 사용: {}", resolvedAcademyCode);
+        }
+
         Board board = Board.builder()
                 .title(request.getTitle())
                 .content(request.getContent())
-                .academyCode(user.getAcademyId())
+                .academyCode(resolvedAcademyCode)
                 .user(user)
                 .status(Status.ACTIVE)
                 .modificationTime(null)
+                .type(request.getType())
                 .build();
 
         board = boardRepository.save(board);
@@ -77,20 +105,24 @@ class BoardServiceImpl implements BoardService {
                     continue;
                 }
 
-                Hashtag hashtag = hashtagRepository.findByHashtagNameAndAcademyCode(tagName, user.getAcademyId())
-                        .orElseGet(() -> hashtagRepository.save(Hashtag.builder()
-                                .hashtagName(tagName)
-                                .academyCode(user.getAcademyId())
-                                .build()));
+                // 해시태그 처리 로직을 별도의 트랜잭션으로 분리하여 안전하게 처리
+                try {
+                    Hashtag hashtag = getOrCreateHashtag(tagName, resolvedAcademyCode);
+                    
+                    // 해시태그가 성공적으로 조회/생성된 경우에만 매핑 생성
+                    if (hashtag != null && hashtag.getId() != null) {
+                        TagMapping tagMapping = TagMapping.builder()
+                                .board(board)
+                                .hashtag(hashtag)
+                                .build();
 
-                TagMapping tagMapping = TagMapping.builder()
-                        .board(board)
-                        .hashtag(hashtag)
-                        .build();
-
-                board.getTags().add(tagMapping);
-
-                tagMappingRepository.save(tagMapping);
+                        board.getTags().add(tagMapping);
+                        tagMappingRepository.save(tagMapping);
+                    }
+                } catch (Exception e) {
+                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
+                    // 한 태그에서 오류가 발생해도 다른 태그는 계속 처리
+                }
             }
         }
 
@@ -108,9 +140,21 @@ class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional
-    public BoardResponse getBoard(Long id, Boolean postView) {
+    public BoardResponse createBoard(BoardRequest request, Long userId) {
+        return createBoard(request, userId, null);
+    }
+
+    @Override
+    @Transactional
+    public BoardResponse getBoard(Long id, Boolean postView, String academyCode) {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> BoardException.notFound());
+
+        // academyCode 유효성 검사 - 제공된 academyCode와 게시글의 academyCode가 일치하는지 확인
+        if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
+            // 로깅 추가
+            log.info("제공된 academyCode: {}, 게시글의 academyCode: {}", academyCode, board.getAcademyCode());
+        }
 
         // 사용자 닉네임 초기화 (지연 로딩)
         board.getUser().getNickName();
@@ -124,11 +168,17 @@ class BoardServiceImpl implements BoardService {
         }
 
         // 게시글 상태 검증 (삭제된 게시글인지 확인)
-        //board.validateStatus(); 신고된 게시물에서도 불러와야 하므로 비뢀성화
+        //board.validateStatus(); 신고된 게시물에서도 불러와야 하므로 비활성화
         //게시물 목록에서 불러올 때 이미 Active인 게시물 만 볼러와지니깐 괜춘..?
         boardRepository.save(board);
 
         return createBoardResponse(board);
+    }
+
+    @Override
+    @Transactional
+    public BoardResponse getBoard(Long id, Boolean postView) {
+        return getBoard(id, postView, null);
     }
 
     @Override
@@ -142,7 +192,8 @@ class BoardServiceImpl implements BoardService {
             sortType = "등록일순";
         }
 
-        return boardRepository.findByAcademyCodeAndStatus(academyCode, Status.ACTIVE, sortType, null, pageable)
+        // 자유게시판용 메서드로 변경 - notice 타입이 아닌 게시글만 조회
+        return boardRepository.findByAcademyCodeAndStatusExcludeNotice(academyCode, Status.ACTIVE, sortType, null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -155,9 +206,9 @@ class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
             throw BoardException.invalidRequest();
         }
-        // 제목 또는 작성자 이름으로 검색합니다. 
+        // 제목 또는 작성자 이름으로 검색합니다.
         // 내용 검색을 원하면 searchType=제목으로 별도 검색 바람
-        return boardRepository.searchBoards(academyCode, keyword, sortType, null, pageable)
+        return boardRepository.searchBoards(academyCode, keyword, sortType, null, "free", pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -166,7 +217,7 @@ class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional
-    public BoardResponse updateBoard(Long id, BoardRequest request, Long userId) {
+    public BoardResponse updateBoard(Long id, BoardRequest request, Long userId, String academyCode) {
         validateBoardRequest(request);
 
         Board board = boardRepository.findById(id)
@@ -174,33 +225,65 @@ class BoardServiceImpl implements BoardService {
 
         board.validateUser(userId);
         board.validateStatus();
-        board.update(request.getTitle(), request.getContent());
+        board.update(request.getTitle(), request.getContent(), request.getType());
 
         board.getTags().clear();
 
-        String academyCode = userRepository.findById(userId)
-                .orElseThrow(() -> BoardException.notFound()).getAcademyId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> BoardException.notFound());
+
+        // academyCode 처리 로직 수정
+        // 1. 요청 객체(request)의 academyCode를 먼저 확인
+        // 2. URL 파라미터의 academyCode 확인
+        // 3. 없으면 사용자의 academyId 사용
+        String resolvedAcademyCode;
+        
+        // 요청 객체에 academyCode가 포함되어 있는지 확인
+        if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
+            resolvedAcademyCode = request.getAcademyCode();
+            log.info("수정 - 사용자 요청 academyCode 사용: {}", resolvedAcademyCode);
+        } 
+        // URL 파라미터로 전달된 academyCode 확인
+        else if (academyCode != null && !academyCode.isEmpty()) {
+            resolvedAcademyCode = academyCode;
+            log.info("수정 - URL 파라미터 academyCode 사용: {}", resolvedAcademyCode);
+        } 
+        // 사용자의 기본 academyId 사용
+        else {
+            resolvedAcademyCode = user.getAcademyId();
+            log.info("수정 - 사용자 기본 academyCode 사용: {}", resolvedAcademyCode);
+        }
+
+        // 게시글의 academyCode도 업데이트 필요한 경우 처리
+        if (!board.getAcademyCode().equals(resolvedAcademyCode)) {
+            log.info("게시글 academyCode 변경: {} -> {}", board.getAcademyCode(), resolvedAcademyCode);
+            board.updateAcademyCode(resolvedAcademyCode);
+        }
 
         if (request.getTags() != null) {
-            List<String> uniqueTags = request.getTags().stream()
-                    .filter(StringUtils::hasText)
-                    .distinct()
-                    .collect(Collectors.toList());
+            for (String tagName : request.getTags()) {
+                if (!StringUtils.hasText(tagName)) {
+                    continue;
+                }
 
-            for (String tagName : uniqueTags) {
-                Hashtag hashtag = hashtagRepository.findByHashtagNameAndAcademyCode(tagName, academyCode)
-                        .orElseGet(() -> hashtagRepository.save(Hashtag.builder()
-                                .hashtagName(tagName)
-                                .academyCode(academyCode)
-                                .build()));
+                // 해시태그 처리 로직을 별도의 트랜잭션으로 분리하여 안전하게 처리
+                try {
+                    Hashtag hashtag = getOrCreateHashtag(tagName, resolvedAcademyCode);
+                    
+                    // 해시태그가 성공적으로 조회/생성된 경우에만 매핑 생성
+                    if (hashtag != null && hashtag.getId() != null) {
+                        TagMapping tagMapping = TagMapping.builder()
+                                .board(board)
+                                .hashtag(hashtag)
+                                .build();
 
-                TagMapping tagMapping = TagMapping.builder()
-                        .board(board)
-                        .hashtag(hashtag)
-                        .build();
-
-                board.getTags().add(tagMapping);
-                tagMappingRepository.save(tagMapping);
+                        board.getTags().add(tagMapping);
+                        tagMappingRepository.save(tagMapping);
+                    }
+                } catch (Exception e) {
+                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
+                    // 한 태그에서 오류가 발생해도 다른 태그는 계속 처리
+                }
             }
         }
 
@@ -218,13 +301,25 @@ class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional
-    public void deleteBoard(Long id, Long userId) {
+    public BoardResponse updateBoard(Long id, BoardRequest request, Long userId) {
+        return updateBoard(id, request, userId, null);
+    }
+
+    @Override
+    @Transactional
+    public void deleteBoard(Long id, Long userId, String academyCode) {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> BoardException.notFound());
 
         // 사용자 정보 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> BoardException.notFound());
+
+        // academyCode 유효성 검사 - 제공된 academyCode와 게시글의 academyCode가 일치하는지 확인
+        if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
+            // 로깅 추가
+            log.info("제공된 academyCode: {}, 게시글의 academyCode: {}", academyCode, board.getAcademyCode());
+        }
 
         // 관리자 권한 확인
         boolean isAdmin = user.getRoles().contains(Role.ADMIN);
@@ -241,9 +336,21 @@ class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional
-    public void toggleLike(Long boardId, Long userId) {
+    public void deleteBoard(Long id, Long userId) {
+        deleteBoard(id, userId, null);
+    }
+
+    @Override
+    @Transactional
+    public void toggleLike(Long boardId, Long userId, String academyCode) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound());
+
+        // academyCode 유효성 검사 - 제공된 academyCode와 게시글의 academyCode가 일치하는지 확인
+        if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
+            // 로깅 추가
+            log.info("제공된 academyCode: {}, 게시글의 academyCode: {}", academyCode, board.getAcademyCode());
+        }
 
         board.validateStatus();
 
@@ -262,12 +369,18 @@ class BoardServiceImpl implements BoardService {
     }
 
     @Override
+    @Transactional
+    public void toggleLike(Long boardId, Long userId) {
+        toggleLike(boardId, userId, null);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Page<BoardResponse> getBoardsByTag(String academyCode, String tag, String sortType, Pageable pageable) {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(tag)) {
             throw BoardException.invalidRequest();
         }
-        return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, null, pageable)
+        return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, null, "free", pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -380,13 +493,14 @@ class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, Pageable pageable) {
+    public Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, String type, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
         if (academyCode == null) {
             throw BoardException.notFound();
         }
 
-        return boardRepository.findByAcademyCodeAndStatus(academyCode, Status.ACTIVE, sortType, minLikes, pageable)
+        return boardRepository.findByAcademyCodeAndStatusAndType(
+                academyCode, Status.ACTIVE, type, sortType, minLikes, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -396,13 +510,13 @@ class BoardServiceImpl implements BoardService {
     @Override
     @Transactional(readOnly = true)
     public Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes,
-                                                    Pageable pageable) {
+                                                    String type, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
         if (academyCode == null) {
             throw BoardException.notFound();
         }
 
-        return boardRepository.searchBoards(academyCode, keyword, sortType, minLikes, pageable)
+        return boardRepository.searchBoards(academyCode, keyword, sortType, minLikes, type, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -412,13 +526,13 @@ class BoardServiceImpl implements BoardService {
     @Override
     @Transactional(readOnly = true)
     public Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes,
-                                                       Pageable pageable) {
+                                                       String type, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
         if (academyCode == null) {
             throw BoardException.notFound();
         }
 
-        return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, minLikes, pageable)
+        return boardRepository.findByTagAndAcademyCode(academyCode, tag, sortType, minLikes, type, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -428,16 +542,28 @@ class BoardServiceImpl implements BoardService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TagResponse> getPopularTagsByUserId(Long userId) {
+    public List<TagResponse> getPopularTagsByUserId(Long userId, String type) {
         String academyCode = getAcademyCodeByUserId(userId);
-        return getPopularTags(academyCode);
+        return tagMappingRepository.findTop5PopularTagsByAcademyCodeAndType(academyCode, type)
+                .stream()
+                .map(tag -> TagResponse.builder()
+                        .name(tag.getHashtagName())
+                        .count(tag.getCount())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TagResponse> getPopularTagsByUserId(Long userId, Integer minLikes) {
+    public List<TagResponse> getPopularTagsByUserId(Long userId, Integer minLikes, String type) {
         String academyCode = getAcademyCodeByUserId(userId);
-        return getPopularTags(academyCode, minLikes);
+        return tagMappingRepository.findTop5PopularTagsByAcademyCodeAndMinLikesAndType(academyCode, minLikes, type)
+                .stream()
+                .map(tag -> TagResponse.builder()
+                        .name(tag.getHashtagName())
+                        .count(tag.getCount())
+                        .build())
+                .collect(Collectors.toList());
     }
 
 
@@ -454,7 +580,7 @@ class BoardServiceImpl implements BoardService {
             throw BoardException.invalidRequest();
         }
 
-        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, null, pageable)
+        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, null, "free", pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -465,13 +591,13 @@ class BoardServiceImpl implements BoardService {
     @Override
     @Transactional(readOnly = true)
     public Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword,
-                                                           String sortType, Integer minLikes, Pageable pageable) {
+                                                           String sortType, Integer minLikes, String type, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
         if (academyCode == null) {
             throw BoardException.notFound();
         }
 
-        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, minLikes, pageable)
+        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, sortType, minLikes, type, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -534,5 +660,152 @@ class BoardServiceImpl implements BoardService {
                             .toList();
                     return BoardResponse.from(board, tagNames);
                 });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BoardResponse> getNoticeBoards(String academyCode, Pageable pageable) {
+        // 정렬 타입 추출 또는 기본값 설정
+        String sortType = "등록일순";
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            if (order.getProperty().equals("viewCount")) {
+                sortType = "조회순";
+            } else if (order.getProperty().contains("comments")) {
+                sortType = "댓글순";
+            } else if (order.getProperty().contains("boardLikes")) {
+                sortType = "좋아요순";
+            }
+        }
+        
+        // type이 'notice'인 게시글만 조회 - 수정된 유연한 메서드 사용
+        Page<Board> boards = boardRepository.findByAcademyCodeAndStatusAndTypeFlexible(
+                academyCode, Status.ACTIVE, "notice", sortType, pageable);
+        
+        // 결과를 BoardResponse로 변환 (공지사항은 댓글 수 0, 태그 빈 리스트로 처리)
+        return boards.map(board -> {
+            // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
+            List<String> emptyTags = new ArrayList<>();
+            
+            // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
+            return BoardResponse.from(board, emptyTags, 0);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, Pageable pageable) {
+        if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
+            throw BoardException.invalidRequest("아카데미 코드 또는 검색어가 유효하지 않습니다.");
+        }
+        
+        // 정렬 타입 추출 또는 기본값 설정
+        String sortType = "등록일순";
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            if (order.getProperty().equals("viewCount")) {
+                sortType = "조회순";
+            } else if (order.getProperty().contains("boardLikes")) {
+                sortType = "좋아요순";
+            }
+        }
+        
+        // 키워드로 공지사항 검색
+        Page<Board> boards = boardRepository.searchNoticeBoards(
+                academyCode, Status.ACTIVE, keyword, sortType, pageable);
+        
+        // 결과를 BoardResponse로 변환
+        return boards.map(board -> {
+            // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
+            List<String> emptyTags = new ArrayList<>();
+            
+            // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
+            return BoardResponse.from(board, emptyTags, 0);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, Pageable pageable) {
+        if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
+            throw BoardException.invalidRequest("아카데미 코드 또는 검색어가 유효하지 않습니다.");
+        }
+        
+        // 정렬 타입 추출 또는 기본값 설정
+        String sortType = "등록일순";
+        if (pageable.getSort().isSorted()) {
+            Sort.Order order = pageable.getSort().iterator().next();
+            if (order.getProperty().equals("viewCount")) {
+                sortType = "조회순";
+            } else if (order.getProperty().contains("comments")) {
+                sortType = "댓글순";
+            } else if (order.getProperty().contains("boardLikes")) {
+                sortType = "좋아요순";
+            }
+        }
+        
+        // 키워드로 공지사항 검색 - type 파라미터 추가
+        Page<Board> boards = boardRepository.searchNoticeBoardsWithType(
+                academyCode, Status.ACTIVE, keyword, sortType, type, pageable);
+        
+        // 결과를 BoardResponse로 변환
+        return boards.map(board -> {
+            // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
+            List<String> emptyTags = new ArrayList<>();
+            
+            // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
+            return BoardResponse.from(board, emptyTags, 0);
+        });
+    }
+
+    /**
+     * 해시태그를 조회하거나 생성하는 메서드
+     * 별도의 트랜잭션으로 분리하여 예외 처리를 더 안전하게 함
+     */
+   @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Hashtag getOrCreateHashtag(String tagName, String academyCode) {
+        // First, try to find existing hashtag
+        Hashtag hashtag = hashtagRepository.findByHashtagNameAndAcademyCode(tagName, academyCode)
+                .orElse(null);
+
+        if (hashtag != null) {
+            log.info("Using existing hashtag: {}, academyCode: {}, id: {}", 
+                    tagName, academyCode, hashtag.getId());
+            return hashtag;
+        }
+
+        // If not found, attempt to create a new one
+        try {
+            Hashtag newHashtag = Hashtag.builder()
+                    .hashtagName(tagName)
+                    .academyCode(academyCode)
+                    .build();
+            hashtag = hashtagRepository.save(newHashtag);
+            log.info("Created new hashtag: {}, academyCode: {}, id: {}", 
+                    tagName, academyCode, hashtag.getId());
+            return hashtag;
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate key error while saving hashtag: {}, retrying lookup", e.getMessage());
+            // Retry in a new transaction to ensure clean session
+            hashtag = retryGetHashtag(tagName, academyCode);
+            if (hashtag != null) {
+                log.info("Found existing hashtag after duplicate error: {}, academyCode: {}, id: {}", 
+                        tagName, academyCode, hashtag.getId());
+                return hashtag;
+            }
+            log.error("Failed to find hashtag after duplicate error: {}, academyCode: {}", 
+                    tagName, academyCode);
+            throw new IllegalStateException("Unable to create or find hashtag: " + tagName, e);
+        } catch (Exception e) {
+            log.error("Unexpected error while creating hashtag: {}, academyCode: {}", 
+                    tagName, academyCode, e);
+            throw new IllegalStateException("Failed to process hashtag: " + tagName, e);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    private Hashtag retryGetHashtag(String tagName, String academyCode) {
+        return hashtagRepository.findByHashtagNameAndAcademyCode(tagName, academyCode)
+                .orElse(null);
     }
 }

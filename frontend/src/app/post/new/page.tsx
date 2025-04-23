@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 
 // TiptapEditor를 동적으로 불러오기 (SSR 비활성화)
@@ -10,6 +10,9 @@ const TiptapEditor = dynamic(
   () => import('@/components/editor/TiptapEditor'),
   { ssr: false }
 );
+
+// 게시글 타입 정의
+type BoardType = 'free' | 'notice';
 
 // --- 태그 입력 컴포넌트 ---
 interface TagInputProps {
@@ -205,12 +208,63 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
 // --- 게시글 등록 페이지 컴포넌트 ---
 const NewPostPage = () => {
   const router = useRouter();
-  const { isLogin } = useGlobalLoginMember();
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get('type') || 'free';
+  const academyCode = searchParams.get('academyCode'); // academyCode를 URL에서 가져옴
+  const { isLogin, loginMember } = useGlobalLoginMember();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const boardType: BoardType = typeParam === 'notice' ? 'notice' : 'free';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  // 임시 이미지 ID 목록 저장을 위한 상태 추가
+  const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([]);
+
+  // 관리자 여부 확인
+  useEffect(() => {
+    const checkAdminPermission = async () => {
+      if (isLogin && loginMember) {
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const isAdminResult = await response.json();
+            setIsAdmin(isAdminResult === true);
+            
+            // 관리자인 경우 오류 메시지 제거
+            if (isAdminResult === true && typeParam === 'notice') {
+              setError('');
+            }
+          }
+        } catch (error) {
+          console.error('관리자 권한 확인 중 오류 발생:', error);
+        }
+      }
+    };
+    
+    checkAdminPermission();
+  }, [isLogin, loginMember, typeParam]);
+
+  // 공지사항 작성 권한 확인
+  useEffect(() => {
+    if (typeParam === 'notice' && isLogin) {
+      // 아직 관리자 확인 전이거나 관리자가 아닐 경우
+      if (!isAdmin) {
+        setError('공지사항 작성 권한이 없습니다. 관리자에게 문의하세요.');
+      } else {
+        // 관리자인 경우 오류 메시지 제거
+        setError('');
+      }
+    }
+  }, [typeParam, isLogin, isAdmin]);
 
   // 로그인 여부 확인 및 리다이렉트
   useEffect(() => {
@@ -239,6 +293,15 @@ const NewPostPage = () => {
     setTags(uniqueTags);
   };
 
+  // 이미지 업로드 완료 시 tempId 저장 핸들러
+  const handleImageUpload = (tempIds: string[]) => {
+    setUploadedTempIds(prev => {
+      // 중복 제거하여 새로운 tempId만 추가
+      const newIds = tempIds.filter(id => !prev.includes(id));
+      return [...prev, ...newIds];
+    });
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       setError('제목을 입력해주세요.');
@@ -250,20 +313,42 @@ const NewPostPage = () => {
       return;
     }
 
+    // 공지사항 권한 확인
+    if (boardType === 'notice' && !isAdmin) {
+      setError('공지사항 작성 권한이 없습니다. 관리자만 작성할 수 있습니다.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       setError('');
       
       // 빈 태그만 필터링하고, 태그 형식을 그대로 유지
-      const finalTags = tags.filter(tag => tag.trim() !== '');
+      const finalTags = boardType === 'notice' ? [] : tags.filter(tag => tag.trim() !== '');
       
       // API 호출을 위한 데이터 구성
-      const postData = {
+      // academyCode가 있으면 사용, 없으면 undefined로 전송하여 서버에서 토큰의 사용자 정보 사용
+      const postData: {
+        title: string;
+        content: string;
+        tags: string[];
+        type: BoardType;
+        academyCode?: string;
+      } = {
         title,
         content,
-        tags: finalTags // 태그 배열을 그대로 전송
+        tags: finalTags,
+        type: boardType, // 게시글 타입 추가 (free 또는 notice)
       };
       
+      // academyCode가 있는 경우에만 포함
+      if (academyCode) {
+        postData.academyCode = academyCode;
+      }
+
+      console.log('요청 데이터:', postData);
+      
+      // 게시글 생성 요청
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
         method: 'POST',
         headers: {
@@ -289,16 +374,46 @@ const NewPostPage = () => {
         throw new Error(errorMsg);
       }
 
-      // 응답 데이터 확인 (서버가 태그를 분리했는지 확인)
-      try {
-        const responseData = await response.json();
-        console.log('서버 응답:', responseData); // 디버깅용
-      } catch {
-        // JSON 파싱 실패는 무시
+      // 응답 데이터 확인 
+      const responseData = await response.json();
+      console.log('서버 응답:', responseData);
+      
+      // 이미지가 업로드되었고 게시글 ID가 있으면 이미지 연결 요청
+      if (uploadedTempIds.length > 0 && responseData.id) {
+        try {
+          const linkResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tempIds: uploadedTempIds,
+              boardId: responseData.id
+            }),
+            credentials: 'include',
+          });
+          
+          if (linkResponse.ok) {
+            console.log('이미지 연결 성공:', await linkResponse.json());
+          } else {
+            console.error('이미지 연결 실패:', linkResponse.status);
+          }
+        } catch (linkError) {
+          console.error('이미지 연결 중 오류:', linkError);
+          // 게시글은 생성되었으므로 전체 프로세스를 실패로 처리하지 않음
+        }
       }
 
-      // 성공 시 게시글 목록 페이지로 이동
-      router.push('/post');
+      // 성공 시 게시글 목록 페이지로 이동 - academyCode 유지
+      if (boardType === 'notice') {
+        if (academyCode) {
+          router.push(`/post/notice?academyCode=${academyCode}&type=notice`); // academyCode 포함하여 이동
+        } else {
+          router.push('/post/notice?type=notice');
+        }
+      } else {
+        router.push('/post'); // 일반 게시글이면 일반 게시글 목록으로
+      }
 
     } catch (err) {
       console.error('게시글 등록 중 오류:', err);
@@ -313,7 +428,9 @@ const NewPostPage = () => {
       <main className="bg-[#f9fafc] min-h-screen pb-8">
         <div className="max-w-[1140px] mx-auto px-4">
           <div className="pt-14">
-            <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">새 글쓰기</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">
+              {boardType === 'notice' ? '공지사항 작성' : '새 글쓰기'}
+            </h1>
             <div className="bg-white p-4 sm:p-6 rounded-[10px] shadow-md w-full border border-[#F9FAFB]">
               {/* 제목 입력 */}
               <div className="w-full mb-3 sm:mb-4 border border-[#eeeeee] rounded-[10px] overflow-hidden pb-[10px]">
@@ -331,16 +448,22 @@ const NewPostPage = () => {
               {/* Tiptap 에디터 적용 */}
               <div className="w-full mb-3 sm:mb-4 border border-[#eeeeee] rounded-[10px] overflow-hidden">
                 <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px]">
-                  <TiptapEditor content={content} onChange={setContent} />
+                  <TiptapEditor 
+                    content={content} 
+                    onChange={setContent} 
+                    onImageUpload={handleImageUpload} 
+                  />
                 </div>
               </div>
 
-              {/* 태그 입력 */}
-              <div className="w-full mb-4 sm:mb-6 border border-[#eeeeee] rounded-[10px] overflow-hidden pb-[10px]">
-                <div className="p-2 sm:p-3 border-[#eeeeee]  ">
-                  <TagInput tags={tags} onTagsChange={handleTagsChange} />
+              {/* 태그 입력 - 공지사항이 아닐 때만 표시 */}
+              {boardType !== 'notice' && (
+                <div className="w-full mb-4 sm:mb-6 border border-[#eeeeee] rounded-[10px] overflow-hidden pb-[10px]">
+                  <div className="p-2 sm:p-3 border-[#eeeeee]">
+                    <TagInput tags={tags} onTagsChange={handleTagsChange} />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 에러 메시지 */}
               {error && (
@@ -354,15 +477,26 @@ const NewPostPage = () => {
                 <div className="p-2 sm:p-3">
                   <div className="flex justify-between">
                     <button
-                      onClick={() => router.push('/post')}
+                      onClick={() => {
+                        if (typeParam === 'notice') {
+                          const noticeUrl = academyCode ? `/post/notice?academyCode=${academyCode}&type=notice` : '/post/notice?type=notice';
+                          router.push(noticeUrl);
+                        } else {
+                          router.push('/post');
+                        }
+                      }}
                       className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
                     >
                       목록
                     </button>
                     <button 
                       onClick={handleSubmit}
-                      disabled={isSubmitting}
-                      className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[10px] border-none text-[12px]"
+                      disabled={isSubmitting || (boardType === 'notice' && !isAdmin)}
+                      className={`py-[10px] px-[20px] rounded-[10px] border-none text-[12px] ${
+                        boardType === 'notice' && !isAdmin 
+                          ? 'bg-gray-400 text-[#ffffff] cursor-not-allowed' 
+                          : 'bg-[#980ffa] text-[#ffffff] hover:bg-[#870edf] transition-all'
+                      }`}
                     >
                       {isSubmitting ? '등록 중...' : '등록하기'}
                     </button>

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
+import { fetchApi } from '@/utils/api';
 
 interface Post {
   id: number;
@@ -19,6 +20,9 @@ interface Post {
   isReported?: boolean;
   isLiked?: boolean;
   isOwner?: boolean;
+  boardType?: string;
+  type?: string;
+  academyCode?: string;
 }
 
 interface Comment {
@@ -34,20 +38,32 @@ interface Comment {
 }
 
 export default function PostDetailPage() {
-  const params = useParams();
+  const { isLogin, loginMember } = useGlobalLoginMember();
   const router = useRouter();
-  const { isLogin } = useGlobalLoginMember();
+  const params = useParams();
+  const postId = params.id;
+  const searchParams = useSearchParams();
+  const academyCode = searchParams.get('academyCode');
+  
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLiking, setIsLiking] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentInput, setCommentInput] = useState('');
-  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editCommentContent, setEditCommentContent] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [lastEditedCommentId, setLastEditedCommentId] = useState<number | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isReported, setIsReported] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  const [isCommentSubmitting, setIsCommentSubmitting] = useState(false);
   const isMounted = useRef(false);
+  const commentMenuRef = useRef<HTMLDivElement>(null);
+  const [commentMenuOpen, setCommentMenuOpen] = useState<number | null>(null);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+
   // 드롭다운 메뉴 상태 관리
   const [showPostMenu, setShowPostMenu] = useState(false);
   const [showCommentMenu, setShowCommentMenu] = useState<number | null>(null);
@@ -57,9 +73,6 @@ export default function PostDetailPage() {
   const [commentLikingId, setCommentLikingId] = useState<number | null>(null);
   // 댓글 수정 입력창 참조
   const editCommentRef = useRef<HTMLTextAreaElement>(null);
-  // 게시글 신고 상태
-  const [isReported, setIsReported] = useState(false);
-  const [isReporting, setIsReporting] = useState(false);
 
   // 외부 클릭 감지 - 메뉴와 수정 모드 닫기
   useEffect(() => {
@@ -102,7 +115,7 @@ export default function PostDetailPage() {
   // 게시글 상세 정보 로드
   useEffect(() => {
     const fetchPostDetail = async () => {
-      if (!params.id) return;
+      if (!postId) return;
       
       // 마운트 체크 (React 18 StrictMode 대응)
       if (isMounted.current) {
@@ -112,16 +125,23 @@ export default function PostDetailPage() {
       
       // 세션 스토리지에서 이미 조회했는지 확인
       const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '{}');
-      const postKey = `post_${params.id}`;
+      const postKey = `post_${postId}`;
       const hasViewed = viewedPosts[postKey];
       
       setLoading(true);
+      setError(null);
       try {
-        // 게시글 데이터 로드 API 호출 (쿠키 기반 인증 사용)
-        console.log('게시글 상세 정보 요청 시작, 인증 상태:', isLogin ? '로그인됨' : '로그인안됨');
+        // URL 파라미터에서 academyCode 가져오기
+        const searchParams = new URLSearchParams(window.location.search);
+        const currentAcademyCode = academyCode || searchParams.get('academyCode');
         
         // 이미 조회한 경우 postView=false로 설정
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}?postView=${!hasViewed}`, {
+        let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}?postView=${!hasViewed}`;
+        if (currentAcademyCode) {
+          url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
+        }
+        
+        const response = await fetch(url, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -163,6 +183,12 @@ export default function PostDetailPage() {
         }
         
         const postData = await response.json();
+        
+        // academyCode가 응답에 없으면 현재 URL의 academyCode 추가
+        if (currentAcademyCode && !postData.academyCode) {
+          postData.academyCode = currentAcademyCode;
+        }
+        
         setPost(postData); // 게시글 데이터 먼저 설정하여 UI가 렌더링되도록 함
         
         // 로그인 상태일 때만 추가 데이터 조회
@@ -170,7 +196,7 @@ export default function PostDetailPage() {
           // 비동기로 처리하고 await 하지 않음 - UI 블로킹 방지
           Promise.all([
             // 좋아요 상태 확인
-            fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}/like-status`, {
+            fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/like-status`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -190,7 +216,7 @@ export default function PostDetailPage() {
             }),
             
             // 신고 상태 확인
-            fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}/report-status`, {
+            fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/report-status`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -210,7 +236,7 @@ export default function PostDetailPage() {
             }),
             
             // 게시글 작성자 여부 확인
-            fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}/is-owner`, {
+            fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/is-owner`, {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
@@ -250,29 +276,38 @@ export default function PostDetailPage() {
     
     // 언마운트 시 ref 초기화하지 않음 - 중요!
     return () => {};
-  }, [params.id, isLogin, router]);
+  }, [postId, isLogin, router, academyCode]);
 
   // 게시글 좋아요 기능
   const handleLike = async () => {
-    if (!post || isLiking) return;
-    
-    // 로그인 여부 확인
     if (!isLogin) {
       alert('로그인이 필요한 기능입니다.');
       return;
     }
-    
-    setIsLiking(true);
+
+    if (isLiking || !post) return; // 이미 처리 중이면 중복 방지
+
     try {
-      // 백엔드의 토글 API 호출 - 이미 좋아요 했으면 취소, 안했으면 좋아요 추가
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/like`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // 쿠키 인증 사용
-      });
+      setIsLiking(true);
       
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+      
+      // URL 구성 (academyCode 포함)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/likes`;
+      if (currentAcademyCode) {
+        url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
+
+      const response = await fetch(url, {
+        method: isLiked ? 'DELETE' : 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
       if (!response.ok) {
         throw new Error('좋아요 처리에 실패했습니다.');
       }
@@ -307,7 +342,10 @@ export default function PostDetailPage() {
   };
 
   // 게시글 수정 페이지로 이동
-  const handleEdit = () => {
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!post) return;
     
     // 로그인 여부 확인
@@ -322,8 +360,36 @@ export default function PostDetailPage() {
       return;
     }
     
-    router.push(`/post/${post.id}/edit`);
+    // 메뉴 닫기
     setShowPostMenu(false);
+    
+    // 게시물 타입 확인 - type 또는 boardType 필드에서 공지사항 여부 확인
+    const isNotice = post.type === 'notice' || post.boardType === 'notice';
+    console.log('게시물 타입 정보:', { type: post.type, boardType: post.boardType, isNotice });
+    
+    // URL 파라미터에서 academyCode 가져오기
+    const searchParams = new URLSearchParams(window.location.search);
+    const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+    
+    // 콘솔에 academyCode 정보 출력 (디버깅용)
+    console.log('수정 사용할 아카데미 코드:', { 
+      postAcademyCode: post.academyCode, 
+      urlAcademyCode: academyCode, 
+      searchParamsAcademyCode: searchParams.get('academyCode'),
+      finalAcademyCode: currentAcademyCode
+    });
+    
+    // 아카데미 코드 추가
+    let editUrl = `/post/${post.id}/edit${isNotice ? '?type=notice' : ''}`;
+    if (currentAcademyCode) {
+      editUrl += `${isNotice ? '&' : '?'}academyCode=${currentAcademyCode}`;
+    }
+    
+    // 약간의 지연 후 라우팅 실행
+    setTimeout(() => {
+      console.log('게시글 수정 페이지로 이동:', editUrl);
+      router.push(editUrl);
+    }, 100);
   };
 
   // 게시글 삭제 기능
@@ -335,7 +401,7 @@ export default function PostDetailPage() {
       alert('로그인이 필요한 기능입니다.');
       return;
     }
-    
+
     // 작성자 여부 확인
     if (!post.isOwner) {
       alert('자신의 게시글만 삭제할 수 있습니다.');
@@ -343,17 +409,37 @@ export default function PostDetailPage() {
     }
     
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}`, {
-        method: 'DELETE',
-        credentials: 'include', // 쿠키 인증 사용
-      });
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
       
+      // 삭제 URL 구성 (academyCode 포함)
+      let deleteUrl = `/api/v1/posts/${post.id}`;
+      if (currentAcademyCode) {
+        deleteUrl += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
+      
+      const response = await fetchApi(deleteUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
       if (!response.ok) {
         throw new Error('게시글 삭제에 실패했습니다.');
       }
       
       alert('게시글이 삭제되었습니다.');
-      router.push('/post');
+      
+      // 삭제 후 이동 - 공지사항이면 공지사항 목록으로, 아니면 일반 게시판으로
+      if (isNoticePost(post)) {
+        const noticeUrl = currentAcademyCode ? `/post/notice?academyCode=${currentAcademyCode}&type=notice` : '/post/notice?type=notice';
+        router.push(noticeUrl);
+      } else {
+        router.push('/post');
+      }
     } catch (err) {
       console.error('게시글 삭제 중 오류:', err);
       alert(err instanceof Error ? err.message : '게시글 삭제에 실패했습니다.');
@@ -379,10 +465,20 @@ export default function PostDetailPage() {
     
     setIsReporting(true);
     try {
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+      
+      // URL 구성 (academyCode 포함)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${id}/report`;
+      if (currentAcademyCode) {
+        url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
+      
       // 백엔드 게시글 신고 API 호출
       console.log('게시글 신고 요청:', id);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${id}/report`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -423,10 +519,20 @@ export default function PostDetailPage() {
       }
       
       console.log(`댓글 목록 조회 API 호출: 게시글 ID ${postId}`);
+
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post?.academyCode || academyCode || searchParams.get('academyCode');
+      
+      // URL 구성 (academyCode 포함)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/by-post/${postId}`;
+      if (currentAcademyCode) {
+        url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
       
       try {
         // 백엔드 API에서 좋아요 상태를 포함한 댓글 목록 조회
-        const commentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/by-post/${postId}`, {
+        const commentsResponse = await fetch(url, {
           credentials: 'include', // 쿠키 인증 사용
           headers: {
             'Content-Type': 'application/json',
@@ -525,53 +631,58 @@ export default function PostDetailPage() {
     }
   };
 
-  // 댓글 등록
-  const handleCommentSubmit = async () => {
-    if (!commentInput.trim() || !post) return;
-    
-    // 로그인 여부 확인
-    if (!isLogin) {
-      alert('로그인이 필요한 기능입니다.');
-      return;
-    }
-    
-    try {
-      // 백엔드에서 이미 사용자 ID를 7로 하드코딩하고 있으므로 commenterId는 전송하지 않음
-      const commentData = {
-        boardId: post.id,
-        content: commentInput
-      };
-      
-      console.log('댓글 등록 요청 데이터:', commentData);
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // 쿠키 인증 사용
-        body: JSON.stringify(commentData)
-      });
-      
-      // 응답이 텍스트 형식이므로 text()로 읽습니다
-      const responseText = await response.text();
-      
-      if (response.ok) {
-        console.log('댓글 등록 성공:', responseText);
-        // 댓글 입력창 초기화
-        setCommentInput('');
-        // 댓글 목록 새로고침
-        const updatedComments = await fetchComments(post.id);
-        setComments(updatedComments);
-      } else {
-        console.error('댓글 등록 실패:', responseText);
-        alert(`댓글 등록에 실패했습니다: ${responseText}`);
+    // 댓글 등록
+    const handleCommentSubmit = async () => {
+      if (!isLogin) {
+        alert('로그인이 필요한 기능입니다.');
+        return;
       }
-    } catch (error) {
-      console.error('댓글 등록 중 오류:', error);
-      alert('댓글 등록 중 오류가 발생했습니다.');
-    }
-  };
+
+      if (!commentInput.trim() || !post) {
+        alert('댓글 내용을 입력해주세요.');
+        return;
+      }
+
+      try {
+        setIsCommentSubmitting(true);
+        
+        // URL 파라미터에서 academyCode 가져오기
+        const searchParams = new URLSearchParams(window.location.search);
+        const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+        
+        // URL 구성 (academyCode 포함)
+        let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/comments`;
+        if (currentAcademyCode) {
+          url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ content: commentInput.trim() }),
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          console.log('댓글 등록 성공');
+          // 댓글 입력창 초기화
+          setCommentInput('');
+          // 댓글 목록 새로고침
+          const updatedComments = await fetchComments(post.id);
+          setComments(updatedComments);
+        } else {
+          console.error('댓글 등록 실패');
+          alert('댓글 등록에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('댓글 등록 중 오류:', error);
+        alert('댓글 등록 중 오류가 발생했습니다.');
+      } finally {
+        setIsCommentSubmitting(false);
+      }
+    };
 
   // 댓글 메뉴 토글
   const toggleCommentMenu = (e: React.MouseEvent, commentId: number) => {
@@ -637,40 +748,35 @@ export default function PostDetailPage() {
 
   // 댓글 수정 제출
   const submitCommentEdit = async () => {
-    if (!editingCommentId || !editCommentContent.trim() || !post) return;
+    if (!editingCommentId || !post) return;
     
-    // 로그인 여부 확인
-    if (!isLogin) {
-      alert('로그인이 필요한 기능입니다.');
+    if (!editCommentContent.trim()) {
+      alert('댓글 내용을 입력해주세요.');
       return;
     }
     
     try {
-      // 백엔드 API 요구사항에 맞춰 수정
-      const commentData = {
-        id: editingCommentId,
-        boardId: post.id,
-        content: editCommentContent,
-        commenterId: editingCommentId
-      };
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
       
-      console.log('댓글 수정 요청 데이터:', commentData, 'ID가 포함되어 있는지 확인:', editingCommentId);
+      // URL 구성 (academyCode 포함)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${editingCommentId}`;
+      if (currentAcademyCode) {
+        url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
       
-      // POST 메서드 사용 (PUT은 지원되지 않음)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/update`, {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        credentials: 'include', // 쿠키 인증 사용
-        body: JSON.stringify(commentData)
+        body: JSON.stringify({ content: editCommentContent.trim() }),
+        credentials: 'include'
       });
-      
-      // 응답이 텍스트 형식이므로 text()로 읽습니다
-      const responseText = await response.text();
-      
+
       if (response.ok) {
-        console.log('댓글 수정 성공:', responseText);
+        console.log('댓글 수정 성공');
         // 수정된 댓글 ID 저장 (하이라이트 효과용)
         setLastEditedCommentId(editingCommentId);
         // 수정 모드 종료
@@ -684,8 +790,8 @@ export default function PostDetailPage() {
           setLastEditedCommentId(null);
         }, 5000);
       } else {
-        console.error('댓글 수정 실패:', responseText);
-        alert(`댓글 수정에 실패했습니다: ${responseText}`);
+        console.error('댓글 수정 실패');
+        alert('댓글 수정에 실패했습니다.');
       }
     } catch (error) {
       console.error('댓글 수정 중 오류:', error);
@@ -695,45 +801,38 @@ export default function PostDetailPage() {
 
   // 댓글 삭제
   const handleCommentDelete = async (commentId: number) => {
-    // 댓글 찾기
-    const comment = comments.find(c => c.id === commentId);
-    if (!comment) return;
-    
-    // 작성자 여부 확인
-    if (!comment.isOwner) {
-      alert('자신의 댓글만 삭제할 수 있습니다.');
-      setShowCommentMenu(null);
-      return;
-    }
-    
-    if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) return;
-    
-    // 로그인 여부 확인
-    if (!isLogin) {
-      alert('로그인이 필요한 기능입니다.');
+    if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) {
       return;
     }
     
     try {
-      console.log('댓글 삭제 요청:', commentId);
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${commentId}`, {
+      // URL 구성 (academyCode 포함)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${commentId}`;
+      if (currentAcademyCode) {
+        url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
+      
+      const response = await fetch(url, {
         method: 'DELETE',
-        credentials: 'include', // 쿠키 인증 사용
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
       });
-      
-      // 응답이 텍스트 형식이므로 text()로 읽습니다
-      const responseText = await response.text();
-      
+
       if (response.ok) {
-        console.log('댓글 삭제 성공:', responseText);
+        console.log('댓글 삭제 성공');
         // 댓글 목록 새로고침
         const updatedComments = await fetchComments(post.id);
         setComments(updatedComments);
         setShowCommentMenu(null);
       } else {
-        console.error('댓글 삭제 실패:', responseText);
-        alert(`댓글 삭제에 실패했습니다: ${responseText}`);
+        console.error('댓글 삭제 실패');
+        alert('댓글 삭제에 실패했습니다.');
       }
     } catch (error) {
       console.error('댓글 삭제 중 오류:', error);
@@ -741,48 +840,42 @@ export default function PostDetailPage() {
     }
   };
 
-  // 댓글 좋아요 기능
+  // 댓글 좋아요
   const handleCommentLike = async (commentId: number) => {
-    if (!post || commentLikingId === commentId) return;
-    
-    // 로그인 여부 확인
     if (!isLogin) {
       alert('로그인이 필요한 기능입니다.');
       return;
     }
     
+    if (commentLikingId === commentId || !post) return; // 이미 처리 중이면 중복 방지
+    
     setCommentLikingId(commentId);
+    
     try {
-      // 현재 댓글의 좋아요 상태 확인
+      // 현재 좋아요 상태 확인
       const comment = comments.find(c => c.id === commentId);
       if (!comment) return;
       
-      const isCurrentlyLiked = Boolean(comment.isLiked);
-      console.log(`댓글 ID ${commentId}의 현재 좋아요 상태:`, isCurrentlyLiked);
+      const isCurrentlyLiked = comment.isLiked || false;
       
-      // 좋아요 토글 UI 즉시 반영 (옵티미스틱 업데이트)
-      const newLikedState = !isCurrentlyLiked;
-      setComments(prev => prev.map(c => 
-        c.id === commentId 
-          ? { 
-              ...c, 
-              likeCount: newLikedState 
-                ? c.likeCount + 1          // 좋아요 추가 시 +1
-                : Math.max(0, c.likeCount - 1),  // 좋아요 취소 시 -1 (음수 방지)
-              isLiked: newLikedState        // 좋아요 상태 토글
-            }
-          : c
-      ));
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
       
-      // 백엔드의 토글 API 호출 - 이미 좋아요 했으면 취소, 안했으면 좋아요 추가
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/likes/comments/${commentId}/toggle`, {
-        method: 'POST',
+      // URL 구성 (academyCode 포함)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${commentId}/likes`;
+      if (currentAcademyCode) {
+        url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
+      
+      const response = await fetch(url, {
+        method: isCurrentlyLiked ? 'DELETE' : 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        credentials: 'include', // 쿠키 인증 사용
+        credentials: 'include'
       });
-      
+
       if (!response.ok) {
         // API 호출 실패 시 원래 상태로 복원
         setComments(prev => prev.map(c => 
@@ -800,7 +893,7 @@ export default function PostDetailPage() {
       }
       
       // API 호출 성공 로그
-      console.log(`댓글 좋아요 ${newLikedState ? '추가' : '취소'} 완료:`, commentId);
+      console.log(`댓글 좋아요 ${isCurrentlyLiked ? '취소' : '추가'} 완료:`, commentId);
       
     } catch (err) {
       console.error('댓글 좋아요 처리 중 오류:', err);
@@ -812,6 +905,8 @@ export default function PostDetailPage() {
 
   // 댓글 신고
   const handleCommentReport = async (commentId: number) => {
+    if (!post) return;
+    
     // 로그인 여부 확인
     if (!isLogin) {
       alert('로그인이 필요한 기능입니다.');
@@ -837,10 +932,20 @@ export default function PostDetailPage() {
     }
     
     try {
+      // URL 파라미터에서 academyCode 가져오기
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+      
+      // URL 구성 (academyCode 포함)
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${commentId}`;
+      if (currentAcademyCode) {
+        url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
+      
       // 백엔드 댓글 신고 API 호출
       console.log('댓글 신고 요청:', commentId);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${commentId}`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -867,6 +972,11 @@ export default function PostDetailPage() {
       alert('댓글 신고 중 오류가 발생했습니다.');
     }
   };
+
+  // post가 공지사항인지 확인하는 함수
+  const isNoticePost = useCallback((post: Post | null) => {
+    return post?.type === 'notice' || post?.boardType === 'notice';
+  }, []);
 
   if (loading) {
     return (
@@ -944,11 +1054,11 @@ export default function PostDetailPage() {
   return (
     <div className="mx-auto p-5 bg-[#f9fafc] flex flex-col items-center" style={{ width: '100%' }}>
       {/* 게시판 타이틀 */}
-      {/* <div className="p-[10px] pt-5 rounded mb-4">
-        <Link href="/post">
-          <h1 className="text-2xl font-bold cursor-pointer hover:text-[#980ffa] transition-colors">글 상세</h1>
-        </Link>
-      </div> */}
+      <div className="p-[10px] pt-5 rounded mb-4" style={{ width: '971px' }}>
+        <h1 className="text-2xl font-bold">
+          {isNoticePost(post) ? '공지사항' : '게시판'}
+        </h1>
+      </div>
       
       {/* 게시글 상세 컴포넌트 */}
       <div className="bg-[#ffffff] p-[30px] mb-4 rounded border border-[#F9FAFB]" style={{ width: '971px' }}>
@@ -981,7 +1091,10 @@ export default function PostDetailPage() {
                     <>
                       <button 
                         className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                        onClick={handleEdit}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(e);
+                        }}
                       >
                         <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
                         글 수정
@@ -1025,10 +1138,12 @@ export default function PostDetailPage() {
             <span className="material-icons text-sm mr-1 m-[5px]">visibility</span>
             <span className="text-sm m-[5px]">{post.viewCount}</span>
           </div>
-          <div className="flex items-center">
-            <span className="material-icons text-sm mr-1 m-[5px]">comment</span>
-            <span className="text-sm m-[5px]">{comments.length}</span>
-          </div>
+          {!isNoticePost(post) && (
+            <div className="flex items-center">
+              <span className="material-icons text-sm mr-1 m-[5px]">comment</span>
+              <span className="text-sm m-[5px]">{comments.length}</span>
+            </div>
+          )}
         </div>
         
         {/* 좋아요 버튼 */}
@@ -1070,189 +1185,219 @@ export default function PostDetailPage() {
       </div>
       
       {/* 댓글 개수 표시 */}
-      <div className="p-[10px] pt-5 rounded mb-4 flex justify-between items-center" style={{ width: '971px' }}>
-        <h3 className="font-medium">{comments.length}개의 댓글</h3>
-        <button
-          onClick={() => router.push('/post')}
-          className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-        >
-          목록
-        </button>
-      </div>
+      {!isNoticePost(post) && (
+        <div className="p-[10px] pt-5 rounded mb-4 flex justify-between items-center" style={{ width: '971px' }}>
+          <h3 className="font-medium">{comments.length}개의 댓글</h3>
+          <button
+            onClick={() => {
+              if (isNoticePost(post)) {
+                const currentAcademyCode = post.academyCode || academyCode || new URLSearchParams(window.location.search).get('academyCode');
+                const noticeUrl = currentAcademyCode ? `/post/notice?academyCode=${currentAcademyCode}&type=notice` : '/post/notice?type=notice';
+                router.push(noticeUrl);
+              } else {
+                router.push('/post');
+              }
+            }}
+            className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+          >
+            목록
+          </button>
+        </div>
+      )}
+      
+      {/* 공지사항일 때 목록 버튼 */}
+      {isNoticePost(post) && (
+        <div className="p-[10px] pt-5 rounded mb-4 flex justify-end" style={{ width: '971px' }}>
+          <button
+            onClick={() => {
+              // 게시글의 academyCode 또는 URL에서 가져온 academyCode 사용
+              const currentAcademyCode = post?.academyCode || academyCode || new URLSearchParams(window.location.search).get('academyCode');
+              const noticeUrl = currentAcademyCode ? `/post/notice?academyCode=${currentAcademyCode}&type=notice` : '/post/notice?type=notice';
+              router.push(noticeUrl);
+            }}
+            className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+          >
+            목록
+          </button>
+        </div>
+      )}
       
       {/* 댓글 컴포넌트와 입력 영역을 감싸는 컨테이너 */}
-      <div className="bg-[#ffffff] rounded border border-[#f9fafb] mb-4 p-[20px] m-[10px]" style={{ width: '971px' }}>
-        {/* 댓글 목록 */}
-        {comments.length > 0 ? (
-          <div className="space-y-4 mb-4">
-            {comments.map(comment => (
-              <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#980ffa]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
-                {editingCommentId === comment.id ? (
-                  // 댓글 수정 모드
-                  <div className="py-[10px] rounded-[10px] bg-purple-50">
-                    <div className="flex items-center mb-2 pl-4">
-                      <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
-                        <span className="material-icons text-white text-[24px]">account_circle</span>
+      {!isNoticePost(post) && (
+        <div className="bg-[#ffffff] rounded border border-[#f9fafb] mb-4 p-[20px] m-[10px]" style={{ width: '971px' }}>
+          {/* 댓글 목록 */}
+          {comments.length > 0 ? (
+            <div className="space-y-4 mb-4">
+              {comments.map(comment => (
+                <div key={comment.id} className={`p-[10px] border ${editingCommentId === comment.id ? 'border-[#980ffa]' : 'border-[#EFEFEF]'} rounded-[10px] transition-all duration-300`}>
+                  {editingCommentId === comment.id ? (
+                    // 댓글 수정 모드
+                    <div className="py-[10px] rounded-[10px] bg-purple-50">
+                      <div className="flex items-center mb-2 pl-4">
+                        <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
+                          <span className="material-icons text-white text-[24px]">account_circle</span>
+                        </div>
+                        <span className="font-medium mr-2">{comment.nickname}</span>
+                        <span className="text-purple-600 text-sm font-medium">댓글 수정 중...</span>
                       </div>
-                      <span className="font-medium mr-2">{comment.nickname}</span>
-                      <span className="text-purple-600 text-sm font-medium">댓글 수정 중...</span>
-                    </div>
-                    <div className="flex px-4">
-                      <textarea
-                        ref={editCommentRef}
-                        value={editCommentContent}
-                        onChange={(e) => setEditCommentContent(e.target.value)}
-                        placeholder="댓글을 수정하세요..."
-                        className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
-                      />
-                    </div>
-                    <div className="flex justify-end mt-2 p-[10px] space-x-2">
-                      <button
-                        onClick={cancelCommentEdit}
-                        className="bg-gray-200 text-gray-700 py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-                      >
-                        취소
-                      </button>
-                      <button
-                        onClick={submitCommentEdit}
-                        className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-                      >
-                        수정
-                      </button>
-                    </div>
-                  
-                  </div>
-                ) : (
-                  // 일반 댓글 표시 모드
-                  <div className={`flex flex-col transition-all duration-300 ${
-                    lastEditedCommentId === comment.id 
-                      ? 'bg-purple-50 border-l-4 border-[#980ffa] px-2 py-1 rounded animate-highlight-fade' 
-                      : ''
-                  }`}>
-                    {/* 1줄: 프로필 이미지, 닉네임, 시간 */}
-                    <div className="flex items-center mb-2">
-                      <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
-                        <span className="material-icons text-white text-[24px]">account_circle</span>
+                      <div className="flex px-4">
+                        <textarea
+                          ref={editCommentRef}
+                          value={editCommentContent}
+                          onChange={(e) => setEditCommentContent(e.target.value)}
+                          placeholder="댓글을 수정하세요..."
+                          className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
+                        />
                       </div>
-                      <span className="font-medium mr-2">{comment.nickname}</span>
-                      <span className="text-gray-500 text-sm m-[5px]">{formatTime(comment.creationTime)}</span>
-                      {lastEditedCommentId === comment.id && (
-                        <span className="text-purple-600 text-xs bg-purple-100 px-2 py-1 rounded-full ml-2 animate-pulse-light">
-                          방금 수정됨
-                        </span>
-                      )}
-                      <div className="relative ml-auto" ref={(el) => { commentMenuRefs.current[comment.id] = el; }}>
-                        <button 
-                          className="text-gray-500 bg-[#ffffff] border-none menu-button"
-                          onClick={(e) => toggleCommentMenu(e, comment.id)}
+                      <div className="flex justify-end mt-2 p-[10px] space-x-2">
+                        <button
+                          onClick={cancelCommentEdit}
+                          className="bg-gray-200 text-gray-700 py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
                         >
-                          <span className="material-icons">more_horiz</span>
+                          취소
                         </button>
-                        
-                        {/* 댓글 드롭다운 메뉴 */}
-                        {showCommentMenu === comment.id && (
-                          <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
-                            {comment.isOwner && (
-                              <>
-                                <button 
-                                  className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    console.log('수정 버튼 클릭:', comment.id);
-                                    startCommentEdit(comment.id, comment.content);
-                                  }}
-                                >
-                                  <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
-                                  댓글 수정
-                                </button>
-                                <button 
-                                  className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
-                                  onClick={() => handleCommentDelete(comment.id)}
-                                >
-                                  <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
-                                  댓글 삭제
-                                </button>
-                              </>
-                            )}
-                            <button 
-                              className={`flex items-center w-full text-left p-[5px] m-[5px] text-sm hover:${comment.isReported || comment.isOwner ? 'bg-gray-50' : 'bg-gray-100'} border-none bg-[#ffffff] m-[5px] menu-item`}
-                              onClick={() => handleCommentReport(comment.id)}
-                              disabled={comment.isReported || comment.isOwner}
-                            >
-                              <span className={`material-icons m-[5px] mr-2 ${comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-500'}`}>flag</span>
-                              {comment.isReported ? '신고 완료' : comment.isOwner ? '본인 댓글' : '댓글 신고'}
-                            </button>
-                          </div>
+                        <button
+                          onClick={submitCommentEdit}
+                          className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+                        >
+                          수정
+                        </button>
+                      </div>
+                    
+                    </div>
+                  ) : (
+                    // 일반 댓글 표시 모드
+                    <div className={`flex flex-col transition-all duration-300 ${
+                      lastEditedCommentId === comment.id 
+                        ? 'bg-purple-50 border-l-4 border-[#980ffa] px-2 py-1 rounded animate-highlight-fade' 
+                        : ''
+                    }`}>
+                      {/* 1줄: 프로필 이미지, 닉네임, 시간 */}
+                      <div className="flex items-center mb-2">
+                        <div className="w-[40px] h-[40px] rounded-full bg-gray-400 flex items-center justify-center overflow-hidden mr-3">
+                          <span className="material-icons text-white text-[24px]">account_circle</span>
+                        </div>
+                        <span className="font-medium mr-2">{comment.nickname}</span>
+                        <span className="text-gray-500 text-sm m-[5px]">{formatTime(comment.creationTime)}</span>
+                        {lastEditedCommentId === comment.id && (
+                          <span className="text-purple-600 text-xs bg-purple-100 px-2 py-1 rounded-full ml-2 animate-pulse-light">
+                            방금 수정됨
+                          </span>
                         )}
+                        <div className="relative ml-auto" ref={(el) => { commentMenuRefs.current[comment.id] = el; }}>
+                          <button 
+                            className="text-gray-500 bg-[#ffffff] border-none menu-button"
+                            onClick={(e) => toggleCommentMenu(e, comment.id)}
+                          >
+                            <span className="material-icons">more_horiz</span>
+                          </button>
+                          
+                          {/* 댓글 드롭다운 메뉴 */}
+                          {showCommentMenu === comment.id && (
+                            <div className="absolute right-0 top-full mt-1 bg-[#ffffff] shadow-md rounded-md z-10 w-[120px] border-none m-[5px]">
+                              {comment.isOwner && (
+                                <>
+                                  <button 
+                                    className="flex items-center w-full text-left p-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-[#2563EB] text-blue-500 menu-item edit-button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      console.log('수정 버튼 클릭:', comment.id);
+                                      startCommentEdit(comment.id, comment.content);
+                                    }}
+                                  >
+                                    <span className="material-icons text-[#2563EB] mr-2 m-[5px]">edit</span>
+                                    댓글 수정
+                                  </button>
+                                  <button 
+                                    className="flex items-center w-full text-left p-[5px] text-[#DC2626] m-[5px] text-sm hover:bg-gray-100 border-none bg-[#ffffff] m-[5px] text-red-500 menu-item"
+                                    onClick={() => handleCommentDelete(comment.id)}
+                                  >
+                                    <span className="material-icons m-[5px] text-red-500 mr-2 text-[#DC2626]">delete</span>
+                                    댓글 삭제
+                                  </button>
+                                </>
+                              )}
+                              <button 
+                                className={`flex items-center w-full text-left p-[5px] m-[5px] text-sm hover:${comment.isReported || comment.isOwner ? 'bg-gray-50' : 'bg-gray-100'} border-none bg-[#ffffff] m-[5px] menu-item`}
+                                onClick={() => handleCommentReport(comment.id)}
+                                disabled={comment.isReported || comment.isOwner}
+                              >
+                                <span className={`material-icons m-[5px] mr-2 ${comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-500'}`}>flag</span>
+                                {comment.isReported ? '신고 완료' : comment.isOwner ? '본인 댓글' : '댓글 신고'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* 2줄: 댓글 내용 */}
+                      <p className="text-gray-800 mb-2 pl-[10px]">{comment.content}</p>
+                      
+                      {/* 3줄: 좋아요 표시와 숫자 */}
+                      <div className="flex items-center">
+                        <button 
+                          className={`flex items-center text-sm border-none ${
+                            Boolean(comment.isLiked) ? 'text-pink-500 hover:text-pink-600 bg-pink-50' : 'text-gray-500 hover:text-gray-600'
+                          } hover:bg-gray-100 rounded-full px-2 py-1 transition-colors duration-200`}
+                          onClick={() => handleCommentLike(comment.id)}
+                          disabled={commentLikingId === comment.id}
+                          aria-label={Boolean(comment.isLiked) ? '좋아요 취소' : '좋아요'}
+                        >
+                          <span className={`material-icons text-sm mr-1 m-[5px] ${
+                            Boolean(comment.isLiked) ? 'text-pink-500 animate-pulse-like' : 'text-gray-500'
+                          }`}>
+                            {Boolean(comment.isLiked) ? 'favorite' : 'favorite_border'}
+                          </span>
+                          <span className={Boolean(comment.isLiked) ? 'text-pink-500 font-medium' : 'text-gray-500'}>
+                            {comment.likeCount}
+                          </span>
+                        </button>
                       </div>
                     </div>
-                    
-                    {/* 2줄: 댓글 내용 */}
-                    <p className="text-gray-800 mb-2 pl-[10px]">{comment.content}</p>
-                    
-                    {/* 3줄: 좋아요 표시와 숫자 */}
-                    <div className="flex items-center">
-                      <button 
-                        className={`flex items-center text-sm border-none ${
-                          Boolean(comment.isLiked) ? 'text-pink-500 hover:text-pink-600 bg-pink-50' : 'text-gray-500 hover:text-gray-600'
-                        } hover:bg-gray-100 rounded-full px-2 py-1 transition-colors duration-200`}
-                        onClick={() => handleCommentLike(comment.id)}
-                        disabled={commentLikingId === comment.id}
-                        aria-label={Boolean(comment.isLiked) ? '좋아요 취소' : '좋아요'}
-                      >
-                        <span className={`material-icons text-sm mr-1 m-[5px] ${
-                          Boolean(comment.isLiked) ? 'text-pink-500 animate-pulse-like' : 'text-gray-500'
-                        }`}>
-                          {Boolean(comment.isLiked) ? 'favorite' : 'favorite_border'}
-                        </span>
-                        <span className={Boolean(comment.isLiked) ? 'text-pink-500 font-medium' : 'text-gray-500'}>
-                          {comment.likeCount}
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              {isLogin 
+                ? "첫 번째 댓글을 작성해보세요."
+                : "댓글을 보려면 로그인이 필요합니다."}
+            </div>
+          )}
+          
+          {/* 댓글 입력 컴포넌트 - 로그인 상태에 따라 다르게 표시 */}
+          {isLogin ? (
+            <div className="py-[10px] rounded-[10px]">
+              <div className="flex">
+                <textarea
+                  placeholder="댓글을 입력하세요..."
+                  className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                />
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500">
-            {isLogin 
-              ? "첫 번째 댓글을 작성해보세요."
-              : "댓글을 보려면 로그인이 필요합니다."}
-          </div>
-        )}
-        
-        {/* 댓글 입력 컴포넌트 - 로그인 상태에 따라 다르게 표시 */}
-        {isLogin ? (
-          <div className="py-[10px] rounded-[10px]">
-            <div className="flex">
-              <textarea
-                placeholder="댓글을 입력하세요..."
-                className="flex-1 border border-gray-300 rounded-[10px] py-2 outline-none focus:border-[#980ffa] h-[100px] resize-none pl-[10px] pt-[10px]"
-                value={commentInput}
-                onChange={(e) => setCommentInput(e.target.value)}
-              />
+              <div className="flex justify-end mt-2 p-[10px]">
+                <button
+                  onClick={handleCommentSubmit}
+                  className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
+                  disabled={isCommentSubmitting}
+                >
+                  {isCommentSubmitting ? "등록 중..." : "등록"}
+                </button>
+              </div>
             </div>
-            <div className="flex justify-end mt-2 p-[10px]">
-              <button
-                onClick={handleCommentSubmit}
-                className="bg-[#980ffa] text-[#ffffff] py-[10px] px-[20px] rounded-[3px] border-none text-[12px]"
-              >
-                등록
-              </button>
+          ) : (
+            <div className="text-center py-4">
+              <Link href="/login" className="text-[#980ffa] hover:underline">
+                로그인
+              </Link>
+              <span className="text-gray-500"> 후 댓글을 작성할 수 있습니다.</span>
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-4">
-            <p className="text-gray-500 mb-2">댓글을 작성하려면 로그인이 필요합니다.</p>
-            <Link href="/login" className="bg-[#980ffa] text-white px-4 py-2 rounded-md inline-block">
-              로그인하기
-            </Link>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* 이미지 정렬 관련 스타일 */}
       <style jsx global>{`

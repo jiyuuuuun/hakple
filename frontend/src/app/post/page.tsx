@@ -18,6 +18,7 @@ interface Post {
   tags: string[];
   boardLikes?: number;
   boardComments?: number;
+  hasImage?: boolean;  // 이미지 첨부 여부
 }
 
 interface Tag {
@@ -45,9 +46,11 @@ export default function PostPage() {
   const [tagsLoading, setTagsLoading] = useState(false);
   const [filterType, setFilterType] = useState('태그');
   const [minLikes, setMinLikes] = useState<string | null>(null);
+  const [postType, setPostType] = useState('free');
   const [academyCodeChecked, setAcademyCodeChecked] = useState(false);
   const [academyAlertShown, setAcademyAlertShown] = useState(false);
   const academyAlertRef = useRef(false);
+  const prevPostTypeRef = useRef<string>(postType);
 
   // 1. 컴포넌트 마운트 시 클라이언트 사이드 렌더링 활성화
   useEffect(() => {
@@ -55,10 +58,35 @@ export default function PostPage() {
 
     // URL 파라미터 처리
     if (searchParams) {
+      // type 파라미터 처리
+      if (searchParams.has('type')) {
+        const type = searchParams.get('type');
+        if (type) {
+          // 이전 타입과 다를 경우 상태 초기화
+          if (prevPostTypeRef.current !== type) {
+            resetStateForTypeChange(type);
+          }
+          setPostType(type);
+          prevPostTypeRef.current = type;
+          
+          // type이 popular인 경우 자동으로 minLikes 10 설정
+          if (type === 'popular' && !searchParams.has('minLikes')) {
+            setMinLikes('10');
+          }
+        }
+      } else {
+        // type 파라미터가 없으면 기본값으로 초기화
+        if (prevPostTypeRef.current !== 'free') {
+          resetStateForTypeChange('free');
+        }
+        setPostType('free');
+        prevPostTypeRef.current = 'free';
+      }
+
       // minLikes 파라미터 처리
       if (searchParams.has('minLikes')) {
         setMinLikes(searchParams.get('minLikes'));
-      } else {
+      } else if (postType !== 'popular') {
         setMinLikes(null);
         // 태그 선택 상태 초기화
         setSelectedTag(null);
@@ -132,7 +160,7 @@ export default function PostPage() {
     setLoading(true);
     try {
       // 3. URL 구성 - 상대경로 사용
-      let url = `/api/v1/posts?page=${page}&size=${size}`;
+      let url = `/api/v1/posts?page=${page}&size=${size}&type=${postType}`;
 
       // 정렬 방식 추가 (확실히 적용되도록 별도 처리)
       url += `&sortType=${encodeURIComponent(sort)}`;
@@ -158,9 +186,13 @@ export default function PostPage() {
       }
 
       // minLikes 파라미터 추가
-      if (minLikesParam) {
-        url += `&minLikes=${minLikesParam}`;
-        console.log('좋아요 최소 개수:', minLikesParam);
+      if (minLikesParam || postType === 'popular') {
+        // postType이 popular이고 minLikes가 없으면 기본값 10 사용
+        const likesValue = minLikesParam || (postType === 'popular' ? '10' : null);
+        if (likesValue) {
+          url += `&minLikes=${likesValue}`;
+          console.log('좋아요 최소 개수:', likesValue);
+        }
       }
 
       console.log('API 요청 URL:', url);
@@ -200,10 +232,11 @@ export default function PostPage() {
       // 9. 응답 데이터 처리 및 상태 업데이트
       if (data && Array.isArray(data.content)) {
 
-        setPosts(data.content.map((post: any) => ({
+        setPosts(data.content.map((post: Post) => ({
           ...post,
           commentCount: post.commentCount || (post.boardComments ? post.boardComments.length || 0 : 0),
-          likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0)
+          likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0),
+          hasImage: post.hasImage || false // API에서 hasImage 필드가 없으면 false로 설정
         })));
         setTotalPages(data.totalPages || 1);
         setSearchCount(data.totalElements || 0);
@@ -211,10 +244,11 @@ export default function PostPage() {
         console.log('예상과 다른 API 응답 형식:', data);
         if (Array.isArray(data)) {
 
-          setPosts(data.map((post: any) => ({
+          setPosts(data.map((post: Post) => ({
             ...post,
             commentCount: post.commentCount || (post.boardComments ? post.boardComments.length || 0 : 0),
-            likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0)
+            likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0),
+            hasImage: post.hasImage || false // API에서 hasImage 필드가 없으면 false로 설정
           })));
           setTotalPages(1);
           setSearchCount(data.length);
@@ -245,10 +279,17 @@ export default function PostPage() {
       // 상대 경로 사용
       let url = `/api/v1/posts/tags/popular`;
 
-      // minLikes 파라미터 추가
-      if (minLikes) {
-        url += `?minLikes=${minLikes}`;
+      // 인기게시판의 경우 항상 minLikes=10 파라미터 적용
+      if (postType === 'popular') {
+        url += `?minLikes=10&type=${postType}`;
+        console.log('인기게시판 인기 태그 요청:', url);
+      }
+      // 자유게시판의 경우 기존 로직 유지
+      else if (minLikes) {
+        url += `?minLikes=${minLikes}&type=${postType}`;
         console.log('인기 태그 - 좋아요 최소 개수:', minLikes);
+      } else {
+        url += `?type=${postType}`;
       }
 
       console.log('인기 태그 요청 URL:', url);
@@ -287,13 +328,13 @@ export default function PostPage() {
         setPopularTags(data.map((tag: any) => ({
           name: tag.name,
           count: tag.count,
-          isActive: false
+          isActive: selectedTag === tag.name // 선택된 태그 유지
         })));
       } else if (data && Array.isArray(data.content)) {
         setPopularTags(data.content.map((tag: any) => ({
           name: tag.name,
           count: tag.count,
-          isActive: false
+          isActive: selectedTag === tag.name // 선택된 태그 유지
         })));
       } else {
         setPopularTags([]);
@@ -314,7 +355,7 @@ export default function PostPage() {
         fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
       }
     }
-  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted]);
+  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted, postType]);
 
   // 14. 컴포넌트 마운트 시 인기 태그 불러오기
   useEffect(() => {
@@ -324,7 +365,7 @@ export default function PostPage() {
         fetchPopularTags();
       }
     }
-  }, [isMounted, minLikes]);
+  }, [isMounted, minLikes, postType]);
 
   // 15. 인기 태그 클릭 처리 함수
   const handleTagClick = (tagName: string) => {
@@ -406,7 +447,35 @@ export default function PostPage() {
     );
 
     // 현재 minLikes 유지하면서 데이터 다시 불러오기
-    fetchPosts(1, '10', '등록일순', '', undefined, minLikes);
+    const likesValue = postType === 'popular' ? '10' : minLikes;
+    fetchPosts(1, '10', '등록일순', '', undefined, likesValue);
+  };
+
+  // 게시판 타입 변경 시 상태 초기화 함수
+  const resetStateForTypeChange = (newType: string) => {
+    console.log(`게시판 타입 변경: ${prevPostTypeRef.current} -> ${newType}`);
+    setCurrentPage(1);
+    setPosts([]);
+    setTotalPages(1);
+    setSearchCount(0);
+    setSelectedTag(null);
+    setSearchMode(false);
+    setSearchKeyword('');
+    
+    // 인기게시판으로 변경 시 minLikes 설정
+    if (newType === 'popular') {
+      setMinLikes('10');
+    } else if (prevPostTypeRef.current === 'popular') {
+      setMinLikes(null);
+    }
+    
+    // 태그 활성화 상태 초기화
+    setPopularTags(prevTags =>
+      prevTags.map(tag => ({
+        ...tag,
+        isActive: false
+      }))
+    );
   };
 
   // 20. 컴포넌트 렌더링 시작
@@ -435,8 +504,40 @@ export default function PostPage() {
   }
 
   return (
-    <main className="bg-[#f9fafc] min-h-screen pb-8">
+    <main className="bg-[#f9fafc] min-h-screen pb-8" key={`post-page-${postType}`}>
       <div className="max-w-[1400px] mx-auto px-4">
+        {/* 인기 게시판 / 자유 게시판 탭 UI */}
+        <div className="flex space-x-4 pt-10 mb-[-40px]">
+          <button 
+            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
+              postType === 'free' 
+                ? 'bg-white text-[#980ffa] border-t border-l border-r border-[#eeeeee]' 
+                : 'bg-[#f2f2f2] text-[#666666] hover:bg-[#e5e5e5]'
+            }`}
+            onClick={() => {
+              if (postType !== 'free') {
+                router.push('/post');
+              }
+            }}
+          >
+            자유게시판
+          </button>
+          <button 
+            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
+              postType === 'popular' 
+                ? 'bg-white text-[#980ffa] border-t border-l border-r border-[#eeeeee]' 
+                : 'bg-[#f2f2f2] text-[#666666] hover:bg-[#e5e5e5]'
+            }`}
+            onClick={() => {
+              if (postType !== 'popular') {
+                router.push('/post?type=popular');
+              }
+            }}
+          >
+            인기글
+          </button>
+        </div>
+        
         {searchMode ? (
           <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
             <div className="flex justify-between items-center">
@@ -453,10 +554,12 @@ export default function PostPage() {
               </button>
             </div>
           </div>
-        ) : popularTags.length > 0 ? (
+        ) : (
           <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#333333] mb-4 pl-[20px] pt-[20px]">인기 태그</h2>
+              <h2 className="text-xl font-bold text-[#333333] mb-4 pl-[20px] pt-[20px]">
+                {postType === 'popular' ? '인기 태그' : '인기 태그'}
+              </h2>
               {(selectedTag || sortType !== '등록일순' || pageSize !== '10' || filterType !== '태그') && (
                 <button
                   onClick={resetAllFilters}
@@ -470,31 +573,35 @@ export default function PostPage() {
             <div className="flex flex-wrap gap-[5px] pl-[20px] pr-[20px] pb-[20px]">
               {tagsLoading ? (
                 <p className="text-sm text-[#666666]">태그 로딩 중...</p>
-              ) : (
+              ) : popularTags.length > 0 ? (
                 popularTags.map((tag, index) => (
                   <Tag
-                    key={`tag-${tag.name}-${index}`}
+                    key={`tag-${tag.name}-${index}-${postType}`}
                     text={tag.name}
                     count={tag.count.toString()}
                     active={tag.isActive || false}
                     onClick={() => handleTagClick(tag.name)}
                   />
                 ))
+              ) : (
+                <p className="text-sm text-[#666666]">태그가 없습니다.</p>
               )}
             </div>
           </div>
-        ) : (
-          <div className="pt-14 pb-[5px]"></div>
         )}
 
-        {!minLikes && (
-          <div className="flex justify-end m-[10px] pt-[15px] pb-[10px]">
-            <Link href="/post/new" className="bg-[#980ffa] rounded-[10px] text-[#ffffff] py-[8px] px-[15px] text-base no-underline flex items-center">
+        <div className="flex justify-between items-center my-6 pt-6">
+          <h1 className="text-2xl font-bold">{postType === 'popular' ? '인기글' : '자유게시판'}</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/post/new"
+              className="bg-[#980ffa] hover:bg-[#870edf] transition-all rounded-[10px] text-[#ffffff] py-[8px] px-[15px] text-base no-underline flex items-center"
+            >
               <span className="material-icons text-base text-[#ffffff] mr-[8px]">edit</span>
               새 글쓰기
             </Link>
           </div>
-        )}
+        </div>
 
         <div className="flex justify-between items-center my-6 pb-[25px] pt-[25px] bg-[#ffffff] rounded-lg">
           <div className="flex pl-[15px] pr-[15px]">
@@ -525,6 +632,7 @@ export default function PostPage() {
                     commentCount={post.commentCount}
                     likeCount={post.likeCount}
                     tags={post.tags}
+                    hasImage={post.hasImage}
                   />
                 ))
               ) : (
@@ -720,7 +828,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
 }
 
 // 게시물 아이템 컴포넌트
-function PostItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags }: {
+function PostItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, hasImage }: {
   id: number;
   title: string;
   nickname: string;
@@ -728,12 +836,18 @@ function PostItem({ id, title, nickname, time, viewCount, commentCount, likeCoun
   viewCount: number;
   commentCount: number;
   likeCount: number;
-  tags: string[]
+  tags: string[];
+  hasImage?: boolean;
 }) {
   return (
     <div className="px-[15px] py-[20px] bg-white border border-[#eeeeee] rounded-[10px] m-[15px]">
       <Link href={`/post/${id}`} className="block mb-4 no-underline">
-        <h3 className="text-xl font-semibold text-[#333333] hover:text-[#980ffa]">{title}</h3>
+        <h3 className="text-xl font-semibold text-[#333333] hover:text-[#980ffa]">
+          {title}
+          {hasImage && (
+            <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
+          )}
+        </h3>
       </Link>
 
       <div className="flex items-center justify-between mb-4 gap-[15px]">

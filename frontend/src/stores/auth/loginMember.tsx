@@ -7,7 +7,8 @@ type User = {
     nickname: string
     creationTime: string
     modificationTime: string
-    academyCode?: string
+    academyId?: string
+    isAdmin?: boolean
 }
 
 // 백엔드 응답 타입 - MyInfoResponseDto와 일치하도록
@@ -17,9 +18,11 @@ type BackendUser = {
     nickName?: string
     userName?: string // 사용자 아이디
     phoneNum?: string
-    academyCode?: string // 학원 코드
+    academyId?: string // 학원 ID (백엔드 응답과 일치)
+    academyCode?: string // 학원 코드 (하위 호환성 유지)
     creationTime?: string
     modificationTime?: string
+    isAdmin?: boolean
     [key: string]: unknown // any 대신 unknown 사용
 }
 
@@ -76,7 +79,8 @@ export function useLoginMember() {
             nickname: member.nickName || '',
             creationTime: member.creationTime || '',
             modificationTime: member.modificationTime || '',
-            academyCode: member.academyCode || '' // 백엔드에서 받은 academyCode만 사용
+            academyId: member.academyId || member.academyCode || '', // academyId를 우선 사용하고 없으면 academyCode 사용
+            isAdmin: member.isAdmin === true // boolean 값으로 확실하게 변환
         }
 
         console.log('로그인 회원 정보 설정:', user)
