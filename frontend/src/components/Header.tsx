@@ -178,7 +178,7 @@ export default function Header() {
                                         홈
                                     </Link>
                                     <Link
-                                        href={isLogin && loginMember?.academyId ? `/post/notice/${loginMember.academyId}` : '/post/notice'}
+                                        href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
                                         className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
                                         공지사항
