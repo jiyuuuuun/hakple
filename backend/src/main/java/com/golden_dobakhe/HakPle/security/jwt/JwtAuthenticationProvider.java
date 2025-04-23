@@ -88,12 +88,18 @@ public class JwtAuthenticationProvider {
 //        }
         User user = getUserFromClaims(claims);
 
+        // academyId가 토큰에 있을 경우 사용자 정보에 설정
+        String academyId = (String) claims.get("academyId");
+        if (academyId != null && !academyId.isEmpty()) {
+            log.info("📌 토큰에서 academyId 추출: {}", academyId);
+            user.setAcademyId(academyId);
+        }
+
         // ✅ 여기서 DB에서 불러온 user의 roles 사용
         Collection<GrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
                 .collect(Collectors.toList());
 
-        //log.info("✅ 인증 완료: userId = {}, roles = {}", userId, user.getRoles());
 
         return new JwtAuthenticationToken(authorities, new CustomUserDetails(user), null);
     }

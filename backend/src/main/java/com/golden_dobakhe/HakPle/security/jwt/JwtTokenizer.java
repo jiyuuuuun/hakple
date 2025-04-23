@@ -40,6 +40,7 @@ public class JwtTokenizer {
         claims.put("status", status);
         claims.put("userId",id); //userId 추가
         claims.put("roles",roles);
+        claims.put("academyId", academyId); // academyId 추가
 
         //토큰에 그 요소들을 넣기
         return Jwts.builder()

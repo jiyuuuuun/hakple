@@ -74,6 +74,38 @@ public interface TagMappingRepository extends JpaRepository<TagMapping, Long> {
            "LIMIT 5")
     List<TagCount> findTop5PopularTagsByUserId(@Param("userId") Long userId, @Param("minLikes") Integer minLikes);
 
+    @Query(nativeQuery = true,
+           value = "SELECT h.hashtag_name as hashtagName, COUNT(t.id) as count " +
+           "FROM tag_mapping t " +
+           "JOIN board b ON t.board_id = b.id " +
+           "JOIN hashtag h ON t.hashtag_id = h.id " +
+           "WHERE b.academy_code = :academyCode " +
+           "AND b.status = 'ACTIVE' " +
+           "AND (:type IS NULL OR :type = '' OR b.type = :type) " +
+           "GROUP BY h.hashtag_name " +
+           "ORDER BY count DESC " +
+           "LIMIT 5")
+    List<TagCount> findTop5PopularTagsByAcademyCodeAndType(
+            @Param("academyCode") String academyCode,
+            @Param("type") String type);
+
+    @Query(nativeQuery = true,
+           value = "SELECT h.hashtag_name as hashtagName, COUNT(t.id) as count " +
+           "FROM tag_mapping t " +
+           "JOIN board b ON t.board_id = b.id " +
+           "JOIN hashtag h ON t.hashtag_id = h.id " +
+           "WHERE b.academy_code = :academyCode " +
+           "AND b.status = 'ACTIVE' " +
+           "AND (:type IS NULL OR :type = '' OR b.type = :type) " +
+           "AND (:minLikes IS NULL OR (SELECT COUNT(*) FROM board_like WHERE board_id = b.id) >= :minLikes) " +
+           "GROUP BY h.hashtag_name " +
+           "ORDER BY count DESC " +
+           "LIMIT 5")
+    List<TagCount> findTop5PopularTagsByAcademyCodeAndMinLikesAndType(
+            @Param("academyCode") String academyCode,
+            @Param("minLikes") Integer minLikes,
+            @Param("type") String type);
+
     interface TagCount {
         String getHashtagName();
         Long getCount();
