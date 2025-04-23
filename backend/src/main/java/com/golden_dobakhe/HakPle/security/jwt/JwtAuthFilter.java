@@ -59,6 +59,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             newAccessTokenCookie.setPath("/");
             newAccessTokenCookie.setMaxAge(Math.toIntExact(JwtTokenizer.ACCESS_TOKEN_EXPIRE_COUNT / 1000));
             response.addCookie(newAccessTokenCookie);
+            //일단 나 재발급이요 라고 명시
+            response.setHeader("X-Token-Refreshed", "true");
+
+
+
+
         }
 
         //이후 accessToken유효성 검증

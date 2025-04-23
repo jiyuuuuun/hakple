@@ -64,6 +64,37 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             .then((res) => {
                 console.log('로그인 상태 응답:', res.status)
                 if (!res.ok) {
+
+                    setTimeout(async () => {
+                        try {
+                            const retryRes = await fetch(`http://localhost:8090/api/v1/auth/me`, {
+                                method: 'GET',
+                                credentials: 'include',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (retryRes.ok) {
+                                const data = await retryRes.json();
+                                console.log('재시도 로그인 성공', data);
+                                setLoginMember(data);
+                            } else {
+                                // 재시도도 실패하면 로그인 실패로 처리
+                                console.log('재시도 로그인 실패');
+                                setNoLoginMember();
+                                
+                                // 리다이렉트 코드...
+                                if (!isPublicPage && !isSpecialPage) {
+                                    console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트');
+                                    router.replace("/login");
+                                }
+                            }
+                        } catch (retryError) {
+                            console.log('재시도 로그인 오류', retryError);
+                            setNoLoginMember();
+                        }
+                    }, 500);
                     return Promise.reject(new Error('인증 필요'))
                 }
                 return res.json()
@@ -88,7 +119,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 console.log('로그인 되어있지 않음', error)
 
                 // 로그인 상태 초기화
-   //             setNoLoginMember()
+                //setNoLoginMember()
 
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 // 특별 페이지가 아닌 경우에만 리다이렉트
