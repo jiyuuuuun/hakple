@@ -94,4 +94,6 @@ public interface BoardService {
      * 공지사항 검색 조회 (type 파라미터 포함)
      */
     Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, Pageable pageable);
+
+    List<Long> getLikedBoardIds(Long userId);
 }

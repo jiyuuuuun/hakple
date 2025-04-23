@@ -34,30 +34,27 @@ export default function Header() {
 
     // 컴포넌트 마운트 시 한 번 관리자 권한 확인
     useEffect(() => {
-        if (isAuthPage) return;
-
-        if (localStorage.getItem('accessToken')) {
-            checkAdminPermission()
-        }
+        if (isAuthPage || !isLogin) return;
+        checkAdminPermission()
     }, [isAuthPage, isLogin])
 
     // 로그인 상태 변경 감지를 위한 효과
     useEffect(() => {
-        if (isAuthPage) return;
-
-        // 로그인 상태일 때 관리자 권한 확인
-        if (isLogin) {
-            checkAdminPermission()
-        } else {
+        if (isAuthPage || !isLogin) {
             setIsAdmin(false)
+            return
         }
+        checkAdminPermission()
     }, [isLogin, loginMember, isAuthPage])
 
     // 현재 경로가 바뀔 때 관리자 권한 다시 확인 (특히 /admin 페이지 방문 시)
     useEffect(() => {
-        if (isAuthPage) return;
+        if (isAuthPage || !isLogin) {
+            setIsAdmin(false)
+            return
+        }
 
-        if (pathname && pathname.startsWith('/admin') && isLogin) {
+        if (pathname?.startsWith('/admin')) {
             checkAdminPermission()
         }
     }, [pathname, isLogin, isAuthPage])
@@ -260,7 +257,7 @@ export default function Header() {
                         {/* 로그인 상태 디버깅 표시 */}
                         <div className="hidden">
                             로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'},
-                            ID: {loginMember?.id || 'None'},
+                            ID: {loginMember?.userName || 'None'},
                             Token: {localStorage.getItem('accessToken') ? '있음' : '없음'}
                         </div>
 

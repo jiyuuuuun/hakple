@@ -70,17 +70,17 @@ public class BoardServiceImpl implements BoardService {
         // 2. URL 파라미터의 academyCode 확인
         // 3. 없으면 사용자의 academyId 사용
         String resolvedAcademyCode;
-        
+
         // 요청 객체에 academyCode가 포함되어 있는지 확인
         if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
             resolvedAcademyCode = request.getAcademyCode();
             log.info("사용자 요청 academyCode 사용: {}", resolvedAcademyCode);
-        } 
+        }
         // URL 파라미터로 전달된 academyCode 확인
         else if (academyCode != null && !academyCode.isEmpty()) {
             resolvedAcademyCode = academyCode;
             log.info("URL 파라미터 academyCode 사용: {}", resolvedAcademyCode);
-        } 
+        }
         // 사용자의 기본 academyId 사용
         else {
             resolvedAcademyCode = user.getAcademyId();
@@ -108,7 +108,7 @@ public class BoardServiceImpl implements BoardService {
                 // 해시태그 처리 로직을 별도의 트랜잭션으로 분리하여 안전하게 처리
                 try {
                     Hashtag hashtag = getOrCreateHashtag(tagName, resolvedAcademyCode);
-                    
+
                     // 해시태그가 성공적으로 조회/생성된 경우에만 매핑 생성
                     if (hashtag != null && hashtag.getId() != null) {
                         TagMapping tagMapping = TagMapping.builder()
@@ -237,17 +237,17 @@ public class BoardServiceImpl implements BoardService {
         // 2. URL 파라미터의 academyCode 확인
         // 3. 없으면 사용자의 academyId 사용
         String resolvedAcademyCode;
-        
+
         // 요청 객체에 academyCode가 포함되어 있는지 확인
         if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
             resolvedAcademyCode = request.getAcademyCode();
             log.info("수정 - 사용자 요청 academyCode 사용: {}", resolvedAcademyCode);
-        } 
+        }
         // URL 파라미터로 전달된 academyCode 확인
         else if (academyCode != null && !academyCode.isEmpty()) {
             resolvedAcademyCode = academyCode;
             log.info("수정 - URL 파라미터 academyCode 사용: {}", resolvedAcademyCode);
-        } 
+        }
         // 사용자의 기본 academyId 사용
         else {
             resolvedAcademyCode = user.getAcademyId();
@@ -269,7 +269,7 @@ public class BoardServiceImpl implements BoardService {
                 // 해시태그 처리 로직을 별도의 트랜잭션으로 분리하여 안전하게 처리
                 try {
                     Hashtag hashtag = getOrCreateHashtag(tagName, resolvedAcademyCode);
-                    
+
                     // 해시태그가 성공적으로 조회/생성된 경우에만 매핑 생성
                     if (hashtag != null && hashtag.getId() != null) {
                         TagMapping tagMapping = TagMapping.builder()
@@ -677,16 +677,16 @@ public class BoardServiceImpl implements BoardService {
                 sortType = "좋아요순";
             }
         }
-        
+
         // type이 'notice'인 게시글만 조회 - 수정된 유연한 메서드 사용
         Page<Board> boards = boardRepository.findByAcademyCodeAndStatusAndTypeFlexible(
                 academyCode, Status.ACTIVE, "notice", sortType, pageable);
-        
+
         // 결과를 BoardResponse로 변환 (공지사항은 댓글 수 0, 태그 빈 리스트로 처리)
         return boards.map(board -> {
             // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
             List<String> emptyTags = new ArrayList<>();
-            
+
             // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
             return BoardResponse.from(board, emptyTags, 0);
         });
@@ -698,7 +698,7 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
             throw BoardException.invalidRequest("아카데미 코드 또는 검색어가 유효하지 않습니다.");
         }
-        
+
         // 정렬 타입 추출 또는 기본값 설정
         String sortType = "등록일순";
         if (pageable.getSort().isSorted()) {
@@ -709,16 +709,16 @@ public class BoardServiceImpl implements BoardService {
                 sortType = "좋아요순";
             }
         }
-        
+
         // 키워드로 공지사항 검색
         Page<Board> boards = boardRepository.searchNoticeBoards(
                 academyCode, Status.ACTIVE, keyword, sortType, pageable);
-        
+
         // 결과를 BoardResponse로 변환
         return boards.map(board -> {
             // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
             List<String> emptyTags = new ArrayList<>();
-            
+
             // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
             return BoardResponse.from(board, emptyTags, 0);
         });
@@ -730,7 +730,7 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
             throw BoardException.invalidRequest("아카데미 코드 또는 검색어가 유효하지 않습니다.");
         }
-        
+
         // 정렬 타입 추출 또는 기본값 설정
         String sortType = "등록일순";
         if (pageable.getSort().isSorted()) {
@@ -743,16 +743,16 @@ public class BoardServiceImpl implements BoardService {
                 sortType = "좋아요순";
             }
         }
-        
+
         // 키워드로 공지사항 검색 - type 파라미터 추가
         Page<Board> boards = boardRepository.searchNoticeBoardsWithType(
                 academyCode, Status.ACTIVE, keyword, sortType, type, pageable);
-        
+
         // 결과를 BoardResponse로 변환
         return boards.map(board -> {
             // 공지사항은 태그를 표시하지 않음 (빈 리스트로 처리)
             List<String> emptyTags = new ArrayList<>();
-            
+
             // 댓글 수는 항상 0으로 설정 (공지사항은 댓글 비활성화)
             return BoardResponse.from(board, emptyTags, 0);
         });
@@ -769,7 +769,7 @@ public class BoardServiceImpl implements BoardService {
                 .orElse(null);
 
         if (hashtag != null) {
-            log.info("Using existing hashtag: {}, academyCode: {}, id: {}", 
+            log.info("Using existing hashtag: {}, academyCode: {}, id: {}",
                     tagName, academyCode, hashtag.getId());
             return hashtag;
         }
@@ -781,7 +781,7 @@ public class BoardServiceImpl implements BoardService {
                     .academyCode(academyCode)
                     .build();
             hashtag = hashtagRepository.save(newHashtag);
-            log.info("Created new hashtag: {}, academyCode: {}, id: {}", 
+            log.info("Created new hashtag: {}, academyCode: {}, id: {}",
                     tagName, academyCode, hashtag.getId());
             return hashtag;
         } catch (DataIntegrityViolationException e) {
@@ -789,15 +789,15 @@ public class BoardServiceImpl implements BoardService {
             // Retry in a new transaction to ensure clean session
             hashtag = retryGetHashtag(tagName, academyCode);
             if (hashtag != null) {
-                log.info("Found existing hashtag after duplicate error: {}, academyCode: {}, id: {}", 
+                log.info("Found existing hashtag after duplicate error: {}, academyCode: {}, id: {}",
                         tagName, academyCode, hashtag.getId());
                 return hashtag;
             }
-            log.error("Failed to find hashtag after duplicate error: {}, academyCode: {}", 
+            log.error("Failed to find hashtag after duplicate error: {}, academyCode: {}",
                     tagName, academyCode);
             throw new IllegalStateException("Unable to create or find hashtag: " + tagName, e);
         } catch (Exception e) {
-            log.error("Unexpected error while creating hashtag: {}, academyCode: {}", 
+            log.error("Unexpected error while creating hashtag: {}, academyCode: {}",
                     tagName, academyCode, e);
             throw new IllegalStateException("Failed to process hashtag: " + tagName, e);
         }

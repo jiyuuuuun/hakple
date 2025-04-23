@@ -9,6 +9,14 @@ type User = {
     modificationTime: string
     academyId?: string
     isAdmin?: boolean
+export interface User {
+    nickname: string;
+    userName: string;
+    phoneNum?: string;
+    creationTime: string;
+    modificationTime: string;
+    academyCode?: string;
+    academyName?: string;
 }
 
 // 백엔드 응답 타입 - MyInfoResponseDto와 일치하도록
@@ -20,6 +28,8 @@ type BackendUser = {
     phoneNum?: string
     academyId?: string // 학원 ID (백엔드 응답과 일치)
     academyCode?: string // 학원 코드 (하위 호환성 유지)
+    academyCode?: string // 학원 코드
+    academyName?: string  // Added academyName field
     creationTime?: string
     modificationTime?: string
     isAdmin?: boolean
@@ -38,22 +48,24 @@ export const LoginMemberContext = createContext<{
     checkAdminAndRedirect: () => Promise<boolean>
 }>({
     loginMember: createEmptyMember(),
-    setLoginMember: () => {},
-    setNoLoginMember: () => {},
+    setLoginMember: () => { },
+    setNoLoginMember: () => { },
     isLoginMemberPending: true,
     isLogin: false,
-    logout: () => {},
-    logoutAndHome: () => {},
+    logout: () => { },
+    logoutAndHome: () => { },
     checkAdminAndRedirect: async () => false,
 })
 
 //나머지들은 메서드를 블록화
 function createEmptyMember(): User {
     return {
-        id: 0,
         nickname: '',
+        userName: '',
         creationTime: '',
         modificationTime: '',
+        academyCode: '',
+        academyName: ''
     }
 }
 
@@ -70,22 +82,42 @@ export function useLoginMember() {
 
     //pending이 false되어서 로그인이 되었다고 판단함
     const setLoginMember = (member: BackendUser) => {
-        // 백엔드 응답 데이터 로깅
-        console.log('백엔드에서 받은 회원 정보:', member);
-        
-        // 백엔드 응답 데이터를 User 타입으로 변환
+        console.group('LoginMember Store - setLoginMember');
+        console.log('백엔드 응답 데이터:', member);
+
+        // 닉네임 처리 (nickname 또는 nickName 사용)
+        const nickname =
+            typeof member.nickName === 'string'
+                ? member.nickName
+                : typeof member.nickname === 'string'
+                    ? member.nickname
+                    : '';
+
+        // academyId를 academyCode로 처리
+        const academyCode =
+            typeof member.academyCode === 'string'
+                ? member.academyCode
+                : typeof member.academyId === 'string'
+                    ? member.academyId
+                    : '';
+
+
         const user: User = {
-            id: member.id || member.memberId || 0,
-            nickname: member.nickName || '',
+            nickname: nickname,
+            userName: member.userName ?? '',
+            phoneNum: member.phoneNum,
             creationTime: member.creationTime || '',
             modificationTime: member.modificationTime || '',
             academyId: member.academyId || member.academyCode || '', // academyId를 우선 사용하고 없으면 academyCode 사용
-            isAdmin: member.isAdmin === true // boolean 값으로 확실하게 변환
-        }
+            isAdmin: member.isAdmin === true, // boolean 값으로 확실하게 변환
+            academyCode: academyCode,
+            academyName: member.academyName || ''
+        };
 
-        console.log('로그인 회원 정보 설정:', user)
-        _setLoginMember(user)
-        setLoginMemberPending(false)
+        console.log('생성된 User 객체:', user);
+        _setLoginMember(user);
+        setLoginMemberPending(false);
+        console.groupEnd();
     }
 
     const setNoLoginMember = () => {
@@ -93,7 +125,7 @@ export function useLoginMember() {
     }
 
     //로그인이 되었냐
-    const isLogin = loginMember.id !== 0
+    const isLogin = !!loginMember.userName;
 
     const logout = (callback: () => void) => {
         fetch('http://localhost:8090/api/v1/auth/logout', {
@@ -119,11 +151,11 @@ export function useLoginMember() {
                     'Content-Type': 'application/json'
                 },
             })
-            
+
             if (!response.ok) {
                 return false
             }
-            
+
             const isAdmin = await response.json()
             return isAdmin === true
         } catch (error) {

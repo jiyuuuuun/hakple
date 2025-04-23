@@ -300,7 +300,7 @@ public class ApiV1PostController {
             @RequestParam(name = "academyCode", required = false) String academyCode,
             @RequestParam(name = "type", required = false) String type,
             @PageableDefault(size = 10, sort = "creationTime", direction = Sort.Direction.DESC) Pageable pageable) {
-        
+
         Long userId = getCurrentUserId();
 
         if(academyCode == null || academyCode.isEmpty()){
@@ -309,7 +309,7 @@ public class ApiV1PostController {
 
         // 페이지 번호는 0부터 시작하도록 조정
         Pageable adjustedPageable;
-        
+
         // 정렬 방식에 따라 적절한 Pageable 객체 생성
         if (sortType.equals("조회순")) {
             adjustedPageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "viewCount", "creationTime"));
@@ -323,7 +323,7 @@ public class ApiV1PostController {
             // 기본 등록일순
             adjustedPageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "creationTime"));
         }
-        
+
         // 검색어가 있는 경우
         if (keyword != null && !keyword.isEmpty()) {
             if (searchType != null && !searchType.isEmpty()) {
@@ -340,4 +340,15 @@ public class ApiV1PostController {
             return ResponseEntity.ok(boardService.getNoticeBoards(academyCode, adjustedPageable));
         }
     }
+
+    @GetMapping("/my/like-status")
+    @Operation(summary = "내가 좋아요한 게시글 ID 목록 조회")
+    public ResponseEntity<List<Long>> getLikedPostIds() {
+        Long userId = getCurrentUserId(); // 현재 로그인 유저 ID 가져오기
+        List<Long> likedIds = boardService.getLikedBoardIds(userId); // 서비스에서 ID만 추출
+        return ResponseEntity.ok(likedIds);
+    }
+
+
+
 }

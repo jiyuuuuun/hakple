@@ -5,10 +5,21 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
+import { handleLike } from '@/utils/likeHandler';
+import { ChevronRightIcon } from '@heroicons/react/24/outline';
+
+interface User {
+  id: number;
+  userName: string;
+  academyCode?: string;
+  academyName?: string;
+  // ...other user properties
+}
 
 interface Post {
   id: number;
   title: string;
+  content: string;
   nickname: string;
   creationTime: string;
   modificationTime?: string;
@@ -19,6 +30,7 @@ interface Post {
   boardLikes?: number;
   boardComments?: number;
   hasImage?: boolean;  // 이미지 첨부 여부
+  isLiked?: boolean;
 }
 
 interface Tag {
@@ -51,6 +63,8 @@ export default function PostPage() {
   const [academyAlertShown, setAcademyAlertShown] = useState(false);
   const academyAlertRef = useRef(false);
   const prevPostTypeRef = useRef<string>(postType);
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
 
   // 1. 컴포넌트 마운트 시 클라이언트 사이드 렌더링 활성화
   useEffect(() => {
@@ -138,7 +152,7 @@ export default function PostPage() {
     if (isMounted && isLogin && !academyCodeChecked) {
       // 해당 로직 제거: 백엔드가 토큰에서 userId로 academyCode를 직접 찾기 때문에 체크가 필요 없음
       // 로그인 상태만 확인하고 항상 true로 설정
-      console.log('게시판 - 사용자 로그인됨, ID:', loginMember?.id);
+      console.log('게시판 - 사용자 로그인됨, ID:', loginMember?.userName);
       setAcademyCodeChecked(true);
     }
   }, [isLogin, isMounted, loginMember, academyCodeChecked]);
@@ -155,34 +169,29 @@ export default function PostPage() {
 
   // 2. 게시물 데이터 가져오는 함수
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string, minLikesParam?: string | null) => {
-    if (!isMounted || academyAlertRef.current) return; // 이미 알림이 표시되었으면 API 호출 중단
+    if (!isMounted || academyAlertRef.current) return;
 
     setLoading(true);
     try {
-      // 3. URL 구성 - 상대경로 사용
+      // 백엔드는 0부터 시작하는 페이지 인덱스를 사용하므로 page - 1
       let url = `/api/v1/posts?page=${page}&size=${size}&type=${postType}`;
 
-      // 정렬 방식 추가 (확실히 적용되도록 별도 처리)
+      // size와 정렬 방식 추가
+      url += `&size=${size}`;
       url += `&sortType=${encodeURIComponent(sort)}`;
-      console.log(`정렬 방식: ${sort}`);
 
-      // 4. 필터 유형에 따라 적절한 파라미터 추가
+      // 필터 유형에 따라 적절한 파라미터 추가
       if (keyword && keyword.trim() !== '') {
         if (filterType === '태그') {
-          // 4-1. 태그 필터인 경우 tag 파라미터 사용
           url += `&tag=${encodeURIComponent(keyword)}`;
-          console.log('태그로 검색:', keyword);
         } else {
-          // 4-2. 제목이나 작성자 필터인 경우 keyword 파라미터 사용
           url += `&keyword=${encodeURIComponent(keyword)}`;
-          console.log('검색어로 검색:', keyword);
+          url += `&searchType=${encodeURIComponent(filterType)}`;
         }
       }
 
-      // 5. 인기 태그 클릭으로 인한 태그 필터
       if (tag && tag.trim() !== '') {
         url += `&tag=${encodeURIComponent(tag)}`;
-        console.log('태그로 검색:', tag);
       }
 
       // minLikes 파라미터 추가
@@ -195,77 +204,62 @@ export default function PostPage() {
         }
       }
 
-      console.log('API 요청 URL:', url);
+      console.log('게시글 목록 요청 URL:', url);
 
-      // 6. API 요청 보내기 - fetchApi 사용
-      const response = await fetchApi(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include'
-      });
+      const [postsResponse, likeStatusResponse] = await Promise.all([
+        fetchApi(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        }),
+        fetchApi('/api/v1/posts/my/like-status', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        }),
+      ]);
 
-      // 7. 응답 처리
-      if (!response.ok) {
-        let errorMessage = '게시물을 가져오는 중 오류가 발생했습니다.';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-
-          // academyCode 관련 오류 확인
-          if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
-            errorMessage.includes('먼저 학원을 등록해주세요')) {
-            showAcademyAlert();
-            return;
-          }
-        } catch (e) {
-          errorMessage = `API 에러: ${response.status} ${response.statusText}`;
+      if (!postsResponse.ok || !likeStatusResponse.ok) {
+        let errorMessage = '게시글 또는 좋아요 상태를 불러오지 못했습니다.';
+        if (!postsResponse.ok) {
+          const errData = await postsResponse.json();
+          errorMessage = errData.message || errorMessage;
+        } else {
+          const errData = await likeStatusResponse.json();
+          errorMessage = errData.message || errorMessage;
         }
         throw new Error(errorMessage);
       }
 
-      // 8. 데이터 추출 및 가공
-      const data = await response.json();
-      console.log('응답 데이터:', data);
+      const postData = await postsResponse.json();
+      const likedPostIds: number[] = await likeStatusResponse.json();
 
-      // 9. 응답 데이터 처리 및 상태 업데이트
-      if (data && Array.isArray(data.content)) {
-
-        setPosts(data.content.map((post: Post) => ({
+      if (postData && Array.isArray(postData.content)) {
+        setPosts(postData.content.map((post: Post) => ({
           ...post,
-          commentCount: post.commentCount || (post.boardComments ? post.boardComments.length || 0 : 0),
-          likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0),
+          isLiked: likedPostIds.includes(post.id),
+          commentCount: post.commentCount || (post.boardComments ? post.boardComments : 0),
+          likeCount: post.likeCount || (post.boardLikes ? post.boardLikes : 0),
           hasImage: post.hasImage || false // API에서 hasImage 필드가 없으면 false로 설정
         })));
-        setTotalPages(data.totalPages || 1);
-        setSearchCount(data.totalElements || 0);
+        setTotalPages(postData.totalPages || 1);
+        setSearchCount(postData.totalElements || 0);
       } else {
-        console.log('예상과 다른 API 응답 형식:', data);
-        if (Array.isArray(data)) {
-
-          setPosts(data.map((post: Post) => ({
-            ...post,
-            commentCount: post.commentCount || (post.boardComments ? post.boardComments.length || 0 : 0),
-            likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0),
-            hasImage: post.hasImage || false // API에서 hasImage 필드가 없으면 false로 설정
-          })));
-          setTotalPages(1);
-          setSearchCount(data.length);
-        } else {
-          setPosts([]);
-          setTotalPages(1);
-          setSearchCount(0);
-        }
+        console.log('예상과 다른 API 응답 형식:', postData);
+        setPosts([]);
+        setTotalPages(1);
+        setSearchCount(0);
       }
     } catch (error: any) {
-      // 10. 오류 처리
       console.log('게시물을 가져오는 중 오류가 발생했습니다:', error.message);
       setPosts([]);
       setTotalPages(1);
       setSearchCount(0);
     } finally {
-      // 11. 로딩 상태 종료
       setLoading(false);
     }
   };
@@ -478,6 +472,52 @@ export default function PostPage() {
     );
   };
 
+  const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
+    event.preventDefault(); // Link 컴포넌트의 기본 동작 방지
+
+    if (likingPosts.has(post.id)) return; // 이미 처리 중인 경우 중복 요청 방지
+
+    const isLiked = post.isLiked || false;
+
+    setLikingPosts(prev => new Set([...prev, post.id]));
+
+    try {
+      await handleLike({
+        post,
+        isLiked,
+        isLogin,
+        setIsLiked: (newLiked: boolean) => {
+          setPosts(prevPosts =>
+            prevPosts.map(p =>
+              p.id === post.id ? { ...p, isLiked: newLiked } : p
+            )
+          );
+        },
+        setPost: (updateFn: (prev: Post) => Post) => {
+          setPosts(prevPosts =>
+            prevPosts.map(p =>
+              p.id === post.id ? updateFn(p) : p
+            )
+          );
+        },
+        setIsLiking: () => {
+          setLikingPosts(prev => {
+            const next = new Set(prev);
+            next.delete(post.id);
+            return next;
+          });
+        },
+      });
+    } catch (error) {
+      console.error('좋아요 처리 중 오류:', error);
+      setLikingPosts(prev => {
+        const next = new Set(prev);
+        next.delete(post.id);
+        return next;
+      });
+    }
+  };
+
   // 20. 컴포넌트 렌더링 시작
   // 서버 사이드 렌더링 또는 초기 렌더링 중에는 최소한의 UI만 표시
   if (!isMounted) {
@@ -504,15 +544,15 @@ export default function PostPage() {
   }
 
   return (
-    <main className="bg-[#f9fafc] min-h-screen pb-8" key={`post-page-${postType}`}>
-      <div className="max-w-[1400px] mx-auto px-4">
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-[1600px] mx-auto px-4 py-6">
         {/* 인기 게시판 / 자유 게시판 탭 UI */}
-        <div className="flex space-x-4 pt-10 mb-[-40px]">
+        <div className="flex space-x-4 mb-6">
           <button 
             className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
               postType === 'free' 
-                ? 'bg-white text-[#980ffa] border-t border-l border-r border-[#eeeeee]' 
-                : 'bg-[#f2f2f2] text-[#666666] hover:bg-[#e5e5e5]'
+                ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
             onClick={() => {
               if (postType !== 'free') {
@@ -525,8 +565,8 @@ export default function PostPage() {
           <button 
             className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
               postType === 'popular' 
-                ? 'bg-white text-[#980ffa] border-t border-l border-r border-[#eeeeee]' 
-                : 'bg-[#f2f2f2] text-[#666666] hover:bg-[#e5e5e5]'
+                ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
             onClick={() => {
               if (postType !== 'popular') {
@@ -537,117 +577,164 @@ export default function PostPage() {
             인기글
           </button>
         </div>
-        
-        {searchMode ? (
-          <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold text-[#333333] mb-2 pl-[20px] pt-[20px]">&quot;{searchKeyword}&quot; 검색 결과</h2>
-                <p className="text-sm text-[#666666] pl-[20px] pb-[20px]">총 {searchCount}개의 게시물이 검색되었습니다.</p>
-              </div>
+
+        {/* 게시글 작성 버튼 */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">{postType === 'popular' ? '인기글' : '자유게시판'}</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/post/new"
+              className="bg-[#9C50D4] hover:bg-[#8544B2] transition-all rounded-lg text-white py-2 px-4 text-base font-medium flex items-center gap-2"
+            >
+              <span className="material-icons text-base">edit</span>
+              새 글쓰기
+            </Link>
+            <div className="flex items-center gap-2">
               <button
-                onClick={resetAllFilters}
-                className="bg-[#f2f2f2] text-[#666666] rounded-[5px] py-[5px] px-[10px] text-sm mr-[20px] hover:bg-[#e5e5e5] flex items-center"
+                onClick={() => setViewMode('card')}
+                className={`p-2 rounded-md ${viewMode === 'card' ? 'bg-[#9C50D4] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               >
-                <span className="material-icons text-sm mr-[5px]">refresh</span>
-                초기화
+                <span className="material-icons text-base">grid_view</span>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-[#9C50D4] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <span className="material-icons text-base">view_list</span>
               </button>
             </div>
           </div>
-        ) : (
-          <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#333333] mb-4 pl-[20px] pt-[20px]">
-                {postType === 'popular' ? '인기 태그' : '인기 태그'}
-              </h2>
-              {(selectedTag || sortType !== '등록일순' || pageSize !== '10' || filterType !== '태그') && (
-                <button
-                  onClick={resetAllFilters}
-                  className="bg-[#f2f2f2] text-[#666666] rounded-[5px] py-[5px] px-[10px] text-sm mr-[20px] hover:bg-[#e5e5e5] flex items-center"
-                >
-                  <span className="material-icons text-sm mr-[5px]">refresh</span>
-                  초기화
-                </button>
-              )}
+        </div>
+
+        {/* 검색 및 필터 */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-6 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">검색 필터</label>
+              <FilterDropdown value={filterType} onChange={handleFilterChange} />
             </div>
-            <div className="flex flex-wrap gap-[5px] pl-[20px] pr-[20px] pb-[20px]">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">검색</label>
+              <SearchInput filterType={filterType} onSearch={handleSearch} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">정렬</label>
+              <SortDropdown value={sortType} onChange={handleSortChange} />
+            </div>
+          </div>
+        </div>
+
+        {/* 인기 태그 */}
+        {!searchMode && !minLikes && (
+          <div className="bg-white rounded-lg shadow p-4">
+            <h2 className="text-lg font-semibold mb-4 text-gray-800">인기 태그</h2>
+            <div className="flex flex-wrap gap-2">
               {tagsLoading ? (
-                <p className="text-sm text-[#666666]">태그 로딩 중...</p>
-              ) : popularTags.length > 0 ? (
+                <p className="text-sm text-gray-500">태그 로딩 중...</p>
+              ) : (
                 popularTags.map((tag, index) => (
                   <Tag
-                    key={`tag-${tag.name}-${index}-${postType}`}
+                    key={`tag-${tag.name}-${index}`}
                     text={tag.name}
                     count={tag.count.toString()}
                     active={tag.isActive || false}
                     onClick={() => handleTagClick(tag.name)}
                   />
                 ))
-              ) : (
-                <p className="text-sm text-[#666666]">태그가 없습니다.</p>
               )}
             </div>
           </div>
         )}
 
-        <div className="flex justify-between items-center my-6 pt-6">
-          <h1 className="text-2xl font-bold">{postType === 'popular' ? '인기글' : '자유게시판'}</h1>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/post/new"
-              className="bg-[#980ffa] hover:bg-[#870edf] transition-all rounded-[10px] text-[#ffffff] py-[8px] px-[15px] text-base no-underline flex items-center"
-            >
-              <span className="material-icons text-base text-[#ffffff] mr-[8px]">edit</span>
-              새 글쓰기
-            </Link>
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center my-6 pb-[25px] pt-[25px] bg-[#ffffff] rounded-lg">
-          <div className="flex pl-[15px] pr-[15px]">
-            <div className="pr-[15px]">
-              <FilterDropdown value={filterType} onChange={handleFilterChange} />
+        {/* 검색 결과 */}
+        {searchMode && (
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">"{searchKeyword}" 검색 결과</h2>
+                <p className="text-sm text-gray-500 mt-1">총 {searchCount}개의 게시물</p>
+              </div>
+              <button
+                onClick={resetAllFilters}
+                className="inline-flex items-center px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <span className="material-icons text-sm mr-1">refresh</span>
+                초기화
+              </button>
             </div>
-            <SearchInput filterType={filterType} onSearch={handleSearch} />
           </div>
-          <div className="flex items-center pr-[15px]">
-            <SortDropdown value={sortType} onChange={handleSortChange} />
-          </div>
-        </div>
+        )}
 
+        {/* 게시물 목록 */}
         {loading ? (
-          <div className="text-center py-10">로딩 중...</div>
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9C50D4]"></div>
+          </div>
         ) : (
           <>
-            <div className="rounded-[10px] bg-[#ffffff] border-[#eeeeee] p-[15px]">
-              {posts.length > 0 ? (
-                posts.map((post) => (
-                  <PostItem
-                    key={post.id}
-                    id={post.id}
-                    title={post.title}
-                    nickname={post.nickname}
-                    time={getFormattedTime(post.creationTime, post.modificationTime)}
-                    viewCount={post.viewCount}
-                    commentCount={post.commentCount}
-                    likeCount={post.likeCount}
-                    tags={post.tags}
-                    hasImage={post.hasImage}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-10 text-[#666666]">
-                  <p className="text-lg mb-2">검색 결과가 없습니다.</p>
-                  {searchKeyword && <p className="text-base">&apos;{searchKeyword}&apos; 검색어를 변경하여 다시 시도해보세요.</p>}
-                </div>
-              )}
-            </div>
+            {posts.length > 0 ? (
+              <>
+                {viewMode === 'card' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        id={post.id}
+                        title={post.title}
+                        nickname={post.nickname}
+                        time={formatDate(post.creationTime)}
+                        viewCount={post.viewCount}
+                        commentCount={post.commentCount}
+                        likeCount={post.likeCount}
+                        tags={post.tags}
+                        isLiked={post.isLiked}
+                        onLikeClick={(e) => handleLikeClick(post, e)}
+                        likingPosts={likingPosts}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow">
+                    {posts.map((post, index) => (
+                      <div key={post.id}>
+                        <PostListItem
+                          id={post.id}
+                          title={post.title}
+                          nickname={post.nickname}
+                          time={formatDate(post.creationTime)}
+                          viewCount={post.viewCount}
+                          commentCount={post.commentCount}
+                          likeCount={post.likeCount}
+                          tags={post.tags}
+                          isLiked={post.isLiked}
+                          onLikeClick={(e) => handleLikeClick(post, e)}
+                          likingPosts={likingPosts}
+                        />
+                        {index < posts.length - 1 && (
+                          <div className="mx-6 border-b border-gray-200"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-white rounded-lg shadow p-16 text-center">
+                <p className="text-gray-500 text-lg mb-1">게시물이 없습니다</p>
+                {searchKeyword && (
+                  <p className="text-gray-400 text-sm">
+                    '{searchKeyword}' 검색어를 변경하여 다시 시도해보세요
+                  </p>
+                )}
+              </div>
+            )}
 
+            {/* 페이지네이션 */}
             {posts.length > 0 && (
-              <div className="flex justify-between items-center py-6">
-                <div className="m-[10px]">
+              <div className="bg-white rounded-lg shadow p-4 mt-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                   <select
-                    className="px-4 py-[7px] text-sm text-[#666666] bg-white border border-[#e5e5e5] rounded hover:bg-gray-50 cursor-pointer focus:outline-none"
+                    className="w-32 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-[#9C50D4] focus:ring-1 focus:ring-[#9C50D4] transition-colors"
                     value={pageSize}
                     onChange={handlePageSizeChange}
                   >
@@ -655,22 +742,21 @@ export default function PostPage() {
                     <option value="15">15개씩 보기</option>
                     <option value="20">20개씩 보기</option>
                   </select>
-                </div>
-                <div className="flex items-center gap-[10px]">
-                  <PageButton
-                    text="이전"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                  />
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+
+                  <div className="flex items-center gap-1.5">
                     <PageButton
-                      key={page}
-                      text={page.toString()}
-                      active={currentPage === page}
-                      onClick={() => setCurrentPage(page)}
+                      text="이전"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
                     />
-                  ))}
-                  <div className="pr-[10px]">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PageButton
+                        key={page}
+                        text={page.toString()}
+                        active={currentPage === page}
+                        onClick={() => setCurrentPage(page)}
+                      />
+                    ))}
                     <PageButton
                       text="다음"
                       disabled={currentPage === totalPages}
@@ -691,43 +777,35 @@ export default function PostPage() {
 function Tag({ text, count, active = false, onClick }: { text: string; count: string; active?: boolean; onClick?: () => void }) {
   return (
     <button
-      className={`px-3 py-[11px] text-sm border-none ${active
-        ? 'bg-[#980ffa] text-[#ffffff]'
-        : 'bg-[#f2f2f2] text-[#555555] hover:bg-[#e5e5e5]'
-        }`}
       onClick={onClick}
+      className={`
+        inline-flex items-center px-3 py-1.5 text-sm rounded-full transition-colors
+        ${active
+          ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+        }
+      `}
     >
-      #{text} ({count})
+      #{text}
+      <span className="ml-1.5 text-xs text-gray-500">
+        ({count})
+      </span>
     </button>
   );
 }
 
 // 필터 드롭다운
 function FilterDropdown({ value, onChange }: { value: string; onChange: (type: string) => void }) {
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    // 값이 실제로 변경된 경우에만 onChange 호출
-    if (e.target.value !== value) {
-      onChange(e.target.value);
-    }
-  };
-
-  // 클릭 이벤트 중지 함수 추가
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-  };
-
   return (
-    <div className="relative" onClick={handleClick}>
-      <select
-        className="px-4 py-[7px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
-        value={value}
-        onChange={handleFilterChange}
-      >
-        <option value="태그">태그</option>
-        <option value="제목">제목</option>
-        <option value="작성자">작성자</option>
-      </select>
-    </div>
+    <select
+      className="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="태그">태그</option>
+      <option value="제목">제목</option>
+      <option value="작성자">작성자</option>
+    </select>
   );
 }
 
@@ -736,48 +814,28 @@ function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (
   const [inputValue, setInputValue] = useState('');
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && inputValue.trim() !== '') {
+    if (e.key === 'Enter' && inputValue.trim()) {
       onSearch(inputValue.trim());
-    }
-  };
-
-  const handleSearchClick = () => {
-    if (inputValue.trim() !== '') {
-      onSearch(inputValue.trim());
-    }
-  };
-
-  const getPlaceholder = () => {
-    switch (filterType) {
-      case '태그':
-        return '태그를 입력하세요 (예: 개발, 디자인)';
-      case '제목':
-        return '제목을 입력하세요';
-      case '작성자':
-        return '작성자를 입력하세요';
-      default:
-        return '검색어를 입력하세요';
     }
   };
 
   return (
-    <div className="relative w-[300px]">
-      <div className="flex items-center border border-[#e5e5e5] rounded">
-        <span
-          className="material-icons text-[#999999] pt-[2px] pb-[2px] p-[10px] ml-[2px] cursor-pointer"
-          onClick={handleSearchClick}
-        >
-          search
-        </span>
-        <input
-          type="text"
-          placeholder={getPlaceholder()}
-          className="pl-[5px] pr-4 py-[8px] w-full text-sm border-none focus:outline-none"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
+    <div className="relative flex-1">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <span className="material-icons text-gray-400 text-lg">search</span>
       </div>
+      <input
+        type="text"
+        placeholder={
+          filterType === '태그' ? '태그로 검색 (예: 개발, 디자인)'
+            : filterType === '제목' ? '제목으로 검색'
+              : '작성자로 검색'
+        }
+        className="w-full pl-10 pr-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyPress={handleKeyPress}
+      />
     </div>
   );
 }
@@ -785,50 +843,42 @@ function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (
 // 정렬 드롭다운
 function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) {
   return (
-    <div className="relative">
-      <select
-        className="p-[7px] mr-[10px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
-        value={value}
-        onChange={onChange}
-      >
-        <option value="등록일순">등록일순</option>
-        <option value="댓글순">댓글순</option>
-        <option value="조회순">조회순</option>
-        <option value="좋아요순">좋아요순</option>
-      </select>
-    </div>
+    <select
+      className="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+      value={value}
+      onChange={onChange}
+    >
+      <option value="등록일순">등록일순</option>
+      <option value="댓글순">댓글순</option>
+      <option value="조회순">조회순</option>
+      <option value="좋아요순">좋아요순</option>
+    </select>
   );
 }
 
 // 페이지 버튼
 function PageButton({ text, active = false, disabled = false, onClick }: { text: string; active?: boolean; disabled?: boolean; onClick?: () => void }) {
-  const baseClasses = "flex items-center justify-center min-w-8 h-8 px-2 rounded";
-
-  if (disabled) {
-    return (
-      <button disabled className={`${baseClasses} text-[#cccccc] bg-white cursor-not-allowed border border-[#e5e5e5]`}>
-        {text}
-      </button>
-    );
-  }
-
-  if (active) {
-    return (
-      <button className={`${baseClasses} text-[#ffffff] bg-[#980ffa] font-medium border-0`}>
-        {text}
-      </button>
-    );
-  }
-
   return (
-    <button className={`${baseClasses} text-[#555555] bg-white hover:bg-[#f5f5f5] border border-[#e5e5e5]`} onClick={onClick}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        min-w-[32px] h-8 px-2 text-sm rounded-md transition-colors
+        ${active
+          ? 'bg-purple-100 text-purple-700 font-medium'
+          : disabled
+            ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+        }
+      `}
+    >
       {text}
     </button>
   );
 }
 
-// 게시물 아이템 컴포넌트
-function PostItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, hasImage }: {
+// 게시물 아이템 컴포넌트 (카드형)
+function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts }: {
   id: number;
   title: string;
   nickname: string;
@@ -837,52 +887,241 @@ function PostItem({ id, title, nickname, time, viewCount, commentCount, likeCoun
   commentCount: number;
   likeCount: number;
   tags: string[];
-  hasImage?: boolean;
+  isLiked?: boolean;
+  onLikeClick?: (e: React.MouseEvent) => void;
+  likingPosts: Set<number>;
 }) {
   return (
-    <div className="px-[15px] py-[20px] bg-white border border-[#eeeeee] rounded-[10px] m-[15px]">
-      <Link href={`/post/${id}`} className="block mb-4 no-underline">
-        <h3 className="text-xl font-semibold text-[#333333] hover:text-[#980ffa]">
+    <div className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-200 border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900">{nickname}</p>
+              <p className="text-sm text-gray-500">{time}</p>
+            </div>
+          </div>
+        </div>
+        
+        <Link href={`/post/${id}`} className="block no-underline">
+          <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-[#9C50D4] transition-colors line-clamp-2">
+            {title}
+          </h3>
+        </Link>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          {tags.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex px-2 py-1 text-xs text-gray-500 bg-gray-50 rounded-md"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+        
+        <div className="flex items-center gap-6 text-gray-500">
+          <button
+            onClick={onLikeClick}
+            className={`flex items-center gap-2 group/like transition-all ${isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'}`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-5 w-5 group-hover/like:scale-110 transition-transform ${likingPosts.has(id) ? 'animate-pulse' : ''}`}
+              fill={isLiked ? "currentColor" : "none"}
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+            <span className="text-sm">{likeCount}</span>
+          </button>
+          <div className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 group-hover/comment:scale-110 transition-transform"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M8 12h.01M12 12h.01M16 12h.01M12 21a9 9 0 1 0-9-9c0 1.488.36 2.89 1 4.127L3 21l4.873-1C9.11 20.64 10.512 21 12 21z"
+              />
+            </svg>
+            <span className="text-sm">{commentCount}</span>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+            <span className="text-sm">{viewCount}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 리스트형 게시물 컴포넌트
+function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts }: {
+  id: number;
+  title: string;
+  nickname: string;
+  time: string;
+  viewCount: number;
+  commentCount: number;
+  likeCount: number;
+  tags: string[];
+  isLiked?: boolean;
+  onLikeClick?: (e: React.MouseEvent) => void;
+  likingPosts: Set<number>;
+}) {
+  return (
+    <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
+      <Link href={`/post/${id}`} className="block">
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-900">{nickname}</span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-500">{time}</span>
+          </div>
+        </div>
+
+        <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
           {title}
-          {hasImage && (
-            <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-          )}
-        </h3>
+        </h2>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {tags.map((tag, index) => (
+            <span
+              key={index}
+              className="inline-flex px-2 py-1 text-xs text-gray-500 bg-gray-50 rounded-md"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-6 text-gray-500">
+          <button
+            onClick={onLikeClick}
+            className={`flex items-center gap-1 group/like transition-all ${isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'}`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-5 w-5 group-hover/like:scale-110 transition-transform ${likingPosts.has(id) ? 'animate-pulse' : ''}`}
+              fill={isLiked ? "currentColor" : "none"}
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+            <span className="text-sm group-hover/like:text-[#9C50D4]">{likeCount}</span>
+          </button>
+          <div className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 group-hover/comment:scale-110 transition-transform"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M8 12h.01M12 12h.01M16 12h.01M12 21a9 9 0 1 0-9-9c0 1.488.36 2.89 1 4.127L3 21l4.873-1C9.11 20.64 10.512 21 12 21z"
+              />
+            </svg>
+            <span className="text-sm group-hover/comment:text-[#9C50D4]">{commentCount}</span>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+            <span className="text-sm">{viewCount}</span>
+          </div>
+        </div>
       </Link>
-
-      <div className="flex items-center justify-between mb-4 gap-[15px]">
-        <div className="flex items-center gap-3">
-          <div className="w-[35px] h-[35px] rounded-full bg-[#f2f2f2] flex items-center justify-center overflow-hidden">
-            <span className="material-icons text-base text-[#999999]">person</span>
-          </div>
-          <span className="text-base text-[#666666] pl-[10px]">{nickname}</span>
-          <span className="text-sm text-[#999999] pl-[10px]">•</span>
-          <span className="text-base text-[#999999] pl-[10px]">{time}</span>
-        </div>
-
-        <div className="flex items-center gap-[15px] pr-[15px]">
-          <div className="flex items-center gap-2">
-            <span className="material-icons text-base text-[#999999]">visibility</span>
-            <span className="text-sm text-[#999999]">{viewCount}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="material-icons text-base text-[#999999]">chat_bubble_outline</span>
-            <span className="text-sm text-[#999999]">{commentCount}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="material-icons text-base text-[#999999]">favorite_border</span>
-            <span className="text-sm text-[#999999]">{likeCount}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-[12px] mb-3 pt-[15px]">
-        {tags.map((tag, index) => (
-          <span key={index} className="text-sm px-3 py-1 bg-[#f5f5f5] text-[#666666] rounded-full">
-            #{tag}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
@@ -933,4 +1172,40 @@ function getFormattedTime(creationTime: string, modificationTime?: string): stri
   }
   // 수정 시간이 없는 경우 생성 시간만 표시
   return formatRelativeTime(creationTime);
+}
+
+// 날짜 포맷팅 함수
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (60 * 1000));
+  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes}분 전`;
+  } else if (diffHours < 24) {
+    return `${diffHours}시간 전`;
+  } else if (diffDays < 7) {
+    return `${diffDays}일 전`;
+  } else {
+    return new Intl.DateTimeFormat('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  }
+}
+
+// 게시글 내용 요약 함수
+function summarizeContent(content: string): string {
+  // HTML 태그 제거
+  const textContent = content.replace(/<[^>]+>/g, '');
+  // 공백 정리
+  const trimmedContent = textContent.replace(/\s+/g, ' ').trim();
+  // 100자로 제한하고 말줄임표 추가
+  return trimmedContent.length > 100 ? `${trimmedContent.slice(0, 100)}...` : trimmedContent;
 }
