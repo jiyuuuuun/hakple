@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation'
 
 //이 부분은 나중에 DTO에 맞게 변경할거임
 export interface User {
-
     id?: number;
     nickname: string;
     userName: string;
@@ -15,26 +14,23 @@ export interface User {
     academyName?: string;
     isAdmin?: boolean;
     profileImageUrl?: string;
-
 }
 
 // 백엔드 응답 타입 - MyInfoResponseDto와 일치하도록
 type BackendUser = {
-
     id?: number
     memberId?: number
     nickName?: string
     userName?: string // 사용자 아이디
     phoneNum?: string
-        academyId?: string
+    academyId?: string // 학원 ID (백엔드 응답과 일치)
     academyCode?: string // 학원 코드
-    academyName?: string // Added academyName field
+    academyName?: string // 학원 이름
     profileImageUrl?: string
     creationTime?: string
     modificationTime?: string
-        isAdmin?: boolean
+    isAdmin?: boolean
     [key: string]: unknown // any 대신 unknown 사용
-
 }
 
 //컨텍스트 전역관리용
