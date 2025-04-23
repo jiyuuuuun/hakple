@@ -247,13 +247,13 @@ export default function MyInfoPage() {
         const checkAdminPermission = async () => {
             setAdminChecking(true)
             try {
-                const accessToken = localStorage.getItem('accessToken')
+                // const accessToken = localStorage.getItem('accessToken')
 
-                if (!accessToken) {
-                    setIsAdmin(false)
-                    setAdminChecking(false)
-                    return
-                }
+                // if (!accessToken) {
+                //     setIsAdmin(false)
+                //     setAdminChecking(false)
+                //     return
+                // }
 
                 // 네트워크 타임아웃 설정 (5초)
                 const controller = new AbortController()
@@ -267,7 +267,7 @@ export default function MyInfoPage() {
                         credentials: 'include',
                         headers: {
                             'Content-Type': 'application/json',
-                            Authorization: `Bearer ${accessToken}`,
+                            //Authorization: `Bearer ${accessToken}`,
                         },
                         signal: controller.signal,
                     })
@@ -339,24 +339,24 @@ export default function MyInfoPage() {
                             : getAcademyNameFromCode(data.academyCode))
 
                     // 토큰에서 추가 정보 확인 (백업)
-                    const token = localStorage.getItem('accessToken')
-                    if (token) {
-                        try {
-                            const payload = JSON.parse(atob(token.split('.')[1]))
-                            const academyIdFromToken =
-                                payload.academyId || payload.academyCode || payload.academy_code || null
+                    // const token = localStorage.getItem('accessToken')
+                    // if (token) {
+                    //     try {
+                    //         const payload = JSON.parse(atob(token.split('.')[1]))
+                    //         const academyIdFromToken =
+                    //             payload.academyId || payload.academyCode || payload.academy_code || null
 
-                            // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
-                            if (!finalAcademyCode && academyIdFromToken) {
-                                finalAcademyCode = String(academyIdFromToken)
-                                finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
-                            }
-                        } catch (e) {
-                            console.error('토큰 파싱 중 오류:', e)
-                        }
-                    } catch (e) {
-                        console.log('토큰 파싱 중 오류:', e);
-                    }
+                    //         // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
+                    //         if (!finalAcademyCode && academyIdFromToken) {
+                    //             finalAcademyCode = String(academyIdFromToken)
+                    //             finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
+                    //         }
+                    //     } catch (e) {
+                    //         console.error('토큰 파싱 중 오류:', e)
+                    //     }
+                    // } catch (e) {
+                    //     console.log('토큰 파싱 중 오류:', e);
+                    // }
 
                     // 정보 업데이트
                     localStorage.setItem('academyCode', finalAcademyCode)

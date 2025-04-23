@@ -86,13 +86,25 @@ module.exports = {
         'highlight-fade': {
           '0%': { backgroundColor: 'rgb(243 232 255)' },  // purple-100
           '100%': { backgroundColor: 'transparent' }
-        }
+        },
+        highlightFade: {
+          '0%': { backgroundColor: '#f3e8ff' },
+          '100%': { backgroundColor: 'transparent' },
+        },
+        pulseLike: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.2)' },
+        },
       },
       animation: {
         'pulse-light': 'pulse-light 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'highlight-fade': 'highlight-fade 3s ease-in-out 1'
+        'highlight-fade': 'highlight-fade 3s ease-in-out 1',
+        'highlight-fade': 'highlightFade 5s ease-out',
+        'pulse-like': 'pulseLike 0.5s ease-in-out',
       }
     },
   },
-  plugins: [],
-} 
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
+}

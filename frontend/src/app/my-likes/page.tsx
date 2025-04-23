@@ -206,27 +206,36 @@ export default function MyLikesPage() {
                         {posts.map((post) => (
                             <div key={post.id} className="bg-white dark:bg-slate-100 rounded-2xl p-6 shadow-md">
                                 <div
-                                    className="cursor-pointer hover:underline text-lg font-semibold text-gray-800 dark:text-gray-800 mb-3"
+                                    className="cursor-pointer text-lg font-semibold text-gray-800 dark:text-gray-800 mb-3"
                                     onClick={() => handleGoToPost(post.id)}
                                 >
-                                    <span className="text-[#8C4FF2]">❤️</span> {post.title}
+                                    {post.title}
                                 </div>
-                                <div className="flex items-center mb-2 text-sm text-gray-500">
-                                    <span className="mr-3">작성자: {post.nickname}</span>
-                                    <span className="mr-3">👁️ {post.viewCount}</span>
-                                    <span className="mr-3">❤️ {post.likeCount}</span>
-                                    <span>💬 {post.commentCount}</span>
-                                </div>
-                                <p className="text-gray-700 dark:text-gray-700 mb-4 whitespace-pre-line">
-                                    {summarizeContent(post.content)}
-                                </p>
-                                <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-600">
-                                    <span>🕒 {formatDate(post.createdAt)}</span>
-                                    <button
-                                        onClick={() => handleGoToPost(post.id)}
-                                        className="text-[#8C4FF2] hover:underline"
-                                    >
-                                        🔗 게시글 상세보기
+                                <div className="flex items-center gap-6 text-gray-500">
+                                    <div className="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                        <span>{post.likeCount}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M12 21a9 9 0 1 0-9-9c0 1.488.36 2.89 1 4.127L3 21l4.873-1C9.11 20.64 10.512 21 12 21z" />
+                                        </svg>
+                                        <span>{post.commentCount}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <span>{post.viewCount}</span>
+                                    </div>
+                                    <button onClick={() => handleGoToPost(post.id)} className="ml-auto text-[#9C50D4] hover:underline flex items-center gap-1">
+                                        상세보기
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
@@ -237,9 +246,8 @@ export default function MyLikesPage() {
                                 <button
                                     onClick={handleLoadMore}
                                     disabled={isLoading}
-                                    className={`px-6 py-3 rounded-lg ${
-                                        isLoading ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#8C4FF2] hover:bg-[#7340C2]'
-                                    } text-white transition-colors font-medium`}
+                                    className={`px-6 py-3 rounded-lg ${isLoading ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#8C4FF2] hover:bg-[#7340C2]'
+                                        } text-white transition-colors font-medium`}
                                 >
                                     {isLoading ? '로딩 중...' : '더 보기'}
                                 </button>
@@ -258,11 +266,10 @@ export default function MyLikesPage() {
                                     setPage(i + 1)
                                     fetchLikedPosts(i + 1)
                                 }}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                    page === i + 1
+                                className={`w-10 h-10 rounded-full flex items-center justify-center ${page === i + 1
                                         ? 'bg-[#8C4FF2] text-white'
                                         : 'bg-white dark:bg-slate-100 text-gray-700 dark:text-gray-800 hover:bg-gray-100'
-                                }`}
+                                    }`}
                             >
                                 {i + 1}
                             </button>
