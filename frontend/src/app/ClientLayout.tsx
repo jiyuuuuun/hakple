@@ -155,7 +155,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 console.log('로그인 되어있지 않음', error)
 
                 // 로그인 상태 초기화
-                //setNoLoginMember()
+                setNoLoginMember()
 
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 // 특별 페이지가 아닌 경우에만 리다이렉트
