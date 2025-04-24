@@ -4,6 +4,7 @@ package com.golden_dobakhe.HakPle.security.jwt;
 
 
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -38,15 +39,37 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = getTokken(request);
+        String accessToken = getAccessToken(request);
+        String refreshToken = getRefreshToken(request);
 
-        if (token == null) {
+        //여기서 AccessToken이 만료되면 그냥 지가 알아서 사라짐
+        //따라서 같이 넘어온 refreshToken으로 인증 절차를 거치는게 나음
+
+        if (accessToken == null && refreshToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        //여기서 재발급
+        if (accessToken == null && refreshToken != null) {
+            accessToken = jwtAuthenticationProvider.genNewAccessToken(refreshToken);
+
+            Cookie newAccessTokenCookie = new Cookie("accessToken", accessToken);
+            newAccessTokenCookie.setHttpOnly(true);
+            newAccessTokenCookie.setPath("/");
+            newAccessTokenCookie.setMaxAge(Math.toIntExact(JwtTokenizer.ACCESS_TOKEN_EXPIRE_COUNT / 1000));
+            response.addCookie(newAccessTokenCookie);
+            //일단 나 재발급이요 라고 명시
+            response.setHeader("X-Token-Refreshed", "true");
+
+
+
+
+        }
+
+        //이후 accessToken유효성 검증
         try {
-            Authentication authentication = jwtAuthenticationProvider.getAuthentication(token);
+            Authentication authentication = jwtAuthenticationProvider.getAuthentication(accessToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception e) {
             log.error("❌ JWT 인증 실패: {}", e.getMessage(), e);
@@ -62,7 +85,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     //인증이 필요한 요청시 헤더에 Authorization Bearer jwt토큰내용 이렇게 나오게 된다
-    private String getTokken(HttpServletRequest request) {
+    private String getAccessToken(HttpServletRequest request) {
+        //근데 어차피 쿠키로 받으니까 빼도 되는거 아닌가..?
         String auth = request.getHeader("Authorization");
         if (StringUtils.hasText(auth) && auth.startsWith("Bearer "))
             return auth.substring(7);
@@ -80,6 +104,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 
 
+        return null;
+    }
+
+    // 쿠키에서 RefreshToken 가져오기
+    private String getRefreshToken(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals("refreshToken"))
+                    return cookie.getValue();
+            }
+        }
         return null;
     }
 
