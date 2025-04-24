@@ -176,9 +176,9 @@ export default function PostPage() {
       // 백엔드는 0부터 시작하는 페이지 인덱스를 사용하므로 page - 1
       let url = `/api/v1/posts?page=${page}&size=${size}&type=${postType}`;
 
-      // size와 정렬 방식 추가
-      url += `&size=${size}`;
+      // 정렬 방식 추가
       url += `&sortType=${encodeURIComponent(sort)}`;
+
 
       // 필터 유형에 따라 적절한 파라미터 추가
       if (keyword && keyword.trim() !== '') {
@@ -237,6 +237,8 @@ export default function PostPage() {
 
       const postData = await postsResponse.json();
       const likedPostIds: number[] = await likeStatusResponse.json();
+
+      console.log('📦 게시글 응답 데이터:', postData);
 
       if (postData && Array.isArray(postData.content)) {
         setPosts(postData.content.map((post: Post) => ({

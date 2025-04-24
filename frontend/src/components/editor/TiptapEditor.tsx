@@ -53,14 +53,14 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
   // 새로운 ID만 부모에게 전달하고 중복 호출 방지
   useEffect(() => {
     if (!onImageUpload || uploadedTempIds.length === 0) return;
-    
+
     // 아직 보고되지 않은 새 tempId들만 필터링
     const newTempIds = uploadedTempIds.filter(id => !reportedTempIdsRef.current.has(id));
-    
+
     if (newTempIds.length > 0) {
       // 새 ID들을 부모에게 전달
       onImageUpload(newTempIds);
-      
+
       // 보고된 ID 집합에 추가
       newTempIds.forEach(id => reportedTempIdsRef.current.add(id));
     }
@@ -190,30 +190,22 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
         // 오류 메시지 표시
         alert(`이미지 업로드 실패: ${error}\n\n가능한 해결책:\n1. 로그인 상태를 확인해주세요\n2. 다른 이미지를 사용해보세요\n3. 네트워크 연결을 확인해주세요`);
       };
-<<<<<<< HEAD
 
-      // FormData 생성
-      const formData = new FormData();
-      formData.append('file', file);
-
-=======
-      
       // 임시 식별자 생성 (UUID)
       const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // FormData 생성
       const formData = new FormData();
       formData.append('file', file);
       // 이미지 엔티티에 저장하기 위한 추가 정보
       formData.append('saveEntity', 'true');
       formData.append('tempId', tempId);
-      
+
       // boardId가 있다면 추가
       if (boardId) {
         formData.append('boardId', boardId.toString());
       }
-      
->>>>>>> develop
+
       // 5초 타임아웃 설정
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -259,36 +251,19 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
           handleUploadFailure(userMessage);
           return;
         }
-<<<<<<< HEAD
 
-        // 서버에서 반환된 이미지 URL 받기
-        const contentType = response.headers.get("content-type");
-        let imageUrl;
-
-        if (contentType && contentType.indexOf("application/json") !== -1) {
-          // JSON 응답인 경우
-          const jsonResponse = await response.json();
-          imageUrl = jsonResponse.url || jsonResponse.filePath || jsonResponse;
-        } else {
-          // 일반 텍스트 응답인 경우
-          imageUrl = await response.text();
-        }
-
-=======
-        
         // 서버에서 반환된 이미지 URL 및 임시 ID 받기
         const jsonResponse = await response.json();
         const imageUrl = jsonResponse.filePath;
         const serverTempId = jsonResponse.tempId || tempId;
-        
+
         // 임시 ID 목록에 추가 - 로컬 상태에만 추가하고 즉시 부모에게 알리지 않음
         setUploadedTempIds(prev => {
           // 이미 있는 ID는 추가하지 않음
           if (prev.includes(serverTempId)) return prev;
           return [...prev, serverTempId];
         });
-        
->>>>>>> develop
+
         // 중요: 이미지를 새로 추가하지 않고, 기존 임시 이미지의 src만 업데이트
         const updateTransaction = editor.state.tr;
         let updated = false;

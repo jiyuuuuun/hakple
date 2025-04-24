@@ -39,7 +39,7 @@ export default function NoticePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  
+
   // 검색 및 정렬 관련 상태 추가
   const [searchMode, setSearchMode] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -56,7 +56,7 @@ export default function NoticePage() {
 
   // isAdmin 체크 함수 수정
   const isAdmin = () => isAdminState || (loginMember && !!loginMember.isAdmin);
-  
+
   // 초기 로딩 시 관리자 권한 확인
   useEffect(() => {
     const checkAdminPermission = async () => {
@@ -69,7 +69,7 @@ export default function NoticePage() {
               'Content-Type': 'application/json'
             }
           });
-          
+
           if (response.ok) {
             const isAdminResult = await response.json();
             setIsAdminState(isAdminResult === true);
@@ -80,7 +80,7 @@ export default function NoticePage() {
         }
       }
     };
-    
+
     checkAdminPermission();
   }, [isLogin, loginMember]);
 
@@ -128,7 +128,7 @@ export default function NoticePage() {
         }
       }
     }
-    
+
     // URL 경로에서 아카데미 코드 추출 (ex: /post/notice/ABC1234)
     const pathParts = window.location.pathname.split('/');
     if (pathParts.length > 3) {
@@ -148,18 +148,25 @@ export default function NoticePage() {
 
   // 공지사항 데이터 가져오기
   useEffect(() => {
-    if (isLogin && academyCode && postType) {
-      fetchNoticeBoards();
-    } else if (isLogin && (!academyCode || !postType)) {
-      // URL 파라미터에서 값 가져오기가 완료된 후에만 API 호출
-      const pathParts = window.location.pathname.split('/');
-      const urlHasAcademyCode = pathParts.length > 3 && pathParts[3] && pathParts[3] !== '';
-      
-      if (urlHasAcademyCode || (searchParams.has('academyCode') && searchParams.has('type'))) {
-        fetchNoticeBoards();
-      }
+    if (!isLogin) return;
+
+    // academyCode나 postType이 아직 세팅 안 되었으면 실행하지 않음
+    if (!academyCode || !postType) {
+      console.warn('🚫 academyCode 또는 postType이 아직 설정되지 않았습니다. fetchNoticeBoards 생략.');
+      return;
     }
-  }, [isLogin, currentPage, pageSize, sortType, searchKeyword, academyCode, postType]);
+
+    fetchNoticeBoards();
+  }, [
+    isLogin,
+    academyCode,
+    postType,
+    currentPage,
+    pageSize,
+    sortType,
+    searchKeyword,
+  ]);
+
 
   // 아카데미 정보 가져오기
   useEffect(() => {
@@ -172,56 +179,47 @@ export default function NoticePage() {
   const fetchNoticeBoards = async () => {
     setLoading(true);
     try {
+      // 필수 파라미터 체크
+      if (!academyCode || !postType) {
+        console.warn('academyCode나 postType이 누락되어 API 요청을 건너뜁니다.');
+        return;
+      }
+
       let url = `/api/v1/posts/notice?page=${currentPage}&size=${pageSize}`;
-
-      // 정렬 방식 추가
       url += `&sortType=${encodeURIComponent(sortType)}`;
-      
-      // 검색어가 있는 경우 추가
-      if (searchKeyword && searchKeyword.trim() !== '') {
-        if (filterType === '제목') {
-          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
-        } else if (filterType === '작성자') {
-          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
-        }
+      url += `&academyCode=${encodeURIComponent(academyCode)}`;
+      url += `&type=${encodeURIComponent(postType)}`;
+
+      // 검색어가 있는 경우 필터 반영
+      if (searchKeyword.trim() !== '') {
+        url += `&keyword=${encodeURIComponent(searchKeyword.trim())}`;
       }
 
-      // URL에서 아카데미 코드 확인
-      const currentAcademyCode = academyCode || searchParams.get('academyCode');
-      // 아카데미 코드가 있는 경우 추가
-      if (currentAcademyCode) {
-        url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
-      }
+      console.log('📡 공지사항 API 요청 URL:', url);
 
-      // URL에서 포스트 타입 확인
-      const currentPostType = postType || searchParams.get('type');
-      // 포스트 타입 추가
-      if (currentPostType) {
-        url += `&type=${encodeURIComponent(currentPostType)}`;
-      }
-
-      console.log('공지사항 API 요청 URL:', url);
       const response = await fetchApi(url, {
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          Accept: 'application/json',
         },
-        credentials: 'include'
+        credentials: 'include',
       });
 
-      console.log(response);
-
       if (!response.ok) {
+        const errText = await response.text();
+        console.error('❌ 서버 응답 실패:', errText);
         throw new Error('공지사항을 불러오는데 실패했습니다.');
       }
 
       const data = await response.json();
       if (data && Array.isArray(data.content)) {
-        setPosts(data.content.map((post: Post) => ({
-          ...post,
-          hasImage: post.hasImage || false, // API에서 hasImage 필드가 없으면 false로 설정
-          commentCount: post.commentCount || 0 // API에서 commentCount 필드가 없으면 0으로 설정
-        })));
+        setPosts(
+          data.content.map((post: Post) => ({
+            ...post,
+            hasImage: post.hasImage || false,
+            commentCount: post.commentCount || 0,
+          }))
+        );
         setTotalPages(data.totalPages || 1);
         setSearchCount(data.totalElements || 0);
       } else {
@@ -230,7 +228,7 @@ export default function NoticePage() {
         setSearchCount(0);
       }
     } catch (error) {
-      console.error('공지사항을 불러오는데 실패했습니다:', error);
+      console.error('공지사항 로딩 오류:', error);
       setPosts([]);
       setTotalPages(1);
       setSearchCount(0);
@@ -239,10 +237,11 @@ export default function NoticePage() {
     }
   };
 
+
   // 아카데미 정보 조회
   const fetchAcademyInfo = async () => {
     if (!academyCode) return;
-    
+
     try {
       const response = await fetchApi(`/api/v1/admin/academies/${academyCode}`, {
         headers: {
@@ -276,7 +275,7 @@ export default function NoticePage() {
     console.log(`정렬 방식 변경: ${newSortType}`);
     setSortType(newSortType);
     setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
-    
+
     // 정렬 변경 시 데이터 새로 불러오기
     fetchNoticeBoards();
   };
@@ -304,25 +303,25 @@ export default function NoticePage() {
     setPageSize('10');
     setCurrentPage(1);
     setFilterType('제목');
-    
+
     // 초기화 후 데이터 다시 불러오기
     fetchNoticeBoards();
   };
-  
+
   function formatRelativeTime(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-  
+
     // 1분 미만
     if (diffMs < 60 * 1000) {
       return '방금 전';
     }
-  
+
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
     if (diffMinutes < 60) {
       return `${diffMinutes}분 전`;
     } else if (diffHours < 24) {
@@ -337,7 +336,7 @@ export default function NoticePage() {
       // 같은 해의 경우 월일만 표시, 다른 해의 경우 연월일 모두 표시
       const year = date.getFullYear();
       const currentYear = now.getFullYear();
-  
+
       if (year === currentYear) {
         return `${date.getMonth() + 1}월 ${date.getDate()}일`;
       } else {
@@ -380,7 +379,7 @@ export default function NoticePage() {
                 <span className="ml-2 text-[#8C4FF2]">: {academyName}</span>
               )}
             </h1>
-           </div>
+          </div>
           {/* 관리자만 글쓰기 버튼 노출 */}
           {isAdmin() && (
             <Link
@@ -605,7 +604,7 @@ function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.
         onChange={onChange}
       >
         <option value="등록일순">등록일순</option>
-        <option value="댓글순">댓글순</option> 
+        <option value="댓글순">댓글순</option>
         <option value="조회순">조회순</option>
         <option value="좋아요순">좋아요순</option>
       </select>
