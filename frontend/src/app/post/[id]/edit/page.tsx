@@ -221,8 +221,8 @@ const EditPostPage = () => {
     const [error, setError] = useState('')
     const [isAdmin, setIsAdmin] = useState(false)
     const [adminCheckComplete, setAdminCheckComplete] = useState(false)
-    // 임시 이미지 ID 목록 저장을 위한 상태 추가
-    const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([])
+    const [tempIdList, setTempIdList] = useState<string[]>([]) // 새로 업로드된 임시 이미지 ID 목록
+    const [initialImageUrls, setInitialImageUrls] = useState<string[]>([]) // 초기에 로드된 이미지 URL 목록
 
     // 관리자 여부 확인
     useEffect(() => {
@@ -267,10 +267,20 @@ const EditPostPage = () => {
     // 게시글 데이터 불러오기
     useEffect(() => {
         const fetchPostData = async () => {
+            // 가드 로직 추가: isLogin이 false이거나 loginMember가 없으면 함수 종료
+            if (!isLogin || !loginMember) {
+                // 필요하다면 로딩 상태를 false로 설정하거나 사용자에게 알림 표시
+                // setIsLoading(false);
+                // setError('로그인 정보가 유효하지 않습니다.');
+                return; // 여기서 중단
+            }
+
+            setIsLoading(true);
+            setError('');
+
             try {
-                setIsLoading(true)
                 const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
-                    credentials: 'include', // 쿠키 인증 사용
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
                     }
@@ -280,29 +290,35 @@ const EditPostPage = () => {
                     throw new Error('게시글을 불러오는데 실패했습니다.')
                 }
 
-                const postData = await response.json()
+                const data = await response.json()
 
-                // 데이터 설정
-                setTitle(postData.title || '')
-                setContent(postData.content || '')
-                setTags(postData.tags || [])
-                const type = postData.type || postData.boardType;
-                const boardTypeValue = type === 'notice' ? 'notice' : 'free';
-                setBoardType(boardTypeValue) // 게시글 타입 설정 추가
+                setTitle(data.title)
+                setContent(data.content)
+                setTags(data.tags ? data.tags.map((tag: { name: string }) => tag.name) : []) // tags가 null일 수 있음
+                setBoardType(data.boardType) // 게시글 타입 설정
 
-                // 권한 체크는 별도의 useEffect에서 처리
+                // 초기 이미지 URL 설정
+                setInitialImageUrls(data.imageUrls || []); 
+
+                // 작성자 본인 또는 관리자 여부 확인
+                if (loginMember && (loginMember.id === data.memberResponse.memberId || isAdmin)) {
+                  // 수정 권한 있음
+                } else {
+                  setError('게시글을 수정할 권한이 없습니다.');
+                  // 필요시 리다이렉트 또는 UI 비활성화 처리
+                  // router.push('/post'); 
+                }
+
             } catch (err) {
-                console.error('게시글 데이터 로딩 중 오류:', err)
-                setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.')
+                console.error('게시글 로딩 실패:', err)
+                setError(err instanceof Error ? err.message : '게시글을 불러오는 데 실패했습니다.')
             } finally {
                 setIsLoading(false)
             }
         }
 
-        if (postId) {
-            fetchPostData()
-        }
-    }, [postId])
+        fetchPostData();
+    }, [postId, isLogin, isAdmin, loginMember]) // isAdmin, loginMember 의존성 추가
 
     // 로그인 여부 확인 및 리다이렉트
     useEffect(() => {
@@ -331,16 +347,31 @@ const EditPostPage = () => {
         setTags(uniqueTags)
     }
 
-    // 이미지 업로드 완료 시 tempId 저장 핸들러
-    const handleImageUpload = (tempIds: string[]) => {
-        setUploadedTempIds(prev => {
-            // 중복 제거하여 새로운 tempId만 추가
-            const newIds = tempIds.filter(id => !prev.includes(id));
-            return [...prev, ...newIds];
-        });
+    // 이미지 업로드 성공 시 호출될 콜백 함수 (하나의 tempId를 받아 리스트에 추가)
+    const handleImageUploadSuccess = (tempId: string) => {
+      setTempIdList(prevList => [...prevList, tempId]);
+    };
+
+    // 에디터에서 이미지 삭제 시 호출될 콜백 함수 (tempId를 받아 리스트에서 제거)
+    const handleImageDelete = (tempId: string) => {
+      setTempIdList(prevList => prevList.filter(id => id !== tempId));
+      // 백엔드에 즉시 삭제 요청은 하지 않음 (글 저장 시 최종 처리)
+    };
+
+    // HTML 문자열에서 이미지 URL 추출하는 헬퍼 함수
+    const extractImageUrlsFromHtml = (html: string): string[] => {
+      const urls: string[] = [];
+      const imgRegex = /<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/g;
+      let match;
+      while ((match = imgRegex.exec(html)) !== null) {
+        urls.push(match[1]);
+      }
+      return urls;
     };
 
     const handleSubmit = async () => {
+        if (isSubmitting) return // 중복 제출 방지
+
         if (!title.trim()) {
             setError('제목을 입력해주세요.')
             return
@@ -361,25 +392,36 @@ const EditPostPage = () => {
             setIsSubmitting(true)
             setError('')
 
-            // 빈 태그만 필터링하고, 태그 형식을 그대로 유지
-            const finalTags = boardType === 'notice' ? [] : tags.filter((tag) => tag.trim() !== '')
+            // 1. 최종 에디터 내용에서 모든 이미지 URL 추출
+            const currentImageUrls = extractImageUrlsFromHtml(content);
+
+            // 2. 추출된 URL 중 initialImageUrls에 포함된 URL만 필터링 (이것이 usedImageUrls)
+            const finalUsedImageUrls = currentImageUrls.filter(url => initialImageUrls.includes(url));
+
+            // 3. 공지사항이 아니면 태그 정리
+            const finalTags = boardType === 'notice' ? [] : tags.filter((tag) => tag.trim() !== '');
 
             // API 호출을 위한 데이터 구성
-            const postData = {
+            const postData: {
+                title: string
+                content: string
+                tags: string[]
+                // type, academyCode는 수정 시 보내지 않을 수 있음 (백엔드 정책 확인)
+                tempIdList: string[]; // 새로 추가된 이미지들의 임시 ID
+                usedImageUrls: string[]; // 기존 이미지 중 유지된 URL
+            } = {
                 title,
                 content,
-                tags: finalTags,
-                type: boardType,
-                academyCode: academyCode // academyCode 추가
+                tags: finalTags, 
+                tempIdList: tempIdList,
+                usedImageUrls: finalUsedImageUrls
             }
 
-            const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`;
-            // URL에 academyCode 추가
-            const url = academyCode ? `${apiUrl}?academyCode=${academyCode}` : apiUrl;
-            
+            console.log('수정 요청 데이터:', postData)
+
             // 게시글 수정 요청
-            const response = await fetch(url, {
-                method: 'PUT', // 수정이므로 PUT 메서드 사용
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -401,36 +443,6 @@ const EditPostPage = () => {
                     errorMsg = `서버 오류: ${response.status}`
                 }
                 throw new Error(errorMsg)
-            }
-
-            // 응답 데이터 확인
-            const responseData = await response.json();
-            console.log('서버 응답:', responseData);
-            
-            // 이미지가 업로드되었고 게시글 ID가 있으면 이미지 연결 요청
-            if (uploadedTempIds.length > 0) {
-                try {
-                    const linkResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            tempIds: uploadedTempIds,
-                            boardId: parseInt(postId)
-                        }),
-                        credentials: 'include',
-                    });
-                    
-                    if (linkResponse.ok) {
-                        console.log('이미지 연결 성공:', await linkResponse.json());
-                    } else {
-                        console.error('이미지 연결 실패:', linkResponse.status);
-                    }
-                } catch (linkError) {
-                    console.error('이미지 연결 중 오류:', linkError);
-                    // 게시글은 수정되었으므로 전체 프로세스를 실패로 처리하지 않음
-                }
             }
 
             // 성공 시 게시글 상세 페이지로 돌아가거나 목록으로 이동
@@ -485,12 +497,12 @@ const EditPostPage = () => {
 
                                 {/* Tiptap 에디터 적용 */}
                                 <div className="w-full mb-3 sm:mb-4 border border-[#eeeeee] rounded-md overflow-hidden">
-                                    <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px] lg:min-h-[700px]">
-                                        <TiptapEditor 
-                                            content={content} 
+                                    <div className="p-2 sm:p-3 min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
+                                        <TiptapEditor
+                                            content={content}
                                             onChange={setContent} 
-                                            boardId={parseInt(postId)} 
-                                            onImageUpload={handleImageUpload} 
+                                            onImageUploadSuccess={handleImageUploadSuccess}
+                                            onImageDelete={handleImageDelete}
                                         />
                                     </div>
                                 </div>

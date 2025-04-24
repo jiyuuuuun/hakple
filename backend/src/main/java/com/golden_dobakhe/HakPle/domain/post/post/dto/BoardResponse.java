@@ -2,6 +2,7 @@ package com.golden_dobakhe.HakPle.domain.post.post.dto;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
 import com.golden_dobakhe.HakPle.global.Status;
+import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import java.util.Set;
 @Getter
 @Builder
 public class BoardResponse {
+    private List<String> imageUrls;
     private Long id;
     private String title;
     private String content;
@@ -36,7 +38,9 @@ public class BoardResponse {
     }
 
     public static BoardResponse from(Board board, List<String> tags, ImageRepository imageRepository) {
-        boolean hasImage = imageRepository.existsByBoardId(board.getId());
+        List<String> imageUrls = imageRepository.findByBoardId(board.getId())
+                                        .stream().map(img -> img.getFilePath()).toList();
+        boolean hasImage = !imageUrls.isEmpty();
         
         return BoardResponse.builder()
                 .id(board.getId())
@@ -53,11 +57,14 @@ public class BoardResponse {
                 .modificationTime(board.getModificationTime())
                 .type(board.getType())
                 .hasImage(hasImage)
+                .imageUrls(imageUrls)
                 .build();
     }
 
     public static BoardResponse from(Board board, List<String> tags, int commentCount, ImageRepository imageRepository) {
-        boolean hasImage = imageRepository.existsByBoardId(board.getId());
+        List<String> imageUrls = imageRepository.findByBoardId(board.getId())
+                                        .stream().map(img -> img.getFilePath()).toList();
+        boolean hasImage = !imageUrls.isEmpty();
         
         return BoardResponse.builder()
                 .id(board.getId())
@@ -74,11 +81,14 @@ public class BoardResponse {
                 .modificationTime(board.getModificationTime())
                 .type(board.getType())
                 .hasImage(hasImage)
+                .imageUrls(imageUrls)
                 .build();
     }
     
     // 기존 메서드도 유지 (하위 호환성을 위해)
     public static BoardResponse from(Board board, List<String> tags) {
+        List<String> imageUrls = board.getImages() != null ? board.getImages().stream().map(Image::getFilePath).toList() : List.of();
+        boolean hasImage = !imageUrls.isEmpty();
         return BoardResponse.builder()
                 .id(board.getId())
                 .title(board.getTitle())
@@ -93,11 +103,14 @@ public class BoardResponse {
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
                 .type(board.getType())
-                .hasImage(board.getImages() != null && !board.getImages().isEmpty())
+                .hasImage(hasImage)
+                .imageUrls(imageUrls)
                 .build();
     }
 
     public static BoardResponse from(Board board, List<String> tags, int commentCount) {
+        List<String> imageUrls = board.getImages() != null ? board.getImages().stream().map(Image::getFilePath).toList() : List.of();
+        boolean hasImage = !imageUrls.isEmpty();
         return BoardResponse.builder()
                 .id(board.getId())
                 .title(board.getTitle())
@@ -112,7 +125,8 @@ public class BoardResponse {
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
                 .type(board.getType())
-                .hasImage(board.getImages() != null && !board.getImages().isEmpty())
+                .hasImage(hasImage)
+                .imageUrls(imageUrls)
                 .build();
     }
 }

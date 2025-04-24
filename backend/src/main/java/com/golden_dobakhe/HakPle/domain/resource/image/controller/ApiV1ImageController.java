@@ -80,8 +80,15 @@ public class ApiV1ImageController {
     @PutMapping("/link-to-board")
     public ResponseEntity<?> linkImagesToBoard(@RequestBody ImageUpdateRequest request) {
         try {
-            // tempIds와 boardId로 이미지 연결
+            // 임시 이미지 중, content에 없는 이미지 삭제
+            fileService.cleanTempImagesNotIn(request.getTempIds(), request.getContent());
+
+            // temp 이미지 링크 처리 (isTemp=false, board 연결)
             int updatedCount = fileService.linkImagesToBoard(request.getTempIds(), request.getBoardId());
+            // 수정 시: 기존 이미지 중 사용하지 않는 것 정리
+            if (request.getUsedImageUrls() != null && !request.getUsedImageUrls().isEmpty()) {
+                fileService.cleanUpUnused(request.getBoardId(), request.getUsedImageUrls());
+            }
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -96,11 +103,19 @@ public class ApiV1ImageController {
         }
     }
 
+    @DeleteMapping("/remove-temp")
+    public ResponseEntity<?> removeTemp(@RequestBody List<String> tempIds) {
+        fileService.deleteTempImages(tempIds);
+        return ResponseEntity.ok().build();
+    }
+
     // 서버 상태 확인용 엔드포인트 추가
     @GetMapping("/health")
     public ResponseEntity<String> checkHealth() {
         return ResponseEntity.ok("OK");
     }
+
+
 
 //    @PostMapping("/upload_S3")
 //    public String uploadFile2(@RequestParam("file") MultipartFile file) {

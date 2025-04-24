@@ -187,11 +187,7 @@ public class AdminService {
         return boards.map(TotalBoardResponse::from);
     }
 
-    public Page<TotalBoardResponse> getFreeBoards(String academyCode, Pageable pageable) {
-        // 타입이 null이거나 'free'인 게시물만 조회 (자유게시판)
-        Page<Board> boards = boardRepository.findByAcademyCodeAndTypeNullOrFree(academyCode, Status.ACTIVE, pageable);
-        return boards.map(TotalBoardResponse::from);
-    }
+
 
     /**
      * 학원 코드로 학원 정보 조회

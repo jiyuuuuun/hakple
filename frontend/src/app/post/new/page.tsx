@@ -219,8 +219,8 @@ const NewPostPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
-    // 임시 이미지 ID 목록 저장을 위한 상태 추가
-    const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([]);
+    // 임시 이미지 ID 목록 저장을 위한 상태 (이름 변경: uploadedTempIds -> tempIdList)
+    const [tempIdList, setTempIdList] = useState<string[]>([]);
 
     // 관리자 여부 확인
     useEffect(() => {
@@ -293,16 +293,20 @@ const NewPostPage = () => {
         setTags(uniqueTags);
     };
 
-    // 이미지 업로드 완료 시 tempId 저장 핸들러
-    const handleImageUpload = (tempIds: string[]) => {
-        setUploadedTempIds(prev => {
-            // 중복 제거하여 새로운 tempId만 추가
-            const newIds = tempIds.filter(id => !prev.includes(id));
-            return [...prev, ...newIds];
-        });
+    // 이미지 업로드 성공 시 호출될 콜백 함수 (하나의 tempId를 받아 리스트에 추가)
+    const handleImageUploadSuccess = (tempId: string) => {
+        setTempIdList(prevList => [...prevList, tempId]);
+    };
+
+    // 에디터에서 이미지 삭제 시 호출될 콜백 함수 (tempId를 받아 리스트에서 제거)
+    const handleImageDelete = (tempId: string) => {
+        setTempIdList(prevList => prevList.filter(id => id !== tempId));
+        // 백엔드에 즉시 삭제 요청은 하지 않음 (글 저장 시 최종 처리)
     };
 
     const handleSubmit = async () => {
+        if (isSubmitting) return; // 중복 제출 방지
+        setError(''); // 이전 오류 메시지 초기화
         if (!title.trim()) {
             setError('제목을 입력해주세요.');
             return;
@@ -332,19 +336,17 @@ const NewPostPage = () => {
                 title: string;
                 content: string;
                 tags: string[];
-                type: BoardType;
+                boardType: BoardType;
                 academyCode?: string;
+                tempIdList: string[];
             } = {
                 title,
                 content,
                 tags: finalTags,
-                type: boardType, // 게시글 타입 추가 (free 또는 notice)
+                boardType: boardType,
+                academyCode: academyCode || undefined,
+                tempIdList: tempIdList
             };
-
-            // academyCode가 있는 경우에만 포함
-            if (academyCode) {
-                postData.academyCode = academyCode;
-            }
 
             console.log('요청 데이터:', postData);
 
@@ -379,16 +381,16 @@ const NewPostPage = () => {
             console.log('서버 응답:', responseData);
 
             // 이미지가 업로드되었고 게시글 ID가 있으면 이미지 연결 요청
-            if (uploadedTempIds.length > 0 && responseData.id) {
+            if (tempIdList.length > 0 && responseData.id) {
                 try {
                     const linkResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
                         method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            tempIds: uploadedTempIds,
-                            boardId: responseData.id
+                            tempIds: tempIdList,
+                            boardId: responseData.id,
+                            content: content,
+                            usedImageUrls: []
                         }),
                         credentials: 'include',
                     });
@@ -467,7 +469,8 @@ const NewPostPage = () => {
                                     <TiptapEditor
                                         content={content}
                                         onChange={setContent}
-                                        onImageUpload={handleImageUpload}
+                                        onImageUploadSuccess={handleImageUploadSuccess}
+                                        onImageDelete={handleImageDelete}
                                     />
                                 </div>
                             </div>

@@ -1,20 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
-import { fetchApi, post } from '@/utils/api';
+import { fetchApi } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
-import { ChevronRightIcon } from '@heroicons/react/24/outline';
-
-interface User {
-  id: number;
-  userName: string;
-  academyCode?: string;
-  academyName?: string;
-  // ...other user properties
-}
 
 interface Post {
   id: number;
@@ -43,102 +34,43 @@ export default function PostPage() {
   const { isLogin, loginMember } = useGlobalLoginMember();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [postType, setPostType] = useState<'free'|'popular'>(() =>
+    searchParams.get('type') === 'popular' ? 'popular' : 'free'
+  );
+  const prevType = useRef(postType);
+  const [searchKeyword, setSearchKeyword] = useState<string>(
+    searchParams.get('keyword') ?? ''
+  );
+  const [sortType, setSortType] = useState<string>(
+    searchParams.get('sortType') ?? 'creationTime'
+  );
+  const [filterType, setFilterType] = useState<string>(
+    searchParams.get('filterType') ?? 'tag'
+  );
+  const [currentPage, setCurrentPage] = useState<number>(
+    Number(searchParams.get('page') ?? 1)
+  );
+  const [pageSize, setPageSize] = useState<string>(
+    searchParams.get('size') ?? '10'
+  );
   const [isMounted, setIsMounted] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
   const [searchCount, setSearchCount] = useState(0);
-  const [pageSize, setPageSize] = useState('10');
-  const [sortType, setSortType] = useState('등록일순');
   const [posts, setPosts] = useState<Post[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [popularTags, setPopularTags] = useState<Tag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(false);
-  const [filterType, setFilterType] = useState('태그');
-  const [minLikes, setMinLikes] = useState<string | null>(null);
-  const [postType, setPostType] = useState('free');
-  const [academyCodeChecked, setAcademyCodeChecked] = useState(false);
   const [academyAlertShown, setAcademyAlertShown] = useState(false);
   const academyAlertRef = useRef(false);
-  const prevPostTypeRef = useRef<string>(postType);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
 
-  // 1. 컴포넌트 마운트 시 클라이언트 사이드 렌더링 활성화
+  // 마운트 플래그
   useEffect(() => {
     setIsMounted(true);
-
-    // URL 파라미터 처리
-    if (searchParams) {
-      // type 파라미터 처리
-      if (searchParams.has('type')) {
-        const type = searchParams.get('type');
-        if (type) {
-          // 이전 타입과 다를 경우 상태 초기화
-          if (prevPostTypeRef.current !== type) {
-            resetStateForTypeChange(type);
-          }
-          setPostType(type);
-          prevPostTypeRef.current = type;
-          
-          // type이 popular인 경우 자동으로 minLikes 10 설정
-          if (type === 'popular' && !searchParams.has('minLikes')) {
-            setMinLikes('10');
-          }
-        }
-      } else {
-        // type 파라미터가 없으면 기본값으로 초기화
-        if (prevPostTypeRef.current !== 'free') {
-          resetStateForTypeChange('free');
-        }
-        setPostType('free');
-        prevPostTypeRef.current = 'free';
-      }
-
-      // minLikes 파라미터 처리
-      if (searchParams.has('minLikes')) {
-        setMinLikes(searchParams.get('minLikes'));
-      } else if (postType !== 'popular') {
-        setMinLikes(null);
-        // 태그 선택 상태 초기화
-        setSelectedTag(null);
-        // 태그 활성화 상태도 초기화
-        setPopularTags(prevTags =>
-          prevTags.map(tag => ({
-            ...tag,
-            isActive: false
-          }))
-        );
-      }
-
-      // 헤더에서 전달된 검색 파라미터 처리
-      if (searchParams.has('keyword')) {
-        const keyword = searchParams.get('keyword');
-        if (keyword) {
-          setSearchKeyword(keyword);
-          setSearchMode(true);
-        }
-      }
-
-      // 정렬 타입 파라미터 처리
-      if (searchParams.has('sortType')) {
-        const sort = searchParams.get('sortType');
-        if (sort) {
-          setSortType(sort);
-        }
-      }
-
-      // 필터 타입 파라미터 처리
-      if (searchParams.has('filterType')) {
-        const filter = searchParams.get('filterType');
-        if (filter) {
-          setFilterType(filter);
-        }
-      }
-    }
-  }, [searchParams]);
+  }, []);
 
   // 로그인 여부 확인 및 리다이렉트
   useEffect(() => {
@@ -149,13 +81,12 @@ export default function PostPage() {
 
   // 처음 로드 시 설정
   useEffect(() => {
-    if (isMounted && isLogin && !academyCodeChecked) {
+    if (isMounted && isLogin && !academyAlertRef.current) {
       // 해당 로직 제거: 백엔드가 토큰에서 userId로 academyCode를 직접 찾기 때문에 체크가 필요 없음
       // 로그인 상태만 확인하고 항상 true로 설정
       console.log('게시판 - 사용자 로그인됨, ID:', loginMember?.userName);
-      setAcademyCodeChecked(true);
     }
-  }, [isLogin, isMounted, loginMember, academyCodeChecked]);
+  }, [isLogin, isMounted, loginMember, academyAlertRef]);
 
   // 학원 등록 알림 표시 함수
   const showAcademyAlert = () => {
@@ -167,41 +98,51 @@ export default function PostPage() {
     }
   };
 
+  // URL 쿼리 변경 시 상태 업데이트
+  useEffect(() => {
+    setSearchKeyword(searchParams.get('keyword') ?? '');
+    setSortType(searchParams.get('sortType') ?? 'creationTime');
+    setFilterType(searchParams.get('filterType') ?? 'tag');
+    setCurrentPage(Number(searchParams.get('page') ?? 1));
+    setPageSize(searchParams.get('size') ?? '10');
+    // type 쿼리 반영
+    const t = searchParams.get('type');
+    const newType = t === 'popular' ? 'popular' : 'free';
+    if (prevType.current !== newType) {
+      setPostType(newType);
+      prevType.current = newType;
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
+
+  // URL 쿼리 'type'에 따른 게시판 타입 (free|popular)
+  const boardType = searchParams.get('type') === 'popular' ? 'popular' : 'free';
+
   // 2. 게시물 데이터 가져오는 함수
-  const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string, minLikesParam?: string | null) => {
+  const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string) => {
     if (!isMounted || academyAlertRef.current) return;
 
     setLoading(true);
     try {
-      // 백엔드는 0부터 시작하는 페이지 인덱스를 사용하므로 page - 1
-      let url = `/api/v1/posts?page=${page}&size=${size}&type=${postType}`;
+      // URL의 `type` 쿼리 사용 (popular 또는 free)
+      const typeParam = boardType;
+      let url = `/api/v1/posts?page=${page}&size=${size}&type=${typeParam}`;
 
-      // size와 정렬 방식 추가
-      url += `&size=${size}`;
+      // 정렬 방식 추가
       url += `&sortType=${encodeURIComponent(sort)}`;
 
-      // 필터 유형에 따라 적절한 파라미터 추가
+      // 키워드 검색 시 filterType에 따라 tag 또는 keyword 파라미터 추가 후 항상 searchType 추가
       if (keyword && keyword.trim() !== '') {
-        if (filterType === '태그') {
+        if (filterType === 'tag') {
           url += `&tag=${encodeURIComponent(keyword)}`;
         } else {
           url += `&keyword=${encodeURIComponent(keyword)}`;
-          url += `&searchType=${encodeURIComponent(filterType)}`;
         }
+        url += `&searchType=${encodeURIComponent(filterType)}`;
       }
 
       if (tag && tag.trim() !== '') {
         url += `&tag=${encodeURIComponent(tag)}`;
-      }
-
-      // minLikes 파라미터 추가
-      if (minLikesParam || postType === 'popular') {
-        // postType이 popular이고 minLikes가 없으면 기본값 10 사용
-        const likesValue = minLikesParam || (postType === 'popular' ? '10' : null);
-        if (likesValue) {
-          url += `&minLikes=${likesValue}`;
-          console.log('좋아요 최소 개수:', likesValue);
-        }
       }
 
       console.log('게시글 목록 요청 URL:', url);
@@ -270,21 +211,7 @@ export default function PostPage() {
 
     setTagsLoading(true);
     try {
-      // 상대 경로 사용
-      let url = `/api/v1/posts/tags/popular`;
-
-      // 인기게시판의 경우 항상 minLikes=10 파라미터 적용
-      if (postType === 'popular') {
-        url += `?minLikes=10&type=${postType}`;
-        console.log('인기게시판 인기 태그 요청:', url);
-      }
-      // 자유게시판의 경우 기존 로직 유지
-      else if (minLikes) {
-        url += `?minLikes=${minLikes}&type=${postType}`;
-        console.log('인기 태그 - 좋아요 최소 개수:', minLikes);
-      } else {
-        url += `?type=${postType}`;
-      }
+      const url = `/api/v1/posts/tags/popular?type=${postType}`;
 
       console.log('인기 태그 요청 URL:', url);
 
@@ -319,13 +246,13 @@ export default function PostPage() {
       console.log('인기 태그 데이터:', data);
 
       if (Array.isArray(data)) {
-        setPopularTags(data.map((tag: any) => ({
+        setPopularTags((data as {name:string; count:number}[]).map(tag => ({
           name: tag.name,
           count: tag.count,
           isActive: selectedTag === tag.name // 선택된 태그 유지
         })));
       } else if (data && Array.isArray(data.content)) {
-        setPopularTags(data.content.map((tag: any) => ({
+        setPopularTags((data.content as {name:string; count:number}[]).map(tag => ({
           name: tag.name,
           count: tag.count,
           isActive: selectedTag === tag.name // 선택된 태그 유지
@@ -343,13 +270,9 @@ export default function PostPage() {
 
   // 13. 의존성 변경 시 게시물 데이터 다시 불러오기
   useEffect(() => {
-    if (isMounted) {
-      // academyAlertRef가 true인 경우 API 호출 방지
-      if (!academyAlertRef.current) {
-        fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
-      }
-    }
-  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted, postType]);
+    if (!isMounted || academyAlertRef.current) return;
+    fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined);
+  }, [isMounted, searchParams, currentPage, pageSize, sortType, searchKeyword, selectedTag]);
 
   // 14. 컴포넌트 마운트 시 인기 태그 불러오기
   useEffect(() => {
@@ -359,7 +282,7 @@ export default function PostPage() {
         fetchPopularTags();
       }
     }
-  }, [isMounted, minLikes, postType]);
+  }, [isMounted, postType]);
 
   // 15. 인기 태그 클릭 처리 함수
   const handleTagClick = (tagName: string) => {
@@ -390,7 +313,7 @@ export default function PostPage() {
     setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
 
     // 현재 검색 조건 유지하면서 새로운 정렬 방식으로 데이터 다시 불러오기
-    fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined, minLikes);
+    fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
   };
 
   // 18. 검색 처리 함수
@@ -426,11 +349,11 @@ export default function PostPage() {
   const resetAllFilters = () => {
     setSearchMode(false);
     setSearchKeyword('');
-    setSortType('등록일순');
+    setSortType('creationTime');
     setPageSize('10');
     setCurrentPage(1);
     setSelectedTag(null);
-    setFilterType('태그');
+    setFilterType('tag');
 
     // 태그 활성화 상태 초기화
     setPopularTags(prevTags =>
@@ -441,35 +364,7 @@ export default function PostPage() {
     );
 
     // 현재 minLikes 유지하면서 데이터 다시 불러오기
-    const likesValue = postType === 'popular' ? '10' : minLikes;
-    fetchPosts(1, '10', '등록일순', '', undefined, likesValue);
-  };
-
-  // 게시판 타입 변경 시 상태 초기화 함수
-  const resetStateForTypeChange = (newType: string) => {
-    console.log(`게시판 타입 변경: ${prevPostTypeRef.current} -> ${newType}`);
-    setCurrentPage(1);
-    setPosts([]);
-    setTotalPages(1);
-    setSearchCount(0);
-    setSelectedTag(null);
-    setSearchMode(false);
-    setSearchKeyword('');
-    
-    // 인기게시판으로 변경 시 minLikes 설정
-    if (newType === 'popular') {
-      setMinLikes('10');
-    } else if (prevPostTypeRef.current === 'popular') {
-      setMinLikes(null);
-    }
-    
-    // 태그 활성화 상태 초기화
-    setPopularTags(prevTags =>
-      prevTags.map(tag => ({
-        ...tag,
-        isActive: false
-      }))
-    );
+    fetchPosts(1, '10', 'creationTime', '', undefined);
   };
 
   const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
@@ -550,29 +445,17 @@ export default function PostPage() {
         <div className="flex space-x-4 mb-6">
           <button 
             className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              postType === 'free' 
-                ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              searchParams.get('type') === 'popular' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200'
             }`}
-            onClick={() => {
-              if (postType !== 'free') {
-                router.push('/post');
-              }
-            }}
+            onClick={() => router.push('/post?type=free')}
           >
             자유게시판
           </button>
           <button 
             className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              postType === 'popular' 
-                ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              postType === 'popular' ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
-            onClick={() => {
-              if (postType !== 'popular') {
-                router.push('/post?type=popular');
-              }
-            }}
+            onClick={() => router.push('/post?type=popular')}
           >
             인기글
           </button>
@@ -625,7 +508,7 @@ export default function PostPage() {
         </div>
 
         {/* 인기 태그 */}
-        {!searchMode && !minLikes && (
+        {!searchMode && (
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold mb-4 text-gray-800">인기 태그</h2>
             <div className="flex flex-wrap gap-2">
@@ -651,7 +534,7 @@ export default function PostPage() {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-medium text-gray-900">"{searchKeyword}" 검색 결과</h2>
+                <h2 className="text-lg font-medium text-gray-900">&quot;{searchKeyword}&quot; 검색 결과</h2>
                 <p className="text-sm text-gray-500 mt-1">총 {searchCount}개의 게시물</p>
               </div>
               <button
@@ -725,7 +608,7 @@ export default function PostPage() {
                 <p className="text-gray-500 text-lg mb-1">게시물이 없습니다</p>
                 {searchKeyword && (
                   <p className="text-gray-400 text-sm">
-                    '{searchKeyword}' 검색어를 변경하여 다시 시도해보세요
+                    &apos;{searchKeyword}&apos; 검색어를 변경하여 다시 시도해보세요
                   </p>
                 )}
               </div>
@@ -804,9 +687,10 @@ function FilterDropdown({ value, onChange }: { value: string; onChange: (type: s
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      <option value="태그">태그</option>
-      <option value="제목">제목</option>
-      <option value="작성자">작성자</option>
+      <option value="tag">태그</option>
+      <option value="title">제목</option>
+      <option value="content">내용</option>
+      <option value="nickname">작성자</option>
     </select>
   );
 }
@@ -829,9 +713,10 @@ function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (
       <input
         type="text"
         placeholder={
-          filterType === '태그' ? '태그로 검색 (예: 개발, 디자인)'
-            : filterType === '제목' ? '제목으로 검색'
-              : '작성자로 검색'
+          filterType === 'tag' ? '태그로 검색 (예: 개발, 디자인)'
+            : filterType === 'title' ? '제목으로 검색'
+              : filterType === 'content' ? '내용으로 검색'
+                : '작성자로 검색'
         }
         className="w-full pl-10 pr-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
         value={inputValue}
@@ -850,10 +735,10 @@ function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.
       value={value}
       onChange={onChange}
     >
-      <option value="등록일순">등록일순</option>
-      <option value="댓글순">댓글순</option>
-      <option value="조회순">조회순</option>
-      <option value="좋아요순">좋아요순</option>
+       <option value="creationTime">등록일순</option>
+        <option value="commentCount">댓글순</option> 
+        <option value="viewCount">조회순</option>
+        <option value="likeCount">좋아요순</option>
     </select>
   );
 }

@@ -45,10 +45,10 @@ export default function NoticePage() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchCount, setSearchCount] = useState(0);
   const [pageSize, setPageSize] = useState('10');
-  const [sortType, setSortType] = useState('등록일순');
-  const [filterType, setFilterType] = useState('제목');
+  const [sortType, setSortType] = useState('creationTime');
+  const [filterType, setFilterType] = useState('title');
   const [academyCode, setAcademyCode] = useState<string | null>(null);
-  const [academyName, setAcademyName] = useState<string>('');
+  const [academyName] = useState<string>('');
   const [postType, setPostType] = useState<string | null>(null);
 
   // 관리자 상태를 별도의 상태로 관리
@@ -162,11 +162,11 @@ export default function NoticePage() {
   }, [isLogin, currentPage, pageSize, sortType, searchKeyword, academyCode, postType]);
 
   // 아카데미 정보 가져오기
-  useEffect(() => {
-    if (academyCode) {
-      fetchAcademyInfo();
-    }
-  }, [academyCode]);
+  // useEffect(() => {
+  //   if (academyCode) {
+  //     fetchAcademyInfo();
+  //   }
+  // }, [academyCode]);
 
   // 공지사항 데이터 가져오는 함수
   const fetchNoticeBoards = async () => {
@@ -177,13 +177,10 @@ export default function NoticePage() {
       // 정렬 방식 추가
       url += `&sortType=${encodeURIComponent(sortType)}`;
       
-      // 검색어가 있는 경우 추가
+      // 검색어가 있는 경우 keyword 및 searchType 추가
       if (searchKeyword && searchKeyword.trim() !== '') {
-        if (filterType === '제목') {
-          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
-        } else if (filterType === '작성자') {
-          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
-        }
+        url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+        url += `&searchType=${encodeURIComponent(filterType)}`;
       }
 
       // URL에서 아카데미 코드 확인
@@ -202,6 +199,7 @@ export default function NoticePage() {
 
       console.log('공지사항 API 요청 URL:', url);
       const response = await fetchApi(url, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -240,29 +238,29 @@ export default function NoticePage() {
   };
 
   // 아카데미 정보 조회
-  const fetchAcademyInfo = async () => {
-    if (!academyCode) return;
+  // const fetchAcademyInfo = async () => {
+  //   if (!academyCode) return;
     
-    try {
-      const response = await fetchApi(`/api/v1/admin/academies/${academyCode}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include'
-      });
+  //   try {
+  //     const response = await fetchApi(`/api/v1/admin/academies/${academyCode}`, {
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Accept': 'application/json'
+  //       },
+  //       credentials: 'include'
+  //     });
 
-      if (response.ok) {
-        const data = await response.json();
-        setAcademyName(data.academyName || '학원 정보 없음');
-      } else {
-        setAcademyName('학원 정보 없음');
-      }
-    } catch (error) {
-      console.error('학원 정보를 불러오는데 실패했습니다:', error);
-      setAcademyName('학원 정보 없음');
-    }
-  };
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       setAcademyName(data.academyName || '학원 정보 없음');
+  //     } else {
+  //       setAcademyName('학원 정보 없음');
+  //     }
+  //   } catch (error) {
+  //     console.error('학원 정보를 불러오는데 실패했습니다:', error);
+  //     setAcademyName('학원 정보 없음');
+  //   }
+  // };
 
   // 페이지 크기 변경 처리 함수
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -276,9 +274,6 @@ export default function NoticePage() {
     console.log(`정렬 방식 변경: ${newSortType}`);
     setSortType(newSortType);
     setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
-    
-    // 정렬 변경 시 데이터 새로 불러오기
-    fetchNoticeBoards();
   };
 
   // 검색 처리 함수
@@ -300,13 +295,10 @@ export default function NoticePage() {
   const resetAllFilters = () => {
     setSearchMode(false);
     setSearchKeyword('');
-    setSortType('등록일순');
+    setSortType('creationTime');
     setPageSize('10');
     setCurrentPage(1);
-    setFilterType('제목');
-    
-    // 초기화 후 데이터 다시 불러오기
-    fetchNoticeBoards();
+    setFilterType('title');
   };
   
   function formatRelativeTime(dateString: string): string {
@@ -539,8 +531,9 @@ function FilterDropdown({ value, onChange }: { value: string; onChange: (type: s
         value={value}
         onChange={handleFilterChange}
       >
-        <option value="제목">제목</option>
-        <option value="작성자">작성자</option>
+        <option value="title">제목</option>
+        <option value="content">내용</option>
+        <option value="nickname">작성자</option>
       </select>
     </div>
   );
@@ -564,9 +557,11 @@ function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (
 
   const getPlaceholder = () => {
     switch (filterType) {
-      case '제목':
+      case 'title':
         return '제목을 입력하세요';
-      case '작성자':
+      case 'content':
+        return '내용을 입력하세요';
+      case 'nickname':
         return '작성자를 입력하세요';
       default:
         return '검색어를 입력하세요';
@@ -604,10 +599,10 @@ function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.
         value={value}
         onChange={onChange}
       >
-        <option value="등록일순">등록일순</option>
-        <option value="댓글순">댓글순</option> 
-        <option value="조회순">조회순</option>
-        <option value="좋아요순">좋아요순</option>
+        <option value="creationTime">등록일순</option>
+        <option value="commentCount">댓글순</option> 
+        <option value="viewCount">조회순</option>
+        <option value="likeCount">좋아요순</option>
       </select>
     </div>
   );

@@ -35,5 +35,11 @@ public class Image extends BaseEntity {
     private String filePath; // 이미지 경로 (TEXT 타입)
     
     @Column(name = "temp_id", length = 100)
-    private String tempId; // 임시 식별자 (게시글 저장 전에 이미지 식별용)
+    private String tempId; // 임시 이미지 식별자
+
+    @Column(nullable = false)
+    private Boolean isTemp;    // true면 임시 저장된 이미지
+
+    @Column(nullable = false)
+    private Boolean isDeleted; // soft-delete 여부
 }

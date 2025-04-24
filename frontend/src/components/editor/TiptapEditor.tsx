@@ -4,19 +4,64 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
 import ImageResize from 'tiptap-extension-resize-image';
+import type { Editor } from '@tiptap/react';
+import type { Node as ProseMirrorNode, NodeType } from 'prosemirror-model';
+import { HTMLAttributes } from 'react';
+
+// --- 사용자 정의 이미지 속성 인터페이스 ---
+interface CustomImageAttributes extends HTMLAttributes<HTMLElement> {
+  'data-id'?: string | null;
+  'data-temp-id'?: string | null;
+}
+
+// --- Custom Image Extension --- (기본 Image 확장)
+const CustomImage = Image.extend({
+  // 커스텀 속성 추가
+  addAttributes() {
+    return {
+      // 기본 이미지 속성(src, alt, title 등) 상속
+      ...this.parent?.(),
+
+      // 임시 이미지 식별용 ID
+      'data-id': {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-id'),
+        renderHTML: (attributes: CustomImageAttributes) => {
+          if (!attributes['data-id']) {
+            return {};
+          }
+          return { 'data-id': attributes['data-id'] };
+        },
+      },
+      
+      // 백엔드 임시 저장 ID
+      'data-temp-id': {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-temp-id'),
+        renderHTML: (attributes: CustomImageAttributes) => {
+          if (!attributes['data-temp-id']) {
+            return {};
+          }
+          return { 'data-temp-id': attributes['data-temp-id'] };
+        },
+      },
+    };
+  },
+});
 
 interface TiptapEditorProps {
   content?: string;
   onChange?: (content: string) => void;
-  boardId?: number; // 게시글 ID (이미지 연결용)
-  onImageUpload?: (tempIds: string[]) => void; // 이미지 업로드 완료 콜백
+  onImageUploadSuccess?: (tempId: string) => void; // 이미지 업로드 성공 시 tempId 콜백
+  onImageDelete?: (tempId: string) => void; // 에디터에서 이미지 삭제 시 tempId 콜백
 }
 
-const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: TiptapEditorProps) => {
+const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDelete }: TiptapEditorProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const linkButtonRef = useRef<HTMLButtonElement>(null);
@@ -24,8 +69,7 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
   const [isUploading, setIsUploading] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkModal, setShowLinkModal] = useState(false);
-  const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([]);
-  const reportedTempIdsRef = useRef<Set<string>>(new Set());
+  const prevTempIdsRef = useRef<Set<string>>(new Set()); // 에디터 내 현재 이미지들의 tempId 추적
 
   useEffect(() => {
     setIsMounted(true);
@@ -49,31 +93,54 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
     };
   }, [showLinkModal]);
 
-  // 이전 방식 제거: 상위 컴포넌트로 업로드된 임시 ID 전달 로직 수정
-  // 새로운 ID만 부모에게 전달하고 중복 호출 방지
-  useEffect(() => {
-    if (!onImageUpload || uploadedTempIds.length === 0) return;
-    
-    // 아직 보고되지 않은 새 tempId들만 필터링
-    const newTempIds = uploadedTempIds.filter(id => !reportedTempIdsRef.current.has(id));
-    
-    if (newTempIds.length > 0) {
-      // 새 ID들을 부모에게 전달
-      onImageUpload(newTempIds);
-      
-      // 보고된 ID 집합에 추가
-      newTempIds.forEach(id => reportedTempIdsRef.current.add(id));
-    }
-  }, [uploadedTempIds, onImageUpload]);
+  // 이미지 제거 감지 및 부모 컴포넌트에 알림
+  const handleImageNodeChanges = useCallback(
+    (editorInstance: Editor) => {
+      if (!editorInstance) return;
+
+      const currentTempIds = new Set<string>();
+      editorInstance.state.doc.descendants((node: ProseMirrorNode) => {
+        if (node.type.name === 'image') {
+          // data-temp-id 속성에 저장된 실제 tempId 사용
+          const tempId = node.attrs['data-temp-id'];
+          if (tempId && typeof tempId === 'string') {
+            currentTempIds.add(tempId);
+          }
+        }
+        return true;
+      });
+
+      const prevSet = prevTempIdsRef.current;
+
+      // 제거된 이미지 찾기: 이전 목록에는 있었지만 현재 목록에는 없는 ID
+      prevSet.forEach(prevId => {
+        if (!currentTempIds.has(prevId)) {
+          console.log(`Image removed with tempId: ${prevId}`);
+          onImageDelete?.(prevId); // 부모 컴포넌트에 삭제 알림
+        }
+      });
+
+      // 현재 이미지 목록으로 업데이트
+      prevTempIdsRef.current = new Set(currentTempIds);
+    },
+    [onImageDelete] // onImageDelete가 변경될 때만 함수 재생성
+  );
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // image: false, // 기본 이미지 비활성화
+        // StarterKit에는 기본적인 익스텐션만 포함 (Image 설정 제거)
+      }),
+      // Image 익스텐션을 직접 추가하고 설정합니다.
+      CustomImage.configure({
+        inline: true,
+        allowBase64: true,
+        // HTMLAttributes는 여기서 설정하지 않음 (addAttributes에서 관리)
       }),
       ImageResize.configure({
         inline: true,
         allowBase64: true,
+        // ImageResize는 리사이징 기능만 담당 (HTMLAttributes 설정 제거, Image 익스텐션에서 관리)
       }),
       Link.configure({
         openOnClick: true,
@@ -99,9 +166,17 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
     content,
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
+      handleImageNodeChanges(editor);
     },
     immediatelyRender: false,
   });
+
+  // 에디터 초기 로드시 기존 이미지 추출 (editor 선언 후)
+  useEffect(() => {
+    if (!editor) return;
+    // 에디터가 로드될 때 초기 이미지 상태 설정
+    handleImageNodeChanges(editor);
+  }, [editor, handleImageNodeChanges]);
 
   // 추가: 백엔드 서버 상태 확인 함수
   const checkServerStatus = async () => {
@@ -117,7 +192,34 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
     }
   };
 
-  const handleUploadPhoto = useCallback(async (files: FileList | null, boardId?: number) => {
+  // handleUploadFailure 함수를 컴포넌트 스코프로 이동
+  const handleUploadFailure = useCallback((editor: Editor | null, tempImageId: string, error: string) => {
+    if (!editor) return;
+    try {
+      const deleteTransaction = editor.state.tr;
+      let imagePos = -1;
+
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'image' && node.attrs && node.attrs['data-id'] === tempImageId) {
+          imagePos = pos;
+          return false; 
+        }
+        return true; 
+      });
+
+      if (imagePos >= 0) {
+        deleteTransaction.delete(imagePos, imagePos + 1);
+        editor.view.dispatch(deleteTransaction);
+      }
+    } catch (removeError) {
+      console.error('임시 이미지 제거 중 오류:', removeError);
+    }
+    alert(`이미지 업로드 실패: ${error}\n\n가능한 해결책:\n1. 로그인 상태를 확인해주세요\n2. 다른 이미지를 사용해보세요\n3. 네트워크 연결을 확인해주세요`);
+  }, []); // 의존성 없음
+
+  let tempImageId = ''; // 초기값 설정
+
+  const handleUploadPhoto = useCallback(async (files: FileList | null) => {
     if (files === null || !editor || isUploading) return;
     
     const file = files[0];
@@ -140,8 +242,8 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
         return;
       }
       
-      // 임시 이미지 ID (나중에 식별하기 위함)
-      const tempImageId = `temp-image-${Date.now()}`;
+      // 임시 이미지 ID 할당 (handleUploadPhoto 스코프 내)
+      tempImageId = `temp-image-${Date.now()}`;
       
       // 서버로 업로드 전 미리보기 표시 (임시)
       const reader = new FileReader();
@@ -163,34 +265,6 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
       };
       reader.readAsDataURL(file);
       
-      // 오류 발생 시 임시 이미지 제거 함수
-      const handleUploadFailure = (error: string) => {
-        try {
-          // data-id로 임시 이미지 찾아 제거
-          const deleteTransaction = editor.state.tr;
-          let imagePos = -1;
-          
-          editor.state.doc.descendants((node, pos) => {
-            if (node.type.name === 'image' && node.attrs['data-id'] === tempImageId) {
-              imagePos = pos;
-              return false; // 찾았으므로 순회 중단
-            }
-            return true; // 계속 순회
-          });
-          
-          if (imagePos >= 0) {
-            // 이미지 노드와 그 크기만큼 삭제
-            deleteTransaction.delete(imagePos, imagePos + 1);
-            editor.view.dispatch(deleteTransaction);
-          }
-        } catch (removeError) {
-          console.error('임시 이미지 제거 중 오류:', removeError);
-        }
-        
-        // 오류 메시지 표시
-        alert(`이미지 업로드 실패: ${error}\n\n가능한 해결책:\n1. 로그인 상태를 확인해주세요\n2. 다른 이미지를 사용해보세요\n3. 네트워크 연결을 확인해주세요`);
-      };
-      
       // 임시 식별자 생성 (UUID)
       const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
@@ -201,10 +275,7 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
       formData.append('saveEntity', 'true');
       formData.append('tempId', tempId);
       
-      // boardId가 있다면 추가
-      if (boardId) {
-        formData.append('boardId', boardId.toString());
-      }
+      console.log('Uploading image with tempId:', tempId); // 디버깅 로그
       
       // 5초 타임아웃 설정
       const controller = new AbortController();
@@ -237,18 +308,9 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
           console.error(`서버 응답 오류 (상태 코드: ${response.status}):`, errorMessage);
           
           // 상태 코드에 따른 맞춤형 메시지
-          let userMessage = errorMessage;
-          if (response.status === 413) {
-            userMessage = '이미지 크기가 너무 큽니다. 더 작은 이미지를 사용해주세요.';
-          } else if (response.status === 415) {
-            userMessage = '지원되지 않는 이미지 형식입니다. JPG, PNG 등의 일반적인 형식을 사용해주세요.';
-          } else if (response.status === 401 || response.status === 403) {
-            userMessage = '로그인이 필요하거나 권한이 없습니다. 다시 로그인해주세요.';
-          } else if (response.status >= 500) {
-            userMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-          }
-          
-          handleUploadFailure(userMessage);
+          const userMessage = errorMessage;
+          // 컴포넌트 스코프의 함수 호출
+          handleUploadFailure(editor, tempImageId, userMessage); 
           return;
         }
         
@@ -257,20 +319,13 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
         const imageUrl = jsonResponse.filePath;
         const serverTempId = jsonResponse.tempId || tempId;
         
-        // 임시 ID 목록에 추가 - 로컬 상태에만 추가하고 즉시 부모에게 알리지 않음
-        setUploadedTempIds(prev => {
-          // 이미 있는 ID는 추가하지 않음
-          if (prev.includes(serverTempId)) return prev;
-          return [...prev, serverTempId];
-        });
-        
         // 중요: 이미지를 새로 추가하지 않고, 기존 임시 이미지의 src만 업데이트
         const updateTransaction = editor.state.tr;
         let updated = false;
         
         // 문서 내의 이미지 노드를 순회하며 임시 이미지를 찾아 업데이트
-        editor.state.doc.descendants((node, pos) => {
-          if (node.type.name === 'image' && node.attrs['data-id'] === tempImageId) {
+        editor.state.doc.descendants((node: ProseMirrorNode, pos: number) => {
+          if (node.type.name === 'image' && node.attrs && node.attrs['data-id'] === tempImageId) {
             // 임시 이미지를 찾았으면 URL만 업데이트
             const newAttrs = {
               ...node.attrs,
@@ -288,18 +343,83 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
         if (updated) {
           editor.view.dispatch(updateTransaction);
         }
+
+        console.log('Image upload response:', jsonResponse); // 디버깅 로그
+
+        if (response.ok && jsonResponse && jsonResponse.url && jsonResponse.tempId) {
+          console.log(`Upload success: URL=${jsonResponse.url}, TempID=${jsonResponse.tempId}`);
+
+          // 에디터 내 임시 이미지 노드 업데이트
+          const { view } = editor;
+          const { state } = view;
+          let imagePos = -1;
+          let imageNode: ProseMirrorNode | null = null;
+
+          // data-id (tempImageId)로 임시 이미지 노드 찾기
+          state.doc.descendants((node: ProseMirrorNode, pos: number) => {
+            if (node.type.name === 'image' && node.attrs && node.attrs['data-id'] === tempImageId) {
+              imagePos = pos;
+              imageNode = node;
+              return false; // 찾았으므로 순회 중단
+            }
+            return true; // 계속 순회
+          });
+
+          if (imagePos >= 0 && imageNode) {
+            // 임시 노드 삭제 후, 실제 이미지 노드를 해당 위치에 삽입
+            const transaction = state.tr.delete(imagePos, imagePos + 1); // 임시 노드 삭제
+            
+            // CustomImage 타입 가져오기 (타입 안전성)
+            const imageNodeType = state.schema.nodes.image as NodeType;
+
+            // 새 이미지 노드 생성 (스키마에 정의된 속성 사용)
+            const newNode = imageNodeType.create({
+              src: jsonResponse.url,
+              'data-temp-id': jsonResponse.tempId,
+              // 필요하다면 alt, title 등 다른 속성도 추가
+            });
+
+            // 삭제된 위치에 새 노드 삽입
+            transaction.insert(imagePos, newNode);
+
+            view.dispatch(transaction);
+
+            console.log(`Editor image updated: pos=${imagePos}, tempId=${jsonResponse.tempId}`);
+
+            // 업로드 성공 콜백 호출 (부모 컴포넌트에 tempId 전달)
+            onImageUploadSuccess?.(jsonResponse.tempId);
+            console.log(`onImageUploadSuccess called with tempId: ${jsonResponse.tempId}`);
+          } else {
+            console.warn(`Temporary image node not found for data-id: ${tempImageId}`);
+            // 임시 노드를 못 찾은 경우, 새 이미지 노드를 그냥 삽입 (대체 처리)
+            // setImage 대신 insertContent 또는 직접 노드 생성/삽입 사용 고려
+            // 여기서는 focus 후 새 노드를 생성하여 삽입하는 방식 사용
+            const imageNodeTypeFallback = editor.state.schema.nodes.image as NodeType;
+            const newNodeFallback = imageNodeTypeFallback.create({
+                src: jsonResponse.url,
+                'data-temp-id': jsonResponse.tempId
+            });
+            editor.chain().focus().insertContent(newNodeFallback).run();
+            onImageUploadSuccess?.(jsonResponse.tempId);
+          }
+        } else {
+          console.error('Upload failed or invalid response:', jsonResponse);
+          // 컴포넌트 스코프의 함수 호출
+          handleUploadFailure(editor, tempImageId, jsonResponse instanceof Error ? jsonResponse.message : '네트워크 오류가 발생했습니다.');
+        }
       } catch (error) {
-        console.error('이미지 업로드 중 네트워크 오류:', error);
-        handleUploadFailure(error instanceof Error ? error.message : '네트워크 오류가 발생했습니다.');
+        console.error('이미지 업로드 과정 중 오류:', error);
+        // 오류 처리 함수 호출 (스코프 문제 해결됨)
+        handleUploadFailure(editor, tempImageId, error instanceof Error ? error.message : '이미지 처리 중 알 수 없는 오류');
+      } finally {
+        setIsUploading(false);
       }
-      
     } catch (error) {
-      console.error('이미지 처리 중 일반 오류:', error);
-      alert('이미지 처리 중 오류가 발생했습니다.');
-    } finally {
-      setIsUploading(false);
+      console.error('이미지 업로드 과정 중 오류:', error);
+      // 오류 처리 함수 호출 (스코프 문제 해결됨)
+      handleUploadFailure(editor, tempImageId, error instanceof Error ? error.message : '이미지 처리 중 알 수 없는 오류');
     }
-  }, [editor, isUploading, checkServerStatus]);
+  }, [editor, isUploading, onImageUploadSuccess, onImageDelete, handleUploadFailure]);
 
   const addImage = useCallback(() => {
     if (!isMounted || !editor) return;
@@ -308,11 +428,11 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
     input.type = 'file';
     input.accept = 'image/*';
     input.onchange = (e) => {
-      handleUploadPhoto((e.target as HTMLInputElement).files, boardId);
+      handleUploadPhoto((e.target as HTMLInputElement).files);
       input.value = '';
     };
     input.click();
-  }, [editor, handleUploadPhoto, isMounted, boardId]);
+  }, [editor, handleUploadPhoto, isMounted]);
 
   const addLink = useCallback(() => {
     if (!editor) return;

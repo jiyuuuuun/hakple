@@ -7,9 +7,11 @@ import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
 import com.golden_dobakhe.HakPle.security.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -39,7 +41,6 @@ public class ApiV1PostController {
 
     private final BoardService boardService;
 
-    // 현재 인증된 사용자 ID를 반환하는 메서드
     private Long getCurrentUserId() {
         Long userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
@@ -64,7 +65,6 @@ public class ApiV1PostController {
             @PathVariable(name = "id") Long id,
             @RequestParam(name = "postView", required = false, defaultValue = "true") Boolean postView,
             @RequestParam(name = "academyCode", required = false) String academyCode) {
-        // 로그인 여부와 관계없이 게시글 조회 가능
         return ResponseEntity.ok(boardService.getBoard(id, postView, academyCode));
     }
 
@@ -73,47 +73,56 @@ public class ApiV1PostController {
     public ResponseEntity<Page<BoardResponse>> getBoards(
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
-            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
-            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "sortType", defaultValue = "creationTime") String sortType,
+            @RequestParam(name = "keyword", required = false) String searchKeyword,
             @RequestParam(name = "tag", required = false) String tag,
-            @RequestParam(name = "searchType", required = false) String searchType,
-            @RequestParam(name = "minLikes", required = false) Integer minLikes,
-            @RequestParam(name = "type", required = false) String type,
-            @RequestParam(name = "academyCode", required = false) String academyCode,
-            @PageableDefault(size = 10) Pageable pageable) {
-
+            @RequestParam(name = "searchType", defaultValue = "all") String searchType,
+            @RequestParam(name = "type", defaultValue = "free") String type,
+            @RequestParam(name = "academyCode", required = false) String academyCode
+    ) {
         Long userId = getCurrentUserId();
 
-        if(academyCode == null || academyCode.isEmpty()){
+        System.out.println("왜왜왜");
+
+
+        if (academyCode == null || academyCode.isEmpty()) {
             academyCode = boardService.getAcademyCodeByUserId(userId);
         }
-
-
-        Pageable adjustedPageable = PageRequest.of(page - 1, size);
-
-        // 검색어(keyword)가 제공된 경우:
-        // - searchType 파라미터가 제공되면 해당 타입('제목', '작성자', '태그')으로 검색합니다.
-        // - searchType 파라미터가 없으면 제목 또는 작성자 이름으로 검색합니다.
-        // 태그(tag)가 제공된 경우: 해당 태그로 게시물을 검색합니다.
-        // 검색어와 태그가 모두 제공되지 않은 경우: type으로 필터링된 모든 게시물을 반환합니다.
-        if (keyword != null && !keyword.isEmpty()) {
-            if (searchType != null && !searchType.isEmpty()) {
-                return ResponseEntity.ok(
-                        boardService.searchBoardsByTypeAndUserId(userId, searchType, keyword, sortType, minLikes, type,
-                                adjustedPageable));
-            } else {
-                return ResponseEntity.ok(
-                        boardService.searchBoardsByUserId(userId, keyword, sortType, minLikes, type,
-                                adjustedPageable));
-            }
-        } else if (tag != null && !tag.isEmpty()) {
-            return ResponseEntity.ok(
-                    boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, type,
-                            adjustedPageable));
-        } else {
-            return ResponseEntity.ok(boardService.getBoardsByUserId(userId, sortType, minLikes, type,
-                    adjustedPageable));
+        Sort sort;
+        switch (sortType) {
+            case "viewCount":
+                sort = Sort.by(Sort.Direction.DESC, "viewCount");
+                break;
+            case "commentCount":
+                sort = Sort.by(Sort.Direction.DESC, "commentCount");
+                break;
+            case "likeCount":
+                sort = Sort.by(Sort.Direction.DESC, "likeCount");
+                break;
+            case "creationTime":
+                sort = Sort.by(Sort.Direction.DESC, "creationTime");
+                break;
+            default:
+                log.warn("Invalid sortType: {}. Falling back to creationTime.", sortType);
+                sort = Sort.by(Sort.Direction.DESC, "creationTime");
+                break;
         }
+
+         if(tag != null && !tag.isEmpty()){
+            searchType = "tag";
+            searchKeyword = tag;
+         }
+
+        if (page < 1) {
+            log.warn("Invalid page number: {}. Setting to 1.", page);
+            page = 1;
+        }
+        Pageable adjustedPageable = PageRequest.of(page - 1, size, sort);
+        
+
+        return ResponseEntity.ok(
+                boardService.searchBoardsDynamic(academyCode, searchType, searchKeyword, type, adjustedPageable)
+        );
     }
 
     @Operation(summary = "게시물 수정", description = "특정 ID의 게시물을 수정합니다.")
@@ -159,8 +168,17 @@ public class ApiV1PostController {
             @RequestParam(name = "type", required = false) String type
     ) {
         Long userId = getCurrentUserId();
+        Pageable adjustedPageable = PageRequest.of(page - 1, pageable.getPageSize());
 
-        Pageable adjustedPageable = PageRequest.of(page - 1, pageable.getPageSize(), pageable.getSort());
+        if (sortType == null || sortType.isEmpty()) {
+            sortType = "등록일순";
+        }
+
+        if (type == null || type.isEmpty()) {
+            type = "free";
+        }
+
+        log.debug("태그별 게시물 조회 - tag: {}, sortType: {}, type: {}", tag, sortType, type);
 
         return ResponseEntity.ok(
                 boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, type, adjustedPageable));
@@ -223,21 +241,40 @@ public class ApiV1PostController {
     public ResponseEntity<Void> increaseViewCount(
             @PathVariable("id") Long id
     ) {
-        getCurrentUserId(); // 로그인 체크만 수행
+        getCurrentUserId(); 
         boardService.increaseViewCount(id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/tags/popular")
     public ResponseEntity<List<TagResponse>> getPopularTags(
-            @RequestParam(name = "minLikes", required = false) Integer minLikes,
-            @RequestParam(name = "type", required = false) String type
+            @RequestParam(name = "minLikes", required = false) Integer minLikesParam,
+            @RequestParam(name = "type", required = false) String typeParam
     ) {
         Long userId = getCurrentUserId();
-        if (minLikes != null && minLikes > 0) {
-            return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, minLikes, type));
+        String actualType = "free"; // 기본값은 free
+        Integer actualMinLikes = null; // 기본값은 null
+
+        if ("popular".equalsIgnoreCase(typeParam)) {
+            // type이 popular이면, 실제 조회할 타입은 free로 설정하고 minLikes는 10으로 강제
+            actualMinLikes = 10;
+        } else if (typeParam != null && !typeParam.isEmpty()) {
+            // type이 popular가 아니면서 값이 있으면 해당 값 사용
+            actualType = typeParam;
+            actualMinLikes = minLikesParam; // 전달된 minLikes 파라미터 사용
+        } else {
+            // type이 없으면 기본값 free 사용, 전달된 minLikes 파라미터 사용
+            actualMinLikes = minLikesParam;
         }
-        return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, type));
+
+        log.debug("인기 태그 조회 - 요청 type: {}, 요청 minLikes: {}, 실제 type: {}, 실제 minLikes: {}", 
+                  typeParam, minLikesParam, actualType, actualMinLikes);
+
+        if (actualMinLikes != null) {
+            return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, actualMinLikes, actualType));
+        } else {
+            return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, actualType));
+        }
     }
 
     @GetMapping("/tags")
@@ -295,49 +332,51 @@ public class ApiV1PostController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "등록일순") String sortType,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String searchType,
+            @RequestParam(name = "searchType", required = false) String searchType,
+            @RequestParam(required = false) String searchKeyword,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String academyCode) {
 
         Long userId = getCurrentUserId();
-
-        if(academyCode == null || academyCode.isEmpty()){
+        if (academyCode == null || academyCode.isEmpty()) {
             academyCode = boardService.getAcademyCodeByUserId(userId);
         }
-
-        // 페이지 번호는 0부터 시작하도록 조정
-        Pageable adjustedPageable;
-
-        // 정렬 방식에 따라 적절한 Pageable 객체 생성
-        if (sortType.equals("조회순")) {
-            adjustedPageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "viewCount", "creationTime"));
-        } else if (sortType.equals("댓글순")) {
-            // 댓글 수로 정렬은 JPQL 쿼리에서 처리됨 (Pageable에 적용하지 않음)
-            adjustedPageable = PageRequest.of(page - 1, size);
-        } else if (sortType.equals("좋아요순")) {
-            // 좋아요 수로 정렬은 JPQL 쿼리에서 처리됨 (Pageable에 적용하지 않음)
-            adjustedPageable = PageRequest.of(page - 1, size);
-        } else {
-            // 기본 등록일순
-            adjustedPageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "creationTime"));
+        if (searchType == null || searchType.isEmpty()) {
+            searchType = "all";
         }
 
-        // 검색어가 있는 경우
-        if (keyword != null && !keyword.isEmpty()) {
-            if (searchType != null && !searchType.isEmpty()) {
-                // 검색 유형이 '제목'이나 '작성자'인 경우만 처리
-                if (searchType.equals("제목") || searchType.equals("작성자")) {
-                    // type 파라미터 추가하여 전달
-                    return ResponseEntity.ok(boardService.searchNoticeBoards(academyCode, keyword, type, adjustedPageable));
-                }
-            }
-            // 일반 검색 (제목 또는 작성자) - type 파라미터 추가하여 전달
-            return ResponseEntity.ok(boardService.searchNoticeBoards(academyCode, keyword, type, adjustedPageable));
-        } else {
-            // 기본 조회 - sortType 파라미터 전달
-            return ResponseEntity.ok(boardService.getNoticeBoards(academyCode, sortType, adjustedPageable));
+        if (type == null || type.isEmpty()) {
+            type = "notice";
         }
+
+        Sort sort;
+        switch (sortType) {
+            case "viewCount":
+                sort = Sort.by(Sort.Direction.DESC, "viewCount");
+                break;
+            case "commentCount":
+                sort = Sort.by(Sort.Direction.DESC, "commentCount");
+                break;
+            case "likeCount":
+                sort = Sort.by(Sort.Direction.DESC, "likeCount");
+                break;
+            case "creationTime":
+                sort = Sort.by(Sort.Direction.DESC, "creationTime");
+                break;
+            default:
+                log.warn("Invalid sortType: {}. Falling back to creationTime.", sortType);
+                sort = Sort.by(Sort.Direction.DESC, "creationTime");
+                break;
+        }
+
+        log.debug("게시글 동적 검색 - academyCode: {}, searchType: {}, searchKeyword: {}, type: {}, sortType: {}",
+                academyCode, searchType, searchKeyword, type, sortType);
+
+        Pageable pageable = PageRequest.of(page - 1, size, sort);
+
+        return ResponseEntity.ok(
+                boardService.searchBoardsDynamic(academyCode, searchType, searchKeyword, type, pageable)
+        );
     }
 
     @GetMapping("/my/like-status")
@@ -347,7 +386,5 @@ public class ApiV1PostController {
         List<Long> likedIds = boardService.getLikedBoardIds(userId); // 서비스에서 ID만 추출
         return ResponseEntity.ok(likedIds);
     }
-
-
 
 }

@@ -178,7 +178,7 @@ export default function Header() {
                                         홈
                                     </Link>
                                     <Link
-                                        href={isLogin && loginMember?.academyId ? `/post/notice/${loginMember.academyId}` : '/post/notice'}
+                                        href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
                                         className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
                                         공지사항
@@ -279,7 +279,26 @@ export default function Header() {
                                                 className="min-w-full min-h-full object-cover"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement
-                                                    target.src = 'https://via.placeholder.com/40?text=사용자'
+                                                    target.onerror = null // 추가 오류 이벤트 방지
+                                                    target.style.display = 'none' // 이미지 숨기기
+                                                    target.parentElement!.innerHTML = `
+                                                        <div class="w-full h-full bg-purple-50 flex items-center justify-center">
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                class="h-6 w-6 text-[#9C50D4]"
+                                                                viewBox="0 0 24 24"
+                                                                fill="none"
+                                                                stroke-width="1.5"
+                                                                stroke="currentColor"
+                                                            >
+                                                                <path
+                                                                    stroke-linecap="round"
+                                                                    stroke-linejoin="round"
+                                                                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                                                />
+                                                            </svg>
+                                                        </div>
+                                                    `
                                                 }}
                                             />
                                         ) : (
@@ -327,7 +346,7 @@ export default function Header() {
                                         홈
                                     </Link>
                                     <Link
-                                        href={isLogin && loginMember?.academyId ? `/post/notice/${loginMember.academyId}` : '/post/notice'}
+                                        href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
                                         className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
                                     >
                                         공지사항
