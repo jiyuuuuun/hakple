@@ -3,6 +3,7 @@ package com.golden_dobakhe.HakPle.domain.resource.image.entity;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.global.entity.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
@@ -32,4 +33,7 @@ public class Image extends BaseEntity {
 
     @Lob // 대용량 데이터를 매핑할 때 사용됩니다. 주로 텍스트나 바이너리 데이터를 저장할 때 사용 , TEXT 타입
     private String filePath; // 이미지 경로 (TEXT 타입)
+    
+    @Column(name = "temp_id", length = 100)
+    private String tempId; // 임시 식별자 (게시글 저장 전에 이미지 식별용)
 }

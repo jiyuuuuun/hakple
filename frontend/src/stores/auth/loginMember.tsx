@@ -3,14 +3,17 @@ import { useRouter } from 'next/navigation'
 
 //이 부분은 나중에 DTO에 맞게 변경할거임
 export interface User {
-    nickname: string
-    userName: string
-    phoneNum?: string
-    creationTime: string
-    modificationTime: string
-    academyCode?: string
-    academyName?: string
-    profileImageUrl?: string
+    id?: number;
+    nickname: string;
+    userName: string;
+    phoneNum?: string;
+    creationTime: string;
+    modificationTime: string;
+    academyId?: string;
+    academyCode?: string;
+    academyName?: string;
+    isAdmin?: boolean;
+    profileImageUrl?: string;
 }
 
 // 백엔드 응답 타입 - MyInfoResponseDto와 일치하도록
@@ -20,11 +23,13 @@ type BackendUser = {
     nickName?: string
     userName?: string // 사용자 아이디
     phoneNum?: string
+    academyId?: string // 학원 ID (백엔드 응답과 일치)
     academyCode?: string // 학원 코드
-    academyName?: string // Added academyName field
+    academyName?: string // 학원 이름
     profileImageUrl?: string
     creationTime?: string
     modificationTime?: string
+    isAdmin?: boolean
     [key: string]: unknown // any 대신 unknown 사용
 }
 
@@ -139,7 +144,7 @@ export function useLoginMember() {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
             })
 

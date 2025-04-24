@@ -4,11 +4,24 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
+// 아카데미 타입 정의
+interface Academy {
+  academyCode: string;
+  academyName: string;
+  phoneNum?: string;
+  userCount?: number;
+  creationTime?: string;
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<Record<string, unknown>>({});
+  
+  // 아카데미 관련 상태
+  const [academies, setAcademies] = useState<Academy[]>([]);
+  const [selectedAcademy, setSelectedAcademy] = useState<string>('');
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -55,6 +68,8 @@ export default function AdminPage() {
           console.log('User is admin, showing admin page');
           setIsAdmin(true);
           setDebugInfo({ isAdmin: true, message: 'Admin permissions confirmed' });
+          // 아카데미 목록 불러오기
+          fetchAcademies();
         } else {
           console.log('User is not admin, redirecting to home');
           setDebugInfo({ isAdmin: false, message: 'Not an admin user' });
@@ -72,6 +87,41 @@ export default function AdminPage() {
 
     checkAdmin();
   }, [router]);
+
+  // 아카데미 목록 가져오기
+  const fetchAcademies = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/academies`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('아카데미 목록 조회 실패:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      setAcademies(data);
+    } catch (error) {
+      console.error('아카데미 목록 조회 중 오류:', error);
+    }
+  };
+
+  // 공지사항 페이지로 이동
+  const handleMoveToNotice = () => {
+    if (selectedAcademy) {
+      const academy = academies.find(a => a.academyCode === selectedAcademy);
+      if (academy) {
+        router.push(`/post/notice/${selectedAcademy}`);
+      }
+    } else {
+      alert('아카데미를 선택해주세요');
+    }
+  };
 
   if (loading) {
     return (
@@ -110,6 +160,8 @@ export default function AdminPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">🔑 관리자 페이지</h1>
+      
+     
       
       {/* 관리자 계정 관련 */}
       <div className="mb-8">
@@ -161,6 +213,30 @@ export default function AdminPage() {
             <h2 className="text-xl font-semibold mb-2">➕ 학원 등록</h2>
             <p className="text-gray-600">새로운 학원을 등록합니다</p>
           </Link>
+
+          <div className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold mb-2">📢 아카데미 공지사항 관리</h2>
+            <div className="flex items-center space-x-2 mt-2">
+              <select
+                value={selectedAcademy}
+                onChange={(e) => setSelectedAcademy(e.target.value)}
+                className="flex-1 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#8C4FF2] text-sm"
+              >
+                <option value="">아카데미 선택</option>
+                {academies.map((academy) => (
+                  <option key={academy.academyCode} value={academy.academyCode}>
+                    {academy.academyName}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleMoveToNotice}
+                className="px-2 py-1 bg-[#8C4FF2] text-white rounded-lg text-sm hover:bg-[#7340C2]"
+              >
+                GO
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
