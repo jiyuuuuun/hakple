@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Home() {
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-purple-50">
       {/* Hero Section */}
@@ -100,7 +101,7 @@ export default function Home() {
           <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-16">
             HakPle만의 특별한 기능
           </h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1 */}
             <div className="group bg-white rounded-2xl p-8 text-center hover:bg-purple-50 transition-all duration-300">
@@ -157,7 +158,7 @@ export default function Home() {
             새로운 배움의 여정을 시작하고, 동료들과 함께 성장하세요.<br />
             HakPle이 여러분의 성공적인 학습을 응원합니다.
           </p>
-          
+
           <div className="flex flex-wrap gap-6 justify-center">
             <Link
               href="/signup"

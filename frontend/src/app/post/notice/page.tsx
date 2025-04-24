@@ -148,25 +148,18 @@ export default function NoticePage() {
 
   // 공지사항 데이터 가져오기
   useEffect(() => {
-    if (!isLogin) return;
+    if (isLogin && academyCode && postType) {
+      fetchNoticeBoards();
+    } else if (isLogin && (!academyCode || !postType)) {
+      // URL 파라미터에서 값 가져오기가 완료된 후에만 API 호출
+      const pathParts = window.location.pathname.split('/');
+      const urlHasAcademyCode = pathParts.length > 3 && pathParts[3] && pathParts[3] !== '';
 
-    // academyCode나 postType이 아직 세팅 안 되었으면 실행하지 않음
-    if (!academyCode || !postType) {
-      console.warn('🚫 academyCode 또는 postType이 아직 설정되지 않았습니다. fetchNoticeBoards 생략.');
-      return;
+      if (urlHasAcademyCode || (searchParams.has('academyCode') && searchParams.has('type'))) {
+        fetchNoticeBoards();
+      }
     }
-
-    fetchNoticeBoards();
-  }, [
-    isLogin,
-    academyCode,
-    postType,
-    currentPage,
-    pageSize,
-    sortType,
-    searchKeyword,
-  ]);
-
+  }, [isLogin, currentPage, pageSize, sortType, searchKeyword, academyCode, postType]);
 
   // 아카데미 정보 가져오기
   useEffect(() => {
@@ -179,47 +172,56 @@ export default function NoticePage() {
   const fetchNoticeBoards = async () => {
     setLoading(true);
     try {
-      // 필수 파라미터 체크
-      if (!academyCode || !postType) {
-        console.warn('academyCode나 postType이 누락되어 API 요청을 건너뜁니다.');
-        return;
-      }
-
       let url = `/api/v1/posts/notice?page=${currentPage}&size=${pageSize}`;
-      url += `&sortType=${encodeURIComponent(sortType)}`;
-      url += `&academyCode=${encodeURIComponent(academyCode)}`;
-      url += `&type=${encodeURIComponent(postType)}`;
 
-      // 검색어가 있는 경우 필터 반영
-      if (searchKeyword.trim() !== '') {
-        url += `&keyword=${encodeURIComponent(searchKeyword.trim())}`;
+      // 정렬 방식 추가
+      url += `&sortType=${encodeURIComponent(sortType)}`;
+
+      // 검색어가 있는 경우 추가
+      if (searchKeyword && searchKeyword.trim() !== '') {
+        if (filterType === '제목') {
+          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+        } else if (filterType === '작성자') {
+          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+        }
       }
 
-      console.log('📡 공지사항 API 요청 URL:', url);
+      // URL에서 아카데미 코드 확인
+      const currentAcademyCode = academyCode || searchParams.get('academyCode');
+      // 아카데미 코드가 있는 경우 추가
+      if (currentAcademyCode) {
+        url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
+      }
 
+      // URL에서 포스트 타입 확인
+      const currentPostType = postType || searchParams.get('type');
+      // 포스트 타입 추가
+      if (currentPostType) {
+        url += `&type=${encodeURIComponent(currentPostType)}`;
+      }
+
+      console.log('공지사항 API 요청 URL:', url);
       const response = await fetchApi(url, {
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json',
+          'Accept': 'application/json'
         },
-        credentials: 'include',
+        credentials: 'include'
       });
 
+      console.log(response);
+
       if (!response.ok) {
-        const errText = await response.text();
-        console.error('❌ 서버 응답 실패:', errText);
         throw new Error('공지사항을 불러오는데 실패했습니다.');
       }
 
       const data = await response.json();
       if (data && Array.isArray(data.content)) {
-        setPosts(
-          data.content.map((post: Post) => ({
-            ...post,
-            hasImage: post.hasImage || false,
-            commentCount: post.commentCount || 0,
-          }))
-        );
+        setPosts(data.content.map((post: Post) => ({
+          ...post,
+          hasImage: post.hasImage || false, // API에서 hasImage 필드가 없으면 false로 설정
+          commentCount: post.commentCount || 0 // API에서 commentCount 필드가 없으면 0으로 설정
+        })));
         setTotalPages(data.totalPages || 1);
         setSearchCount(data.totalElements || 0);
       } else {
@@ -228,7 +230,7 @@ export default function NoticePage() {
         setSearchCount(0);
       }
     } catch (error) {
-      console.error('공지사항 로딩 오류:', error);
+      console.error('공지사항을 불러오는데 실패했습니다:', error);
       setPosts([]);
       setTotalPages(1);
       setSearchCount(0);
@@ -236,7 +238,6 @@ export default function NoticePage() {
       setLoading(false);
     }
   };
-
 
   // 아카데미 정보 조회
   const fetchAcademyInfo = async () => {
@@ -638,5 +639,4 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
     </button>
   );
 }
-
 

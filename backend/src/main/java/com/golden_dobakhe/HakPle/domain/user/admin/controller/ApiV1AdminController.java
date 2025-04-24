@@ -132,7 +132,7 @@ public class ApiV1AdminController {
     @ApiResponse(responseCode = "200", description = "성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Academy.class)))
     @ApiResponse(responseCode = "404", description = "학원을 찾을 수 없음")
     @GetMapping("/academies/{academyCode}")
-    public ResponseEntity<Academy> getAcademyByCode(@PathVariable String academyCode) {
+    public ResponseEntity<Academy> getAcademyByCode(@PathVariable(name = "academyCode") String academyCode) {
         Academy academy = adminService.getAcademyByCode(academyCode);
         return ResponseEntity.ok(academy);
     }

@@ -45,12 +45,12 @@ export const LoginMemberContext = createContext<{
     checkAdminAndRedirect: () => Promise<boolean>
 }>({
     loginMember: createEmptyMember(),
-    setLoginMember: () => {},
-    setNoLoginMember: () => {},
+    setLoginMember: () => { },
+    setNoLoginMember: () => { },
     isLoginMemberPending: true,
     isLogin: false,
-    logout: () => {},
-    logoutAndHome: () => {},
+    logout: () => { },
+    logoutAndHome: () => { },
     checkAdminAndRedirect: async () => false,
 })
 
@@ -72,6 +72,7 @@ export function useLoginMember() {
 
     const [isLoginMemberPending, setLoginMemberPending] = useState(true)
     const [loginMember, _setLoginMember] = useState<User>(createEmptyMember())
+    const [isLogin, setIsLogin] = useState(false); // 👈 추가
 
     const removeLoginMember = () => {
         _setLoginMember(createEmptyMember())
@@ -79,25 +80,25 @@ export function useLoginMember() {
     }
 
     //pending이 false되어서 로그인이 되었다고 판단함
+
+
     const setLoginMember = (member: BackendUser) => {
         console.group('LoginMember Store - setLoginMember')
         console.log('백엔드 응답 데이터:', member)
 
-        // 닉네임 처리 (nickname 또는 nickName 사용)
         const nickname =
             typeof member.nickName === 'string'
                 ? member.nickName
                 : typeof member.nickname === 'string'
-                ? member.nickname
-                : ''
+                    ? member.nickname
+                    : ''
 
-        // academyId를 academyCode로 처리
         const academyCode =
             typeof member.academyCode === 'string'
                 ? member.academyCode
                 : typeof member.academyId === 'string'
-                ? member.academyId
-                : ''
+                    ? member.academyId
+                    : ''
 
         const user: User = {
             nickname: nickname,
@@ -112,6 +113,7 @@ export function useLoginMember() {
 
         console.log('생성된 User 객체:', user)
         _setLoginMember(user)
+        setIsLogin(true); // ✅ 로그인 상태 설정
         setLoginMemberPending(false)
         console.groupEnd()
     }
@@ -120,8 +122,6 @@ export function useLoginMember() {
         setLoginMemberPending(false)
     }
 
-    //로그인이 되었냐
-    const isLogin = !!loginMember.userName
 
     const logout = (callback: () => void) => {
         fetch('http://localhost:8090/api/v1/auth/logout', {

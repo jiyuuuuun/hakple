@@ -233,6 +233,8 @@ export default function HomePage() {
         fetchEvents()
         fetchPopularPosts()
         fetchPopularTags() // 인기 태그 가져오기 추가
+        fetchNoticeBoards() // 공지사항 가져오기 추가
+
 
         // 페이지 포커스 이벤트 핸들러
         const handleFocus = () => {
@@ -525,6 +527,30 @@ export default function HomePage() {
         }
     }
 
+    const [noticePosts, setNoticePosts] = useState<Post[]>([])
+
+    const fetchNoticeBoards = async () => {
+        try {
+            const storedAcademyCode = localStorage.getItem('academyCode')
+            const response = await fetchApi(`/api/v1/posts/notice?page=1&sizes=3&sortType=등록일순&type=notice&academyCode=${storedAcademyCode}`, {
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                console.error('공지사항 로딩 실패:', response.status)
+                setNoticePosts([])
+                return
+            }
+
+            const data = await response.json()
+            setNoticePosts(data.content || [])
+        } catch (err) {
+            console.error('공지사항 로딩 중 오류:', err)
+            setNoticePosts([])
+        }
+    }
+
+
     // 로그인하지 않은 경우 로딩 화면 대신 로그인 페이지로 리다이렉트
     if (!isLogin) {
         return (
@@ -701,51 +727,37 @@ export default function HomePage() {
                         </div>
 
                         {/* 공지사항 섹션 */}
-                        <div className="bg-white rounded-lg shadow p-4 mb-6">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-4">공지사항</h2>
-                            <div className="space-y-3">
-                                <Link href="/post/notice1" className="block">
-                                    <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#980ffa] text-white rounded">
-                                                필독
-                                            </span>
-                                            <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
-                                                학플 커뮤니티 이용규칙 안내 및 게시글 작성 가이드
-                                            </h3>
-                                        </div>
-                                        <span className="text-sm text-gray-500">2024.04.22</span>
-                                    </div>
-                                </Link>
-                                <Link href="/post/notice2" className="block">
-                                    <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">
-                                                공지
-                                            </span>
-                                            <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
-                                                4월 서비스 업데이트 및 시스템 점검 안내 (4/25)
-                                            </h3>
-                                        </div>
-                                        <span className="text-sm text-gray-500">2024.04.20</span>
-                                    </div>
-                                </Link>
-                                <Link href="/post/notice3" className="block">
-                                    <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">
-                                                공지
-                                            </span>
-                                            <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
-                                                커뮤니티 신규 기능 추가 - 일정 관리와 학원별 게시판
-                                            </h3>
-                                        </div>
-                                        <span className="text-sm text-gray-500">2024.04.15</span>
-                                    </div>
-                                </Link>
+                        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold text-gray-800">공지사항</h2>
                             </div>
+
+                            {noticePosts.length > 0 ? (
+                                <ul className="space-y-3">
+                                    {noticePosts.map((notice) => (
+                                        <li key={notice.id}>
+                                            <Link
+                                                href={`/post/${notice.id}?size=5`}
+                                                className="group block p-4 bg-gray-50 rounded-lg hover:bg-[#f3eaff] transition-colors"
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <h3 className="font-medium text-gray-800 group-hover:text-[#9C50D4] truncate">
+                                                        {notice.title}
+                                                    </h3>
+                                                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                                                        {new Date(notice.creationTime).toLocaleDateString('ko-KR')}
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-gray-400 text-sm">📭 등록된 공지사항이 없습니다.</p>
+                            )}
                         </div>
                     </aside>
+
 
                     {/* 메인 피드 영역 */}
                     <div className="flex-1">
