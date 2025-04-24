@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { useRouter } from "next/navigation";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
     const {
@@ -28,6 +29,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         logoutAndHome,
         checkAdminAndRedirect
     }
+
+    const router = useRouter()
 
     const checkLoginStatus = async () => {
         try {
@@ -63,6 +66,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         }
     }
 
+
     //[]최초 요청시 api를 보낸다, 요청시에도 저게 돌아간다고 한다
     useEffect(() => {
         console.log('ClientLayout - 로그인 상태 확인 시작')
@@ -84,20 +88,100 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
         console.log('페이지 정보 - 현재 경로:', currentPath, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
 
+
+        // 로그인 상태 체크 API 호출
+        fetch(`http://localhost:8090/api/v1/auth/me`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then((res) => {
+                console.log('로그인 상태 응답:', res.status)
+                if (!res.ok) {
+
+                    setTimeout(async () => {
+                        try {
+                            const retryRes = await fetch(`http://localhost:8090/api/v1/auth/me`, {
+                                method: 'GET',
+                                credentials: 'include',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (retryRes.ok) {
+                                const data = await retryRes.json();
+                                console.log('재시도 로그인 성공', data);
+                                setLoginMember(data);
+                            } else {
+                                // 재시도도 실패하면 로그인 실패로 처리
+                                console.log('재시도 로그인 실패');
+                                setNoLoginMember();
+                                
+                                // 리다이렉트 코드...
+                                if (!isPublicPage && !isSpecialPage) {
+                                    console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트');
+                                    router.replace("/login");
+                                }
+                            }
+                        } catch (retryError) {
+                            console.log('재시도 로그인 오류', retryError);
+                            setNoLoginMember();
+                        }
+                    }, 500);
+                    return Promise.reject(new Error('인증 필요'))
+                }
+                return res.json()
+            })
+            .then((data) => {
+                // 로그인 성공
+                console.log('로그인 상태 성공', data)
+
+                // 로그인 상태 설정
+                setLoginMember(data)
+
+                // 로그인 페이지에 있을 경우 홈으로 리다이렉트 (특별 페이지가 아닌 경우에만)
+                if (currentPath === '/login' && !isSpecialPage) {
+                    console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
+                    router.replace("/")
+                    //window.location.href = '/'
+                }
+            })
+            .catch((error) => {
+                console.log(error.status);
+                // 로그인 안됨
+                console.log('로그인 되어있지 않음', error)
+
+                // 로그인 상태 초기화
+                //setNoLoginMember()
+
+                // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
+                // 특별 페이지가 아닌 경우에만 리다이렉트
+                if (!isPublicPage && !isSpecialPage) {
+                    console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
+                    router.replace("/login")
+                   
+                }
+            })
+
         // 로그인 상태 체크
         checkLoginStatus()
+
             .finally(() => {
                 console.log('로그인 상태 확인 완료, 현재 로그인 상태:', isLogin, '현재 페이지:', currentPath, '공개 페이지 여부:', isPublicPage)
             })
+            
     }, [])
 
-    useEffect(() => {
-        console.log('로그인 상태 변경:', isLogin, loginMember)
-    }, [isLogin, loginMember])
-
     if (isLoginMemberPending) {
-        return <div className="flex justify-center items-center h-screen">로그인 중...</div>
-    }
+        return (
+          <div className="flex-1 flex justify-center items-center text-muted-foreground">
+            로그인중...
+          </div>
+        );
+      }
 
     return (
         //나중에 내부적으로 접근이 가능하게 된다, 그리고 value를 통하여 전역적으로 접근이 가능하게 된다

@@ -20,7 +20,7 @@ public class JwtTokenizer {
     private final byte[] accessSecret;
     private final byte[] refreshSecret;
 
-    public static Long ACCESS_TOKEN_EXPIRE_COUNT=1000 * 60 * 60 * 24L; //24시간
+    public static Long ACCESS_TOKEN_EXPIRE_COUNT= 1000 * 60 * 60 * 24L;//10 * 1000L; //24시간
     public static Long REFRESH_TOKEN_EXPIRE_COUNT=7*24*60*60*1000L; //이건 일주일
 
     //@Value로 application.yml에 있는 환경변수값을 불러와서 생성
@@ -74,6 +74,7 @@ public class JwtTokenizer {
         return Keys.hmacShaKeyFor(secretKey);
     }
 
+    //여기서 파싱과 검증이 동시에 이루어진다
     public Claims parseAccessToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey(accessSecret))
@@ -90,15 +91,16 @@ public class JwtTokenizer {
                 .getBody();
     }
 
-    //받은 토큰을 파싱
-    public Claims parseToken(String token, byte[] secretKey) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignKey(secretKey))
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+//    //받은 토큰을 파싱
+//    public Claims parseToken(String token, byte[] secretKey) {
+//        return Jwts.parserBuilder()
+//                .setSigningKey(getSignKey(secretKey))
+//                .build()
+//                .parseClaimsJws(token)
+//                .getBody();
+//
+//    }
 
-    }
     public long getRemainingTime(String token) {
         Claims claims = parseAccessToken(token);
         Date expiration = claims.getExpiration();
