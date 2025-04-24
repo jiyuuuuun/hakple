@@ -101,46 +101,50 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 console.log('로그인 상태 응답:', res.status)
                 if (!res.ok) {
 
-                    setTimeout(async () => {
-                        try {
-                            const retryRes = await fetch(`http://localhost:8090/api/v1/auth/me`, {
-                                method: 'GET',
-                                credentials: 'include',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                }
-                            });
+                    // setTimeout(async () => {
+                    //     try {
+                    //         const retryRes = await fetch(`http://localhost:8090/api/v1/auth/me`, {
+                    //             method: 'GET',
+                    //             credentials: 'include',
+                    //             headers: {
+                    //                 'Content-Type': 'application/json'
+                    //             }
+                    //         });
                             
-                            if (retryRes.ok) {
-                                const data = await retryRes.json();
-                                console.log('재시도 로그인 성공', data);
-                                setLoginMember(data);
-                            } else {
-                                // 재시도도 실패하면 로그인 실패로 처리
-                                console.log('재시도 로그인 실패');
-                                setNoLoginMember();
+                    //         if (retryRes.ok) {
+                    //             const data = await retryRes.json();
+                    //             console.log('재시도 로그인 성공', data);
+                    //             setLoginMember(data);
+                    //         } else {
+                    //             // 재시도도 실패하면 로그인 실패로 처리
+                    //             console.log('재시도 로그인 실패');
+                    //             setNoLoginMember();
                                 
-                                // 리다이렉트 코드...
-                                if (!isPublicPage && !isSpecialPage) {
-                                    console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트');
-                                    router.replace("/login");
-                                }
-                            }
-                        } catch (retryError) {
-                            console.log('재시도 로그인 오류', retryError);
-                            setNoLoginMember();
-                        }
-                    }, 500);
+                    //             // 리다이렉트 코드...
+                    //             if (!isPublicPage && !isSpecialPage) {
+                    //                 console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트');
+                    //                 router.replace("/login");
+                    //             }
+                    //         }
+                    //     } catch (retryError) {
+                    //         console.log('재시도 로그인 오류', retryError);
+                    //         setNoLoginMember();
+                    //     }
+                    // }, 500);
+
                     return Promise.reject(new Error('인증 필요'))
                 }
                 return res.json()
             })
             .then((data) => {
-                // 로그인 성공
-                console.log('로그인 상태 성공', data)
+                
+                console.log("data : ", data)
 
                 // 로그인 상태 설정
                 setLoginMember(data)
+
+                // 로그인 성공
+                console.log('로그인 상태 성공', data)
 
                 // 로그인 페이지에 있을 경우 홈으로 리다이렉트 (특별 페이지가 아닌 경우에만)
                 if (currentPath === '/login' && !isSpecialPage) {
@@ -167,7 +171,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             })
 
         // 로그인 상태 체크
-        checkLoginStatus()
+        //checkLoginStatus()
 
             .finally(() => {
                 console.log('로그인 상태 확인 완료, 현재 로그인 상태:', isLogin, '현재 페이지:', currentPath, '공개 페이지 여부:', isPublicPage)
