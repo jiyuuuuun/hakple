@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
-import { fetchApi } from '@/utils/api';
+import { fetchApi, post } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
 import { ChevronRightIcon } from '@heroicons/react/24/outline';
 
@@ -29,6 +29,7 @@ interface Post {
   tags: string[];
   boardLikes?: number;
   boardComments?: number;
+  hasImage?: boolean;  // 이미지 첨부 여부
   isLiked?: boolean;
 }
 
@@ -57,9 +58,11 @@ export default function PostPage() {
   const [tagsLoading, setTagsLoading] = useState(false);
   const [filterType, setFilterType] = useState('태그');
   const [minLikes, setMinLikes] = useState<string | null>(null);
+  const [postType, setPostType] = useState('free');
   const [academyCodeChecked, setAcademyCodeChecked] = useState(false);
   const [academyAlertShown, setAcademyAlertShown] = useState(false);
   const academyAlertRef = useRef(false);
+  const prevPostTypeRef = useRef<string>(postType);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
 
@@ -69,10 +72,35 @@ export default function PostPage() {
 
     // URL 파라미터 처리
     if (searchParams) {
+      // type 파라미터 처리
+      if (searchParams.has('type')) {
+        const type = searchParams.get('type');
+        if (type) {
+          // 이전 타입과 다를 경우 상태 초기화
+          if (prevPostTypeRef.current !== type) {
+            resetStateForTypeChange(type);
+          }
+          setPostType(type);
+          prevPostTypeRef.current = type;
+
+          // type이 popular인 경우 자동으로 minLikes 10 설정
+          if (type === 'popular' && !searchParams.has('minLikes')) {
+            setMinLikes('10');
+          }
+        }
+      } else {
+        // type 파라미터가 없으면 기본값으로 초기화
+        if (prevPostTypeRef.current !== 'free') {
+          resetStateForTypeChange('free');
+        }
+        setPostType('free');
+        prevPostTypeRef.current = 'free';
+      }
+
       // minLikes 파라미터 처리
       if (searchParams.has('minLikes')) {
         setMinLikes(searchParams.get('minLikes'));
-      } else {
+      } else if (postType !== 'popular') {
         setMinLikes(null);
         // 태그 선택 상태 초기화
         setSelectedTag(null);
@@ -146,7 +174,7 @@ export default function PostPage() {
     setLoading(true);
     try {
       // 백엔드는 0부터 시작하는 페이지 인덱스를 사용하므로 page - 1
-      let url = `/api/v1/posts?page=1`;
+      let url = `/api/v1/posts?page=${page}&size=${size}&type=${postType}`;
 
       // size와 정렬 방식 추가
       url += `&size=${size}`;
@@ -166,8 +194,14 @@ export default function PostPage() {
         url += `&tag=${encodeURIComponent(tag)}`;
       }
 
-      if (minLikesParam) {
-        url += `&minLikes=${minLikesParam}`;
+      // minLikes 파라미터 추가
+      if (minLikesParam || postType === 'popular') {
+        // postType이 popular이고 minLikes가 없으면 기본값 10 사용
+        const likesValue = minLikesParam || (postType === 'popular' ? '10' : null);
+        if (likesValue) {
+          url += `&minLikes=${likesValue}`;
+          console.log('좋아요 최소 개수:', likesValue);
+        }
       }
 
       console.log('게시글 목록 요청 URL:', url);
@@ -205,27 +239,12 @@ export default function PostPage() {
       const likedPostIds: number[] = await likeStatusResponse.json();
 
       if (postData && Array.isArray(postData.content)) {
-        setPosts(postData.content.map((post: any) => ({
+        setPosts(postData.content.map((post: Post) => ({
           ...post,
           isLiked: likedPostIds.includes(post.id),
-          commentCount: post.commentCount || (post.boardComments ? post.boardComments.length || 0 : 0),
-          likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0)
-        })));
-        setTotalPages(postData.totalPages || 1);
-        setSearchCount(postData.totalElements || 0);
-      } else {
-        setPosts([]);
-        setTotalPages(1);
-        setSearchCount(0);
-      }
-
-
-      if (postData && Array.isArray(postData.content)) {
-        setPosts(postData.content.map((post: any) => ({
-          ...post,
-          isLiked: likedPostIds.includes(post.id),
-          commentCount: post.commentCount || (post.boardComments ? post.boardComments.length || 0 : 0),
-          likeCount: post.likeCount || (post.boardLikes ? post.boardLikes.length || 0 : 0)
+          commentCount: post.commentCount || (post.boardComments ? post.boardComments : 0),
+          likeCount: post.likeCount || (post.boardLikes ? post.boardLikes : 0),
+          hasImage: post.hasImage || false // API에서 hasImage 필드가 없으면 false로 설정
         })));
         setTotalPages(postData.totalPages || 1);
         setSearchCount(postData.totalElements || 0);
@@ -254,10 +273,17 @@ export default function PostPage() {
       // 상대 경로 사용
       let url = `/api/v1/posts/tags/popular`;
 
-      // minLikes 파라미터 추가
-      if (minLikes) {
-        url += `?minLikes=${minLikes}`;
+      // 인기게시판의 경우 항상 minLikes=10 파라미터 적용
+      if (postType === 'popular') {
+        url += `?minLikes=10&type=${postType}`;
+        console.log('인기게시판 인기 태그 요청:', url);
+      }
+      // 자유게시판의 경우 기존 로직 유지
+      else if (minLikes) {
+        url += `?minLikes=${minLikes}&type=${postType}`;
         console.log('인기 태그 - 좋아요 최소 개수:', minLikes);
+      } else {
+        url += `?type=${postType}`;
       }
 
       console.log('인기 태그 요청 URL:', url);
@@ -296,13 +322,13 @@ export default function PostPage() {
         setPopularTags(data.map((tag: any) => ({
           name: tag.name,
           count: tag.count,
-          isActive: false
+          isActive: selectedTag === tag.name // 선택된 태그 유지
         })));
       } else if (data && Array.isArray(data.content)) {
         setPopularTags(data.content.map((tag: any) => ({
           name: tag.name,
           count: tag.count,
-          isActive: false
+          isActive: selectedTag === tag.name // 선택된 태그 유지
         })));
       } else {
         setPopularTags([]);
@@ -323,7 +349,7 @@ export default function PostPage() {
         fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined, minLikes);
       }
     }
-  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted]);
+  }, [currentPage, pageSize, sortType, searchKeyword, selectedTag, minLikes, isMounted, postType]);
 
   // 14. 컴포넌트 마운트 시 인기 태그 불러오기
   useEffect(() => {
@@ -333,7 +359,7 @@ export default function PostPage() {
         fetchPopularTags();
       }
     }
-  }, [isMounted, minLikes]);
+  }, [isMounted, minLikes, postType]);
 
   // 15. 인기 태그 클릭 처리 함수
   const handleTagClick = (tagName: string) => {
@@ -415,7 +441,35 @@ export default function PostPage() {
     );
 
     // 현재 minLikes 유지하면서 데이터 다시 불러오기
-    fetchPosts(1, '10', '등록일순', '', undefined, minLikes);
+    const likesValue = postType === 'popular' ? '10' : minLikes;
+    fetchPosts(1, '10', '등록일순', '', undefined, likesValue);
+  };
+
+  // 게시판 타입 변경 시 상태 초기화 함수
+  const resetStateForTypeChange = (newType: string) => {
+    console.log(`게시판 타입 변경: ${prevPostTypeRef.current} -> ${newType}`);
+    setCurrentPage(1);
+    setPosts([]);
+    setTotalPages(1);
+    setSearchCount(0);
+    setSelectedTag(null);
+    setSearchMode(false);
+    setSearchKeyword('');
+
+    // 인기게시판으로 변경 시 minLikes 설정
+    if (newType === 'popular') {
+      setMinLikes('10');
+    } else if (prevPostTypeRef.current === 'popular') {
+      setMinLikes(null);
+    }
+
+    // 태그 활성화 상태 초기화
+    setPopularTags(prevTags =>
+      prevTags.map(tag => ({
+        ...tag,
+        isActive: false
+      }))
+    );
   };
 
   const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
@@ -490,124 +544,160 @@ export default function PostPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col justify-between">
-      <div className="max-w-[1600px] mx-auto px-4 py-6 flex-grow flex flex-col">
-        <div className="flex flex-col gap-6">
-          {/* 페이지 타이틀 */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <h1 className="text-2xl font-bold text-gray-800">
-              {loginMember?.academyName
-                ? minLikes
-                  ? `${loginMember.academyName}의 인기글`
-                  : `${loginMember.academyName}의 게시판`
-                : minLikes
-                  ? '인기글'
-                  : '게시판'}
-            </h1>
-          </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-[1600px] mx-auto px-4 py-6">
 
-          {/* 필터 및 검색 */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-6 items-end">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">검색 필터</label>
-                <FilterDropdown value={filterType} onChange={handleFilterChange} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">검색</label>
-                <SearchInput filterType={filterType} onSearch={handleSearch} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">정렬</label>
-                <SortDropdown value={sortType} onChange={handleSortChange} />
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('card')}
-                    className={`px-3 py-1.5 rounded-md transition-colors ${viewMode === 'card'
-                      ? 'bg-white shadow text-[#9C50D4]'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                  >
-                    <span className="material-icons text-base">grid_view</span>
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-1.5 rounded-md transition-colors ${viewMode === 'list'
-                      ? 'bg-white shadow text-[#9C50D4]'
-                      : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                  >
-                    <span className="material-icons text-base">view_list</span>
-                  </button>
-                </div>
-                <Link
-                  href="/post/new"
-                  className="inline-flex items-center px-4 py-2 bg-[#9C50D4] text-white rounded-lg hover:bg-purple-600 transition-colors"
-                >
-                  <span className="material-icons text-xl mr-1.5">edit</span>
-                  새 글쓰기
-                </Link>
-              </div>
+        {/* 탭 메뉴 */}
+        <div className="flex space-x-4 mb-6">
+          <button
+            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${postType === 'free'
+              ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            onClick={() => postType !== 'free' && router.push('/post')}
+          >
+            자유게시판
+          </button>
+          <button
+            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${postType === 'popular'
+              ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            onClick={() => postType !== 'popular' && router.push('/post?type=popular')}
+          >
+            인기글
+          </button>
+        </div>
+
+        {/* 타이틀 + 새 글쓰기 + 뷰모드 토글 */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {loginMember?.academyName
+              ? postType === 'popular'
+                ? `${loginMember.academyName}의 인기글`
+                : `${loginMember.academyName}의 게시판`
+              : postType === 'popular'
+                ? '인기글'
+                : '게시판'}
+          </h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/post/new"
+              className="bg-[#9C50D4] hover:bg-[#8544B2] transition-all rounded-lg text-white py-2 px-4 text-base font-medium flex items-center gap-2"
+            >
+              <span className="material-icons text-base">edit</span>
+              새 글쓰기
+            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode('card')}
+                className={`p-2 rounded-md ${viewMode === 'card' ? 'bg-[#9C50D4] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <span className="material-icons text-base">grid_view</span>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-[#9C50D4] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                <span className="material-icons text-base">view_list</span>
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* 인기 태그 */}
-          {!searchMode && !minLikes && (
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold mb-4 text-gray-800">인기 태그</h2>
-              <div className="flex flex-wrap gap-2">
-                {tagsLoading ? (
-                  <p className="text-sm text-gray-500">태그 로딩 중...</p>
+        {/* 필터/검색/정렬 */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-6 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">검색 필터</label>
+              <FilterDropdown value={filterType} onChange={handleFilterChange} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">검색</label>
+              <SearchInput filterType={filterType} onSearch={handleSearch} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">정렬</label>
+              <SortDropdown value={sortType} onChange={handleSortChange} />
+            </div>
+          </div>
+        </div>
+
+        {/* 인기 태그 */}
+        {!searchMode && !minLikes && (
+          <div className="bg-white rounded-lg shadow p-4">
+            <h2 className="text-lg font-semibold mb-4 text-gray-800">인기 태그</h2>
+            <div className="flex flex-wrap gap-2">
+              {tagsLoading ? (
+                <p className="text-sm text-gray-500">태그 로딩 중...</p>
+              ) : (
+                popularTags.map((tag, index) => (
+                  <Tag
+                    key={`tag-${tag.name}-${index}`}
+                    text={tag.name}
+                    count={tag.count.toString()}
+                    active={tag.isActive || false}
+                    onClick={() => handleTagClick(tag.name)}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 검색 결과 */}
+        {searchMode && (
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">"{searchKeyword}" 검색 결과</h2>
+                <p className="text-sm text-gray-500 mt-1">총 {searchCount}개의 게시물</p>
+              </div>
+              <button
+                onClick={resetAllFilters}
+                className="inline-flex items-center px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <span className="material-icons text-sm mr-1">refresh</span>
+                초기화
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 게시물 목록 */}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9C50D4]"></div>
+          </div>
+        ) : (
+          <>
+            {posts.length > 0 ? (
+              <>
+                {viewMode === 'card' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        id={post.id}
+                        title={post.title}
+                        nickname={post.nickname}
+                        time={formatDate(post.creationTime)}
+                        viewCount={post.viewCount}
+                        commentCount={post.commentCount}
+                        likeCount={post.likeCount}
+                        tags={post.tags}
+                        isLiked={post.isLiked}
+                        onLikeClick={(e) => handleLikeClick(post, e)}
+                        likingPosts={likingPosts}
+                        hasImage={post.hasImage || false}
+                      />
+                    ))}
+                  </div>
                 ) : (
-                  popularTags.map((tag, index) => (
-                    <Tag
-                      key={`tag-${tag.name}-${index}`}
-                      text={tag.name}
-                      count={tag.count.toString()}
-                      active={tag.isActive || false}
-                      onClick={() => handleTagClick(tag.name)}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* 검색 결과 */}
-          {searchMode && (
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-medium text-gray-900">"{searchKeyword}" 검색 결과</h2>
-                  <p className="text-sm text-gray-500 mt-1">총 {searchCount}개의 게시물</p>
-                </div>
-                <button
-                  onClick={resetAllFilters}
-                  className="inline-flex items-center px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
-                >
-                  <span className="material-icons text-sm mr-1">refresh</span>
-                  초기화
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 게시물 목록 */}
-          {loading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9C50D4]"></div>
-            </div>
-          ) : (
-            <>
-              {posts.length > 0 ? (
-                <>
-                  {viewMode === 'card' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {posts.map((post) => (
-                        <PostCard
-                          key={post.id}
+                  <div className="bg-white rounded-lg shadow">
+                    {posts.map((post, index) => (
+                      <div key={post.id}>
+                        <PostListItem
                           id={post.id}
                           title={post.title}
                           nickname={post.nickname}
@@ -619,88 +709,66 @@ export default function PostPage() {
                           isLiked={post.isLiked}
                           onLikeClick={(e) => handleLikeClick(post, e)}
                           likingPosts={likingPosts}
+                          hasImage={post.hasImage || false}
                         />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="bg-white rounded-lg shadow">
-                      {posts.map((post, index) => (
-                        <div key={post.id}>
-                          <PostListItem
-                            id={post.id}
-                            title={post.title}
-                            nickname={post.nickname}
-                            time={formatDate(post.creationTime)}
-                            viewCount={post.viewCount}
-                            commentCount={post.commentCount}
-                            likeCount={post.likeCount}
-                            tags={post.tags}
-                            isLiked={post.isLiked}
-                            onLikeClick={(e) => handleLikeClick(post, e)}
-                            likingPosts={likingPosts}
-                          />
-                          {index < posts.length - 1 && (
-                            <div className="mx-6 border-b border-gray-200"></div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="bg-white rounded-lg shadow p-16 text-center">
-                  <p className="text-gray-500 text-lg mb-1">게시물이 없습니다</p>
-                  {searchKeyword && (
-                    <p className="text-gray-400 text-sm">
-                      '{searchKeyword}' 검색어를 변경하여 다시 시도해보세요
-                    </p>
-                  )}
-                </div>
-              )}
+                        {index < posts.length - 1 && (
+                          <div className="mx-6 border-b border-gray-200"></div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-white rounded-lg shadow p-16 text-center">
+                <p className="text-gray-500 text-lg mb-1">게시물이 없습니다</p>
+                {searchKeyword && (
+                  <p className="text-gray-400 text-sm">
+                    '{searchKeyword}' 검색어를 변경하여 다시 시도해보세요
+                  </p>
+                )}
+              </div>
+            )}
 
-              {/* 페이지네이션 or 여백 */}
-              {posts.length > 0 ? (
-                <div className="bg-white rounded-lg shadow p-4 mt-6">
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <select
-                      className="w-32 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-[#9C50D4] focus:ring-1 focus:ring-[#9C50D4] transition-colors"
-                      value={pageSize}
-                      onChange={handlePageSizeChange}
-                    >
-                      <option value="10">10개씩 보기</option>
-                      <option value="15">15개씩 보기</option>
-                      <option value="20">20개씩 보기</option>
-                    </select>
+            {/* 페이지네이션 */}
+            {posts.length > 0 && (
+              <div className="bg-white rounded-lg shadow p-4 mt-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <select
+                    className="w-32 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-[#9C50D4] focus:ring-1 focus:ring-[#9C50D4] transition-colors"
+                    value={pageSize}
+                    onChange={handlePageSizeChange}
+                  >
+                    <option value="10">10개씩 보기</option>
+                    <option value="15">15개씩 보기</option>
+                    <option value="20">20개씩 보기</option>
+                  </select>
 
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <PageButton
+                      text="이전"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                    />
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                       <PageButton
-                        text="이전"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(currentPage - 1)}
+                        key={page}
+                        text={page.toString()}
+                        active={currentPage === page}
+                        onClick={() => setCurrentPage(page)}
                       />
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                        <PageButton
-                          key={page}
-                          text={page.toString()}
-                          active={currentPage === page}
-                          onClick={() => setCurrentPage(page)}
-                        />
-                      ))}
-                      <PageButton
-                        text="다음"
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                      />
-                    </div>
+                    ))}
+                    <PageButton
+                      text="다음"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="h-24" /> // 게시물이 없을 때 페이지 하단 여백
-              )}
-
-            </>
-          )}
-        </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </main>
   );
@@ -814,7 +882,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
 }
 
 // 게시물 아이템 컴포넌트 (카드형)
-function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts }: {
+function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
   id: number;
   title: string;
   nickname: string;
@@ -826,6 +894,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   isLiked?: boolean;
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
+  hasImage: boolean;
 }) {
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-200 border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
@@ -848,35 +917,38 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
                 />
               </svg>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-gray-900">{nickname}</span>
-              <span className="text-gray-400">•</span>
-              <span className="text-gray-500">{time}</span>
+            <div>
+              <p className="font-medium text-gray-900">{nickname}</p>
+              <p className="text-sm text-gray-500">{time}</p>
             </div>
           </div>
         </div>
 
-        <Link href={`/post/${id}`} className="block group">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors">
+        <Link href={`/post/${id}`} className="block no-underline">
+          <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-[#9C50D4] transition-colors line-clamp-2">
             {title}
-          </h2>
-
-          <div className="flex flex-wrap gap-2 mb-4 min-h-[28px]">
-            {tags?.length > 0 ? (
-              tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer"
-                >
-                  #{tag}
-                </span>
-              ))
-            ) : (
-              <span className="invisible inline-block px-2 py-1 text-xs">#태그자리</span>
+            {hasImage && (
+              <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
             )}
-          </div>
-
+          </h3>
         </Link>
+
+        <div className="flex flex-wrap gap-2 mb-4 min-h-[28px]">
+          {tags?.length > 0 ? (
+            tags.map((tag, index) => (
+              <span
+                key={index}
+                className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer"
+              >
+                #{tag}
+              </span>
+            ))
+          ) : (
+            <span className="invisible inline-block px-2 py-1 text-xs">#태그자리</span>
+          )}
+        </div>
+
+
 
         <div className="flex items-center gap-6 text-gray-500">
           <button
@@ -897,11 +969,14 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
               />
             </svg>
-            <span className="text-sm group-hover/like:text-[#9C50D4]">{likeCount}</span>
+            <span className="text-sm">{likeCount}</span>
           </button>
+
+          {/* 댓글 버튼 */}
           <Link
             href={`/post/${id}`}
-            className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
+            className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 group-hover/comment:scale-110 transition-transform"
@@ -916,8 +991,9 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
                 d="M8 12h.01M12 12h.01M16 12h.01M12 21a9 9 0 1 0-9-9c0 1.488.36 2.89 1 4.127L3 21l4.873-1C9.11 20.64 10.512 21 12 21z"
               />
             </svg>
-            <span className="text-sm group-hover/comment:text-[#9C50D4]">{commentCount}</span>
+            <span className="text-sm">{commentCount}</span>
           </Link>
+
           <div className="flex items-center gap-2 ml-auto">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -943,12 +1019,12 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
 // 리스트형 게시물 컴포넌트
-function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts }: {
+function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
   id: number;
   title: string;
   nickname: string;
@@ -960,6 +1036,7 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   isLiked?: boolean;
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
+  hasImage: boolean;
 }) {
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
@@ -990,6 +1067,9 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
 
         <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
           {title}
+          {hasImage && (
+            <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
+          )}
         </h2>
 
         <div className="flex flex-wrap gap-2 mb-4">

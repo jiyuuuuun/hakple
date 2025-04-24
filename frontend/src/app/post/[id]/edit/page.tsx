@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
 // TiptapEditor를 동적으로 불러오기 (SSR 비활성화)
 const TiptapEditor = dynamic(() => import('@/components/editor/TiptapEditor'), { ssr: false })
+
+// 게시글 타입 정의
+type BoardType = 'free' | 'notice';
 
 // --- 태그 입력 컴포넌트 ---
 interface TagInputProps {
@@ -204,15 +207,63 @@ const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
 const EditPostPage = () => {
     const router = useRouter()
     const params = useParams()
+    const searchParams = useSearchParams()
+    const typeParam = searchParams.get('type') || 'free'
+    const academyCode = searchParams.get('academyCode') // academyCode를 URL에서 가져옴
     const postId = params.id as string
-    const { isLogin } = useGlobalLoginMember()
+    const { isLogin, loginMember } = useGlobalLoginMember()
 
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
     const [tags, setTags] = useState<string[]>([])
+    const [boardType, setBoardType] = useState<BoardType>('free')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState('')
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [adminCheckComplete, setAdminCheckComplete] = useState(false)
+    // 임시 이미지 ID 목록 저장을 위한 상태 추가
+    const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([])
+
+    // 관리자 여부 확인
+    useEffect(() => {
+        const checkAdminPermission = async () => {
+            if (isLogin && loginMember) {
+                try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const isAdminResult = await response.json();
+                        setIsAdmin(isAdminResult === true);
+                    }
+                } catch (error) {
+                    console.error('관리자 권한 확인 중 오류 발생:', error);
+                } finally {
+                    setAdminCheckComplete(true);
+                }
+            } else {
+                setAdminCheckComplete(true);
+            }
+        };
+
+        checkAdminPermission();
+    }, [isLogin, loginMember]);
+
+    // 관리자 권한 체크 후 공지사항 수정 권한 확인
+    useEffect(() => {
+        // 관리자 권한 체크와 게시글 타입 확인이 모두 완료된 경우에만 실행
+        if (adminCheckComplete && boardType === 'notice' && !isAdmin && !isLoading) {
+            // 관리자가 아닌데 공지사항을 수정하려는 경우 상세 페이지로 리다이렉트
+            console.log('관리자 권한이 없어 공지사항을 수정할 수 없습니다. 상세 페이지로 이동합니다.');
+            router.push(`/post/${postId}`);
+        }
+    }, [adminCheckComplete, isAdmin, boardType, isLoading, postId, router]);
 
     // 게시글 데이터 불러오기
     useEffect(() => {
@@ -236,6 +287,11 @@ const EditPostPage = () => {
                 setTitle(postData.title || '')
                 setContent(postData.content || '')
                 setTags(postData.tags || [])
+                const type = postData.type || postData.boardType;
+                const boardTypeValue = type === 'notice' ? 'notice' : 'free';
+                setBoardType(boardTypeValue) // 게시글 타입 설정 추가
+
+                // 권한 체크는 별도의 useEffect에서 처리
             } catch (err) {
                 console.error('게시글 데이터 로딩 중 오류:', err)
                 setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.')
@@ -276,6 +332,15 @@ const EditPostPage = () => {
         setTags(uniqueTags)
     }
 
+    // 이미지 업로드 완료 시 tempId 저장 핸들러
+    const handleImageUpload = (tempIds: string[]) => {
+        setUploadedTempIds(prev => {
+            // 중복 제거하여 새로운 tempId만 추가
+            const newIds = tempIds.filter(id => !prev.includes(id));
+            return [...prev, ...newIds];
+        });
+    };
+
     const handleSubmit = async () => {
         if (!title.trim()) {
             setError('제목을 입력해주세요.')
@@ -287,21 +352,34 @@ const EditPostPage = () => {
             return
         }
 
+        // 공지사항 권한 확인
+        if (boardType === 'notice' && !isAdmin) {
+            setError('공지사항 수정 권한이 없습니다. 관리자만 수정할 수 있습니다.');
+            return;
+        }
+
         try {
             setIsSubmitting(true)
             setError('')
 
             // 빈 태그만 필터링하고, 태그 형식을 그대로 유지
-            const finalTags = tags.filter((tag) => tag.trim() !== '')
+            const finalTags = boardType === 'notice' ? [] : tags.filter((tag) => tag.trim() !== '')
 
             // API 호출을 위한 데이터 구성
             const postData = {
                 title,
                 content,
-                tags: finalTags, // 태그 배열을 그대로 전송
+                tags: finalTags,
+                type: boardType,
+                academyCode: academyCode // academyCode 추가
             }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
+            const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`;
+            // URL에 academyCode 추가
+            const url = academyCode ? `${apiUrl}?academyCode=${academyCode}` : apiUrl;
+
+            // 게시글 수정 요청
+            const response = await fetch(url, {
                 method: 'PUT', // 수정이므로 PUT 메서드 사용
                 headers: {
                     'Content-Type': 'application/json',
@@ -326,8 +404,51 @@ const EditPostPage = () => {
                 throw new Error(errorMsg)
             }
 
-            // 성공 시 게시글 상세 페이지로 이동
-            router.push(`/post/${postId}`)
+            // 응답 데이터 확인
+            const responseData = await response.json();
+            console.log('서버 응답:', responseData);
+
+            // 이미지가 업로드되었고 게시글 ID가 있으면 이미지 연결 요청
+            if (uploadedTempIds.length > 0) {
+                try {
+                    const linkResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            tempIds: uploadedTempIds,
+                            boardId: parseInt(postId)
+                        }),
+                        credentials: 'include',
+                    });
+
+                    if (linkResponse.ok) {
+                        console.log('이미지 연결 성공:', await linkResponse.json());
+                    } else {
+                        console.error('이미지 연결 실패:', linkResponse.status);
+                    }
+                } catch (linkError) {
+                    console.error('이미지 연결 중 오류:', linkError);
+                    // 게시글은 수정되었으므로 전체 프로세스를 실패로 처리하지 않음
+                }
+            }
+
+            // 성공 시 게시글 상세 페이지로 돌아가거나 목록으로 이동
+            if (boardType === 'notice') {
+                if (academyCode) {
+                    router.push(`/post/notice?academyCode=${academyCode}&type=notice`);
+                } else {
+                    router.push('/post/notice?type=notice');
+                }
+            } else {
+                // 상세 페이지로 리다이렉트 할 때 academyCode도 함께 넘겨줌
+                if (academyCode) {
+                    router.push(`/post/${postId}?academyCode=${academyCode}`);
+                } else {
+                    router.push(`/post/${postId}`);
+                }
+            }
         } catch (err) {
             console.error('게시글 수정 중 오류:', err)
             setError(err instanceof Error ? err.message : '게시글 수정에 실패했습니다.')
@@ -337,52 +458,58 @@ const EditPostPage = () => {
     }
 
     return (
+
         <main className="bg-[#f9fafc] min-h-screen pb-8">
             <div className="max-w-[1140px] mx-auto px-4">
                 <div className="pt-14">
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">게시글 수정</h1>
-                        <button
-                            onClick={() => router.back()}
-                            className="flex items-center gap-2 text-gray-600 hover:text-[#980ffa] transition-colors"
-                        >
-                            <span className="material-icons">arrow_back</span>
-                            <span>돌아가기</span>
-                        </button>
-                    </div>
-                    <div className="bg-white p-6 sm:p-8 rounded-[20px] shadow-lg border border-[#F9FAFB] transition-shadow hover:shadow-xl">
-                        {/* 제목 입력 */}
-                        <div className="w-full mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">제목</label>
-                            <div className="relative group">
-                                <input
-                                    type="text"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="제목을 입력해주세요"
-                                    className="w-full bg-[#fcfaff] border-2 border-gray-100 rounded-[15px] py-4 px-5 text-base 
+                    <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{boardType === 'notice' ? '공지사항 수정' : '게시글 수정'}</h1>
+                    <button
+                        onClick={() => router.back()}
+                        className="flex items-center gap-2 text-gray-600 hover:text-[#980ffa] transition-colors"
+                    >
+                        <span className="material-icons">arrow_back</span>
+                        <span>돌아가기</span>
+                    </button>
+                </div>
+                <div className="bg-white p-6 sm:p-8 rounded-[20px] shadow-lg border border-[#F9FAFB] transition-shadow hover:shadow-xl">
+                    {/* 제목 입력 */}
+                    <div className="w-full mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">제목</label>
+                        <div className="relative group">
+                            <input
+                                type="text"
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                placeholder="제목을 입력해주세요"
+                                className="w-full bg-[#fcfaff] border-2 border-gray-100 rounded-[15px] py-4 px-5 text-base 
                                             transition-all duration-300 ease-in-out
                                             focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent 
                                             group-hover:border-[#980ffa]/30 group-hover:shadow-md 
                                             placeholder:text-gray-400"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-r from-[#980ffa]/5 to-transparent opacity-0 
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#980ffa]/5 to-transparent opacity-0 
                                             group-hover:opacity-100 rounded-[15px] pointer-events-none transition-opacity duration-300"/>
-                            </div>
                         </div>
+                    </div>
 
-                        {/* Tiptap 에디터 적용 */}
-                        <div className="w-full mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
-                            <div className="border-2 border-gray-100 rounded-[15px] overflow-hidden transition-all duration-300
+                    {/* Tiptap 에디터 적용 */}
+                    <div className="w-full mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
+                        <div className="border-2 border-gray-100 rounded-[15px] overflow-hidden transition-all duration-300
                                         hover:border-[#980ffa]/30 hover:shadow-md group">
-                                <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
-                                    <TiptapEditor content={content} onChange={setContent} />
-                                </div>
+                            <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
+                                <TiptapEditor
+                                    content={content}
+                                    onChange={setContent}
+                                    boardId={parseInt(postId)}
+                                    onImageUpload={handleImageUpload}
+                                />
                             </div>
                         </div>
+                    </div>
 
-                        {/* 태그 입력 */}
+                    {/* 태그 입력 - 공지사항이 아닐 때만 표시 */}
+                    {boardType !== 'notice' && (
                         <div className="w-full mb-6">
                             <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">태그</label>
                             <TagInput tags={tags} onTagsChange={handleTagsChange} />
@@ -390,45 +517,48 @@ const EditPostPage = () => {
                                 여러 개의 태그는 쉼표(,) 또는 엔터키로 구분하여 입력할 수 있습니다
                             </p>
                         </div>
+                    )}
 
-                        {/* 에러 메시지 */}
-                        {error && (
-                            <div className="w-full mb-6 px-4 py-3 rounded-[15px] bg-red-50 border border-red-100">
-                                <p className="text-red-600 text-sm">{error}</p>
-                            </div>
-                        )}
-
-                        {/* 버튼 영역 */}
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => router.back()}
-                                className="px-6 py-3 rounded-[15px] text-gray-600 bg-gray-100 hover:bg-gray-200 
-                                        transition-all duration-300"
-                            >
-                                취소
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="px-6 py-3 rounded-[15px] text-white bg-[#980ffa] 
-                                        hover:bg-[#8400df] transition-all duration-300 transform
-                                        hover:scale-105 hover:shadow-lg
-                                        disabled:opacity-50 disabled:hover:scale-100 
-                                        disabled:cursor-not-allowed shadow-md"
-                            >
-                                {isSubmitting ? (
-                                    <div className="flex items-center gap-2">
-                                        <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
-                                        <span>저장 중...</span>
-                                    </div>
-                                ) : (
-                                    '수정하기'
-                                )}
-                            </button>
+                    {/* 에러 메시지 */}
+                    {error && (
+                        <div className="w-full mb-6 px-4 py-3 rounded-[15px] bg-red-50 border border-red-100">
+                            <p className="text-red-600 text-sm">{error}</p>
                         </div>
+                    )}
+
+                    {/* 버튼 영역 */}
+                    <div className="flex justify-between w-full border border-[#F9FAFB] rounded-[10px] p-2 sm:p-3">
+                        <button
+                            onClick={() =>
+                                typeParam === 'notice' ? router.push('/post/notice') : router.push('/post')
+                            }
+                            className="bg-[#980ffa] text-white py-[10px] px-[20px] rounded-[10px] text-[12px] border-none"
+                        >
+                            목록
+                        </button>
+
+                        <button
+                            onClick={handleSubmit}
+                            disabled={isSubmitting || (boardType === 'notice' && !isAdmin)}
+                            className={`py-[10px] px-[20px] rounded-[10px] text-[12px] border-none
+                            ${boardType === 'notice' && !isAdmin
+                                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                                    : 'bg-[#980ffa] text-white hover:bg-[#870edf] transition-all'
+                                }`}
+                        >
+                            {isSubmitting ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
+                                    <span>저장 중...</span>
+                                </div>
+                            ) : (
+                                '수정하기'
+                            )}
+                        </button>
                     </div>
                 </div>
             </div>
+
         </main>
     )
 }

@@ -12,9 +12,11 @@ import ImageResize from 'tiptap-extension-resize-image';
 interface TiptapEditorProps {
   content?: string;
   onChange?: (content: string) => void;
+  boardId?: number; // 게시글 ID (이미지 연결용)
+  onImageUpload?: (tempIds: string[]) => void; // 이미지 업로드 완료 콜백
 }
 
-const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
+const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: TiptapEditorProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const linkButtonRef = useRef<HTMLButtonElement>(null);
@@ -22,6 +24,8 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([]);
+  const reportedTempIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     setIsMounted(true);
@@ -44,6 +48,23 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showLinkModal]);
+
+  // 이전 방식 제거: 상위 컴포넌트로 업로드된 임시 ID 전달 로직 수정
+  // 새로운 ID만 부모에게 전달하고 중복 호출 방지
+  useEffect(() => {
+    if (!onImageUpload || uploadedTempIds.length === 0) return;
+    
+    // 아직 보고되지 않은 새 tempId들만 필터링
+    const newTempIds = uploadedTempIds.filter(id => !reportedTempIdsRef.current.has(id));
+    
+    if (newTempIds.length > 0) {
+      // 새 ID들을 부모에게 전달
+      onImageUpload(newTempIds);
+      
+      // 보고된 ID 집합에 추가
+      newTempIds.forEach(id => reportedTempIdsRef.current.add(id));
+    }
+  }, [uploadedTempIds, onImageUpload]);
 
   const editor = useEditor({
     extensions: [
@@ -96,7 +117,7 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
     }
   };
 
-  const handleUploadPhoto = useCallback(async (files: FileList | null) => {
+  const handleUploadPhoto = useCallback(async (files: FileList | null, boardId?: number) => {
     if (files === null || !editor || isUploading) return;
 
     const file = files[0];
@@ -169,11 +190,30 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
         // 오류 메시지 표시
         alert(`이미지 업로드 실패: ${error}\n\n가능한 해결책:\n1. 로그인 상태를 확인해주세요\n2. 다른 이미지를 사용해보세요\n3. 네트워크 연결을 확인해주세요`);
       };
+<<<<<<< HEAD
 
       // FormData 생성
       const formData = new FormData();
       formData.append('file', file);
 
+=======
+      
+      // 임시 식별자 생성 (UUID)
+      const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('file', file);
+      // 이미지 엔티티에 저장하기 위한 추가 정보
+      formData.append('saveEntity', 'true');
+      formData.append('tempId', tempId);
+      
+      // boardId가 있다면 추가
+      if (boardId) {
+        formData.append('boardId', boardId.toString());
+      }
+      
+>>>>>>> develop
       // 5초 타임아웃 설정
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -219,6 +259,7 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
           handleUploadFailure(userMessage);
           return;
         }
+<<<<<<< HEAD
 
         // 서버에서 반환된 이미지 URL 받기
         const contentType = response.headers.get("content-type");
@@ -233,6 +274,21 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
           imageUrl = await response.text();
         }
 
+=======
+        
+        // 서버에서 반환된 이미지 URL 및 임시 ID 받기
+        const jsonResponse = await response.json();
+        const imageUrl = jsonResponse.filePath;
+        const serverTempId = jsonResponse.tempId || tempId;
+        
+        // 임시 ID 목록에 추가 - 로컬 상태에만 추가하고 즉시 부모에게 알리지 않음
+        setUploadedTempIds(prev => {
+          // 이미 있는 ID는 추가하지 않음
+          if (prev.includes(serverTempId)) return prev;
+          return [...prev, serverTempId];
+        });
+        
+>>>>>>> develop
         // 중요: 이미지를 새로 추가하지 않고, 기존 임시 이미지의 src만 업데이트
         const updateTransaction = editor.state.tr;
         let updated = false;
@@ -243,7 +299,8 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
             // 임시 이미지를 찾았으면 URL만 업데이트
             const newAttrs = {
               ...node.attrs,
-              src: imageUrl // URL만 변경
+              src: imageUrl, // URL만 변경
+              'data-temp-id': serverTempId // 서버에서 받은 임시 ID 저장
             };
             updateTransaction.setNodeMarkup(pos, undefined, newAttrs);
             updated = true;
@@ -276,11 +333,11 @@ const TiptapEditor = ({ content = '', onChange }: TiptapEditorProps) => {
     input.type = 'file';
     input.accept = 'image/*';
     input.onchange = (e) => {
-      handleUploadPhoto((e.target as HTMLInputElement).files);
+      handleUploadPhoto((e.target as HTMLInputElement).files, boardId);
       input.value = '';
     };
     input.click();
-  }, [editor, handleUploadPhoto, isMounted]);
+  }, [editor, handleUploadPhoto, isMounted, boardId]);
 
   const addLink = useCallback(() => {
     if (!editor) return;

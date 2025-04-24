@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
+
 
 @Slf4j
 @RestController
@@ -126,8 +128,14 @@ public class ApiV1AdminController {
         return ResponseEntity.ok(result);
     }
 
-
-
+    @Operation(summary = "학원 상세 정보 조회", description = "학원 코드로 특정 학원의 상세 정보를 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Academy.class)))
+    @ApiResponse(responseCode = "404", description = "학원을 찾을 수 없음")
+    @GetMapping("/academies/{academyCode}")
+    public ResponseEntity<Academy> getAcademyByCode(@PathVariable String academyCode) {
+        Academy academy = adminService.getAcademyByCode(academyCode);
+        return ResponseEntity.ok(academy);
+    }
 
 }
 
