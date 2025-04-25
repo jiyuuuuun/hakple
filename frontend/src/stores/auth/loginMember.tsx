@@ -104,6 +104,22 @@ export function useLoginMember() {
                 : typeof member.academyId === 'string'
                     ? member.academyId
                     : ''
+                    
+        // 프로필 이미지 URL 처리 (트림 및 null/undefined 체크)
+        let profileImageUrl = '';
+        if (member.profileImageUrl) {
+            if (typeof member.profileImageUrl === 'string') {
+                profileImageUrl = member.profileImageUrl.trim();
+                
+                // 이미 URL에 쿼리 파라미터가 있는지 확인
+                if (!profileImageUrl.includes('?')) {
+                    // 캐시 문제를 방지하기 위해 타임스탬프를 URL에 추가하지 않음
+                    // 컴포넌트에서 이미지 로드 시 타임스탬프 추가
+                }
+                
+                console.log('프로필 이미지 URL 처리됨:', profileImageUrl);
+            }
+        }
 
         const user: User = {
             nickname: nickname,
@@ -113,7 +129,7 @@ export function useLoginMember() {
             modificationTime: member.modificationTime || '',
             academyCode: academyCode,
             academyName: member.academyName || '',
-            profileImageUrl: member.profileImageUrl || '',
+            profileImageUrl: profileImageUrl,
         }
 
         console.log('생성된 User 객체:', user)

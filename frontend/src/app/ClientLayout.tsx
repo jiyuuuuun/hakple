@@ -5,7 +5,7 @@ import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import MobileBottomNav from '@/components/MobileBottomNav'
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation"
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
     const {
@@ -34,12 +34,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         checkAdminAndRedirect
     }
 
-    // 현재 경로 가져오기
-    const [currentPath, setCurrentPath] = useState('')
-    
-    useEffect(() => {
-        setCurrentPath(window.location.pathname)
-    }, [])
+    // Next.js의 현재 경로 감지
+    const pathname = usePathname()
     
     // 헤더와 푸터를 숨길 페이지 목록
     const hideHeaderFooterPages = [
@@ -50,9 +46,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         '/reset-password'
     ]
     
-    // 현재 페이지에서 헤더와 푸터를 숨길지 여부
+    // 현재 페이지에서 헤더와 푸터를 숨길지 여부 (Next.js의 pathname 사용)
     const shouldHideHeaderFooter = hideHeaderFooterPages.some(page => 
-        currentPath.startsWith(page)
+        pathname?.startsWith(page)
     )
 
     
@@ -92,18 +88,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         console.log('ClientLayout - 로그인 상태 확인 시작')
 
-        const currentPath = window.location.pathname
-
-
         // 로그인이 필요없는 페이지 목록
         const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
 
         const specialPages = ['/login', '/admin']
-        const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
-        const isSpecialPage = specialPages.some((page) => currentPath.startsWith(page))
+        const isPublicPage = publicPages.some((page) => pathname?.startsWith(page))
+        const isSpecialPage = specialPages.some((page) => pathname?.startsWith(page))
 
-        console.log('페이지 정보 - 현재 경로:', currentPath, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
-
+        console.log('페이지 정보 - 현재 경로:', pathname, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
 
         if (!isPublicPage) {
         // 로그인 상태 체크 API 호출
@@ -130,7 +122,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 setIsLogin(true)
 
                 // 로그인 페이지에 있을 경우 홈으로 리다이렉트
-                if (currentPath === '/login' && !isSpecialPage) {
+                if (pathname === '/login' && !isSpecialPage) {
                     console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
                     router.replace("/")
                 }
@@ -181,7 +173,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             })
         }
 
-    }, []) // 초기 로딩 시에만 실행
+    }, [pathname]) // pathname이 변경될 때마다 실행
 
 
     // ✅ 로그인 상태가 변경된 후 (렌더 기준) 로그 출력
@@ -189,6 +181,31 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         console.log('✅ 렌더 기준 로그인 상태 변경됨');
         console.log('🔐 isLogin:', isLogin);
         console.log('👤 loginMember:', loginMember);
+        
+        // 로그인 상태이고 프로필 이미지가 없는 경우 API에서 정보 다시 가져오기
+        if (isLogin && !loginMember.profileImageUrl) {
+            console.log('프로필 이미지가 없어서 사용자 정보 다시 가져오기 시도');
+            fetch('/api/v1/myInfos', {
+                method: 'GET',
+                credentials: 'include',
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        return Promise.reject('사용자 정보를 가져올 수 없습니다.');
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('추가 사용자 정보 조회 결과:', data);
+                    if (data.profileImageUrl) {
+                        console.log('프로필 이미지 URL 발견:', data.profileImageUrl);
+                        setLoginMember(data);
+                    }
+                })
+                .catch(err => {
+                    console.log('추가 사용자 정보 조회 실패:', err);
+                });
+        }
     }, [isLogin, loginMember]);
 
     if (isLoginMemberPending) {

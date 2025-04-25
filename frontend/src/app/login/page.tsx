@@ -52,6 +52,7 @@ export default function LoginPage() {
             if (userInfoResponse.ok) {
                 const userInfo = await userInfoResponse.json()
                 console.log('MyInfo 응답 데이터:', userInfo)
+                console.log('프로필 이미지 URL 확인:', userInfo.profileImageUrl || '없음')
                 setLoginMember(userInfo)
             } else {
                 console.error('사용자 정보 조회 실패')

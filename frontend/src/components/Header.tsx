@@ -32,6 +32,38 @@ export default function Header() {
     // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
     const isAuthPage = pathname === '/login' || pathname === '/signup'
 
+    // 프로필 이미지 상태 추가
+    const [profileImageUrl, setProfileImageUrl] = useState<string | null>(loginMember?.profileImageUrl || null);
+    
+    // 컴포넌트 마운트 시 또는 loginMember 변경 시 프로필 이미지 업데이트
+    useEffect(() => {
+        setProfileImageUrl(loginMember?.profileImageUrl || null);
+    }, [loginMember]);
+    
+    // 컴포넌트 마운트 시 MyInfo API 호출하여 프로필 이미지 가져오기
+    useEffect(() => {
+        if (isLogin) {
+            console.log('Header - 프로필 이미지 정보 가져오기');
+            fetch('/api/v1/myInfos', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(res => {
+                if (!res.ok) return null;
+                return res.json();
+            })
+            .then(data => {
+                if (data && data.profileImageUrl) {
+                    console.log('Header - 프로필 이미지 URL 발견:', data.profileImageUrl);
+                    setProfileImageUrl(data.profileImageUrl);
+                }
+            })
+            .catch(err => {
+                console.error('프로필 이미지 정보 가져오기 실패:', err);
+            });
+        }
+    }, [isLogin]);
+
     // 컴포넌트 마운트 시 한 번 관리자 권한 확인
     useEffect(() => {
         if (isAuthPage || !isLogin) return
@@ -293,9 +325,9 @@ export default function Header() {
                                 {/* 프로필 이미지 */}
                                 <Link href="/myinfo" className="flex items-center">
                                     <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
-                                        {loginMember.profileImageUrl ? (
+                                        {profileImageUrl ? (
                                             <img
-                                                src={loginMember.profileImageUrl}
+                                                src={profileImageUrl}
                                                 alt="프로필"
                                                 className="min-w-full min-h-full object-cover"
                                                 onError={(e) => {

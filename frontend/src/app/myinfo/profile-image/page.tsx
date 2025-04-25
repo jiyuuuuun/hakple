@@ -182,6 +182,15 @@ export default function ProfileImagePage() {
         setImagePreview(null)
     }
     
+    // 컴포넌트 마운트 시 최신 이미지 로드를 위해 상태 업데이트
+    useEffect(() => {
+        if (loginMember?.profileImageUrl) {
+            // URL에 캐시 방지용 타임스탬프 추가
+            setProfileImageUrl(loginMember.profileImageUrl);
+            console.log('로그인 멤버에서 프로필 이미지 URL 설정:', loginMember.profileImageUrl);
+        }
+    }, [loginMember]);
+
     // 프로필 이미지 업로드
     const uploadProfileImage = async () => {
         if (!selectedFile) return
@@ -241,31 +250,34 @@ export default function ProfileImagePage() {
                 throw new Error('서버에서 유효한 이미지 URL을 반환하지 않았습니다.');
             }
             
-            // 캐시 방지를 위한 타임스탬프 추가
-            const timestamp = new Date().getTime();
-            const finalImageUrl = imageUrl.includes('?') 
-                ? `${imageUrl}&t=${timestamp}` 
-                : `${imageUrl}?t=${timestamp}`;
+            // 전역 상태 업데이트 전에 명시적으로 이미지 캐시 초기화
+            const freshImageUrl = imageUrl.includes('?') 
+                ? imageUrl 
+                : imageUrl;
+
+            // 글로벌 상태 업데이트
+            if (loginMember) {
+                const updatedUser = {
+                    ...loginMember,
+                    profileImageUrl: freshImageUrl
+                };
+                setLoginMember(updatedUser);
+                console.log('프로필 이미지 상태 업데이트 완료:', freshImageUrl);
+                
+                // 로컬 상태 업데이트
+                setProfileImageUrl(freshImageUrl);
+            }
             
-            setProfileImageUrl(finalImageUrl);
+            // 로컬 UI 상태 정리
             setSuccess('프로필 이미지가 성공적으로 업로드되었습니다.');
             setSelectedFile(null);
             setImagePreview(null);
             
-            // 글로벌 상태 업데이트
-            if (loginMember) {
-                const updatedUser = {
-                ...loginMember,
-                    profileImageUrl: finalImageUrl
-                };
-                setLoginMember(updatedUser);
-            }
-            
-            // 3초 후 성공 메시지 숨기기
+            // 3초 후 성공 메시지 숨기기 후 메인 프로필 페이지로 이동
             setTimeout(() => {
-                setSuccess(null)
-                router.push('/myinfo')
-            }, 3000)
+                setSuccess(null);
+                router.push('/myinfo');
+            }, 3000);
         } catch (error) {
             console.error('프로필 이미지 업로드 에러:', error)
             setError(error instanceof Error ? error.message : '프로필 이미지 업로드에 실패했습니다. 다시 시도해주세요.')
@@ -425,7 +437,7 @@ export default function ProfileImagePage() {
                                 <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center mb-6 sm:mb-0 sm:mr-8">
                                     {profileImageUrl ? (
                                         <img 
-                                            src={profileImageUrl} 
+                                            src={`${profileImageUrl}?nocache=${Date.now()}`}
                                             alt="프로필 이미지" 
                                             width={144}
                                             height={144}
@@ -437,11 +449,12 @@ export default function ProfileImagePage() {
                                             }}
                                             onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
                                                 console.error('이미지 로드 오류:', profileImageUrl);
-                                                // Base64 인코딩된 기본 유저 아이콘
-                                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS11c2VyIj48cGF0aCBkPSJNMTkgMjFhNyA3IDAgMCAwLTEzLjhcLTIuMkE3IDcgMCAwIDAgMTkgMjFaIj48L3BhdGg+PGNpcmNsZSBjeD0iMTJcIiBjeT0iN1wiIHI9IjRcIj48L2NpcmNsZT48L3N2Zz4=';
-                                        }}
-                                    />
-                                ) : (
+                                                // 간단한 fallback 이미지
+                                                e.currentTarget.src = 'https://via.placeholder.com/144?text=User';
+                                                e.currentTarget.onerror = null; // 무한 루프 방지
+                                            }}
+                                        />
+                                    ) : (
                                         <UserIcon className="h-20 w-20 text-gray-400" />
                                     )}
                                 </div>

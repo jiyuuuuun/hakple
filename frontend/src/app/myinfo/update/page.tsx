@@ -335,16 +335,38 @@ export default function ProfileUpdatePage() {
             }
 
             // 성공 시 처리
-            const result = await response.json()
-            console.log('프로필 업데이트 성공:', result)
-
-            // 성공 메시지 표시
-            toast.success('프로필 정보가 업데이트되었습니다')
-
-            // 마이페이지로 이동
-            setTimeout(() => {
-            router.push('/myinfo')
-            }, 1500)
+            try {
+                // 응답 형식 확인 후 처리
+                const contentType = response.headers.get('content-type');
+                let result;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    // JSON 응답인 경우
+                    result = await response.json();
+                    console.log('프로필 업데이트 성공 (JSON):', result);
+                } else {
+                    // 텍스트 응답인 경우
+                    const textResponse = await response.text();
+                    console.log('프로필 업데이트 성공 (텍스트):', textResponse);
+                    result = { message: textResponse };
+                }
+                
+                // 성공 메시지 표시
+                toast.success('프로필 정보가 업데이트되었습니다');
+                
+                // 마이페이지로 이동
+                setTimeout(() => {
+                    router.push('/myinfo');
+                }, 1500);
+            } catch (parseError) {
+                console.error('응답 파싱 중 오류:', parseError);
+                // 파싱 오류가 발생해도 업데이트는 성공한 것으로 처리
+                toast.success('프로필 정보가 업데이트되었습니다');
+                
+                setTimeout(() => {
+                    router.push('/myinfo');
+                }, 1500);
+            }
         } catch (err) {
             console.error('프로필 업데이트 중 오류 발생:', err)
             setError(err instanceof Error ? err.message : '프로필 업데이트 중 오류가 발생했습니다')
