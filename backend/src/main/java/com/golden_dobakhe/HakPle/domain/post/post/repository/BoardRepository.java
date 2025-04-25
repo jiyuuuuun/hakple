@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface BoardRepository extends JpaRepository<Board, Long> {
+public interface BoardRepository extends JpaRepository<Board, Long>, BoardRepositoryCustom {
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT b FROM Board b WHERE b.academyCode = :academyCode AND b.status = :status " +
@@ -114,16 +114,16 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
 
     @EntityGraph(attributePaths = {"user", "tags", "tags.hashtag"})
     @Query("SELECT b FROM Board b " +
-           "WHERE b.academyCode = :academyCode " +
-           "AND b.status = :status " +
-           "AND b.type = 'notice' " +
-           "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
-           "     OR LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
-           "ORDER BY " +
-           "CASE WHEN :sortType = '조회순' THEN b.viewCount ELSE 0 END DESC, " +
-           "CASE WHEN :sortType = '댓글순' THEN SIZE(b.comments) ELSE 0 END DESC, " +
-           "CASE WHEN :sortType = '좋아요순' THEN SIZE(b.boardLikes) ELSE 0 END DESC, " +
-           "b.creationTime DESC")
+            "WHERE b.academyCode = :academyCode " +
+            "AND b.status = :status " +
+            "AND b.type = 'notice' " +
+            "AND (LOWER(b.title) LIKE CONCAT('%', LOWER(:keyword), '%') " +
+            "     OR LOWER(b.user.nickName) LIKE CONCAT('%', LOWER(:keyword), '%')) " +
+            "ORDER BY " +
+            "CASE WHEN :sortType = '조회순' THEN b.viewCount ELSE 0 END DESC, " +
+            "CASE WHEN :sortType = '댓글순' THEN SIZE(b.comments) ELSE 0 END DESC, " +
+            "CASE WHEN :sortType = '좋아요순' THEN SIZE(b.boardLikes) ELSE 0 END DESC, " +
+            "b.creationTime DESC")
     Page<Board> searchNoticeBoards(
             @Param("academyCode") String academyCode,
             @Param("status") Status status,
@@ -202,12 +202,12 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
     void deleteTagMappingsByBoardId(@Param("boardId") Long boardId);
 
     Page<Board> findByStatus(Status status, Pageable pageable);
-    
+
     Page<Board> findByAcademyCode(String academyCode, Pageable pageable);
-    
+
     @Query("SELECT b FROM Board b WHERE b.status = :status AND b.academyCode = :academyCode")
     Page<Board> findByStatusAndAcademyCode(@Param("status") Status status, @Param("academyCode") String academyCode, Pageable pageable);
-    
+
     @Query("SELECT b FROM Board b WHERE b.academyCode = :academyCode AND b.status = :status AND (b.type IS NULL OR b.type = 'free')")
     Page<Board> findByAcademyCodeAndTypeNullOrFree(@Param("academyCode") String academyCode, @Param("status") Status status, Pageable pageable);
 

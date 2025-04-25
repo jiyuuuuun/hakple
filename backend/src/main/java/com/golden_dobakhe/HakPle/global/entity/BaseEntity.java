@@ -14,7 +14,6 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
@@ -34,7 +33,7 @@ public abstract class BaseEntity {
     @Column(nullable = false, updatable = false)
     private LocalDateTime creationTime; // 생성 시간
 
-    @LastModifiedDate
+    // 수정 시간은 수동 설정으로 관리 (생성 시 자동 업데이트 비활성화)
     private LocalDateTime modificationTime; // 수정 시간
 }
 

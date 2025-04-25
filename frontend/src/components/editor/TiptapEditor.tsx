@@ -4,19 +4,270 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import Placeholder from '@tiptap/extension-placeholder';
+import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
-import ImageResize from 'tiptap-extension-resize-image';
+import type { Editor } from '@tiptap/react';
+import type { Node as ProseMirrorNode } from 'prosemirror-model';
+import { HTMLAttributes } from 'react';
+import { Plugin, PluginKey, NodeSelection } from 'prosemirror-state';
+
+// --- 사용자 정의 이미지 속성 인터페이스 ---
+interface CustomImageAttributes extends HTMLAttributes<HTMLElement> {
+  'data-id'?: string | null;
+  'data-temp-id'?: string | null;
+}
+
+/* 리사이즈 핸들 CSS 스타일 */
+const resizeHandleStyles = {
+  position: 'absolute',
+  right: '-8px',
+  bottom: '-8px',
+  width: '16px',
+  height: '16px',
+  borderRadius: '50%',
+  backgroundColor: '#4263EB',
+  border: '2px solid white',
+  color: 'white',
+  fontSize: '10px',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  cursor: 'se-resize',
+  zIndex: 100,
+};
+
+/* 이미지 리사이즈 핸들을 렌더링하는 함수 */
+const renderResizeHandle = () => {
+  const resizeHandles = document.querySelectorAll('.image-resizer');
+  resizeHandles.forEach(container => {
+    // 이미 핸들이 있으면 추가하지 않음
+    if (container.querySelector('.resize-trigger')) return;
+    
+    // 핸들 요소 생성
+    const handle = document.createElement('div');
+    handle.className = 'resize-trigger';
+    handle.innerHTML = '⊙';
+    
+    // 인라인 스타일 적용
+    Object.assign(handle.style, resizeHandleStyles);
+    
+    // 이미지 컨테이너에 핸들 추가
+    container.appendChild(handle);
+  });
+};
+
+// --- Custom Image Extension --- (기본 Image 확장)
+const CustomImage = Image.extend({
+  name: 'customImage',
+
+  // 커스텀 속성 추가
+  addAttributes() {
+    return {
+      // 기본 이미지 속성(src, alt, title 등) 상속
+      ...this.parent?.(),
+
+      // 추가: 너비 속성
+      width: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('width'),
+        renderHTML: (attributes: { width?: string | number | null }) => {
+          if (!attributes.width) return {};
+          return { width: attributes.width };
+        },
+      },
+      // 추가: 높이 속성
+      height: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('height'),
+        renderHTML: (attributes: { height?: string | number | null }) => {
+          if (!attributes.height) return {};
+          return { height: attributes.height };
+        },
+      },
+
+      // 추가: 스타일 속성
+      style: {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('style'),
+        renderHTML: (attributes: { style?: string | null }) => {
+          if (!attributes.style) return {};
+          return { style: attributes.style };
+        },
+      },
+
+      // 임시 이미지 식별용 ID
+      'data-id': {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-id'),
+        renderHTML: (attributes: CustomImageAttributes) => {
+          if (!attributes['data-id']) {
+            return {};
+          }
+          return { 'data-id': attributes['data-id'] };
+        },
+      },
+
+      // 백엔드 임시 저장 ID
+      'data-temp-id': {
+        default: null,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-temp-id'),
+        renderHTML: (attributes: CustomImageAttributes) => {
+          if (!attributes['data-temp-id']) {
+            return {};
+          }
+          return { 'data-temp-id': attributes['data-temp-id'] };
+        },
+      },
+    };
+  },
+
+  // 렌더링 HTML 수정 - 이미지 리사이저 래퍼 추가
+  renderHTML({ HTMLAttributes }) {
+    const attrs = { ...HTMLAttributes };
+    
+    return [
+      'div',
+      { class: 'image-resizer' },
+      ['img', attrs],
+    ];
+  },
+
+  addProseMirrorPlugins() {
+    const minWidth = 30; // 최소 이미지 너비
+
+    return [
+      new Plugin({
+        key: new PluginKey('customImageResize'), // 키 이름 변경
+        props: {
+          handleDOMEvents: {
+            mousedown: (view, event) => {
+              const target = event.target as HTMLElement;
+
+              // 리사이즈 핸들 클릭 시
+              if (target.classList.contains('resize-trigger')) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const imgWrapper = target.closest('.image-resizer') as HTMLElement;
+                if (!imgWrapper) return false;
+
+                const img = imgWrapper.querySelector('img') as HTMLElement;
+                if (!img) return false;
+
+                const startX = event.pageX;
+                const startWidth = img.offsetWidth;
+                const startHeight = img.offsetHeight;
+                const aspectRatio = startHeight > 0 ? startWidth / startHeight : 1;
+
+                // ProseMirror 노드 위치 찾기
+                let imgPos = -1;
+                view.state.doc.descendants((node, pos) => {
+                  if (node.type.name === 'customImage') {
+                    const dom = view.nodeDOM(pos) as HTMLElement | null;
+                    // nodeDOM이 imgWrapper를 포함하는지 확인
+                    if (dom && dom === imgWrapper) {
+                      imgPos = pos;
+                      return false; // 찾으면 중단
+                    }
+                  }
+                  return true;
+                });
+
+                if (imgPos === -1) {
+                  console.error("Failed to find image node position.");
+                  return false;
+                }
+
+                // 이미지 노드 선택 (선택적, 시각적 피드백)
+                try {
+                   const selection = NodeSelection.create(view.state.doc, imgPos);
+                   const trSelect = view.state.tr.setSelection(selection);
+                   view.dispatch(trSelect);
+                } catch(e) {
+                   console.warn("Could not select image node during resize start", e);
+                }
+
+
+                imgWrapper.classList.add('resizing');
+
+                const mousemove = (e: MouseEvent) => {
+                  const newWidth = Math.max(minWidth, startWidth + (e.pageX - startX));
+                  const newHeight = aspectRatio > 0 ? Math.max(minWidth / aspectRatio, newWidth / aspectRatio) : startHeight; // Aspect ratio 유지
+
+                  const node = view.state.doc.nodeAt(imgPos);
+                  if (!node) return; // 노드가 유효한지 확인
+
+                  // 트랜잭션 생성 및 디스패치 (ProseMirror 상태 업데이트)
+                  const tr = view.state.tr.setNodeMarkup(imgPos, undefined, {
+                      ...node.attrs,
+                      width: Math.round(newWidth),
+                      height: Math.round(newHeight),
+                      // 스타일 속성도 업데이트 (선택적)
+                      style: `width: ${Math.round(newWidth)}px; height: ${Math.round(newHeight)}px;`,
+                  });
+                  view.dispatch(tr);
+                };
+
+                const mouseup = () => {
+                  document.removeEventListener('mousemove', mousemove);
+                  document.removeEventListener('mouseup', mouseup);
+                  imgWrapper.classList.remove('resizing');
+                  // 리사이즈 완료 후 추가 작업 (예: 최종 상태 저장 API 호출)
+                };
+
+                document.addEventListener('mousemove', mousemove);
+                document.addEventListener('mouseup', mouseup);
+
+                return true; // 이벤트 처리 완료
+              }
+              return false; // 다른 mousedown 이벤트는 처리 안 함
+            },
+          },
+        },
+      }),
+    ];
+  },
+});
 
 interface TiptapEditorProps {
   content?: string;
   onChange?: (content: string) => void;
-  boardId?: number; // 게시글 ID (이미지 연결용)
-  onImageUpload?: (tempIds: string[]) => void; // 이미지 업로드 완료 콜백
+  onImageUploadSuccess?: (tempId: string) => void; // 이미지 업로드 성공 시 tempId 콜백
+  onImageDelete?: (tempId: string) => void; // 에디터에서 이미지 삭제 시 tempId 콜백
 }
 
-const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: TiptapEditorProps) => {
+interface UploadResponse {
+    tempUrl: string;
+    tempId: string;
+}
+
+interface ErrorResponse {
+    message: string;
+}
+
+// 재시도 유틸리티 함수
+const retryOperation = async <T,>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    delay: number = 1000
+): Promise<T> => {
+    let lastError: Error | undefined;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+            if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+            }
+        }
+    }
+    throw lastError;
+};
+
+const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDelete }: TiptapEditorProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const linkButtonRef = useRef<HTMLButtonElement>(null);
@@ -24,8 +275,7 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
   const [isUploading, setIsUploading] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkModal, setShowLinkModal] = useState(false);
-  const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([]);
-  const reportedTempIdsRef = useRef<Set<string>>(new Set());
+  const prevTempIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     setIsMounted(true);
@@ -49,29 +299,46 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
     };
   }, [showLinkModal]);
 
-  // 이전 방식 제거: 상위 컴포넌트로 업로드된 임시 ID 전달 로직 수정
-  // 새로운 ID만 부모에게 전달하고 중복 호출 방지
-  useEffect(() => {
-    if (!onImageUpload || uploadedTempIds.length === 0) return;
+  // 이미지 제거 감지 및 부모 컴포넌트에 알림
+  const handleImageNodeChanges = useCallback(
+    (editorInstance: Editor) => {
+      if (!editorInstance) return;
 
-    // 아직 보고되지 않은 새 tempId들만 필터링
-    const newTempIds = uploadedTempIds.filter(id => !reportedTempIdsRef.current.has(id));
+      const currentTempIds = new Set<string>();
+      editorInstance.state.doc.descendants((node: ProseMirrorNode) => {
+        if (node.type.name === 'customImage') {
+          // data-temp-id 속성에 저장된 실제 tempId 사용
+          const tempId = node.attrs['data-temp-id'];
+          if (tempId && typeof tempId === 'string') {
+            currentTempIds.add(tempId);
+          }
+        }
+        return true;
+      });
 
-    if (newTempIds.length > 0) {
-      // 새 ID들을 부모에게 전달
-      onImageUpload(newTempIds);
+      const prevSet = prevTempIdsRef.current;
 
-      // 보고된 ID 집합에 추가
-      newTempIds.forEach(id => reportedTempIdsRef.current.add(id));
-    }
-  }, [uploadedTempIds, onImageUpload]);
+      // 제거된 이미지 찾기: 이전 목록에는 있었지만 현재 목록에는 없는 ID
+      prevSet.forEach(prevId => {
+        if (!currentTempIds.has(prevId)) {
+          console.log(`Image removed with tempId: ${prevId}`);
+          onImageDelete?.(prevId); // 부모 컴포넌트에 삭제 알림
+        }
+      });
+
+      // 현재 이미지 목록으로 업데이트
+      prevTempIdsRef.current = new Set(currentTempIds);
+    },
+    [onImageDelete] // onImageDelete가 변경될 때만 함수 재생성
+  );
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // image: false, // 기본 이미지 비활성화
+        // StarterKit에는 기본적인 익스텐션만 포함 (Image 설정 제거)
       }),
-      ImageResize.configure({
+      // CustomImage 확장 설정
+      CustomImage.configure({
         inline: true,
         allowBase64: true,
       }),
@@ -99,9 +366,50 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
     content,
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
+      handleImageNodeChanges(editor);
     },
     immediatelyRender: false,
   });
+
+  // Prop으로 받은 content가 변경될 때 에디터 내용 업데이트
+  useEffect(() => {
+    // 에디터 인스턴스가 있고, 외부 content와 내부 HTML이 다를 때만 업데이트
+    if (editor && content !== editor.getHTML()) {
+      // false 인자는 onUpdate 콜백 반복 호출 방지
+      editor.commands.setContent(content, false);
+    }
+    // editor나 content가 변경될 때마다 이 effect 실행
+  }, [content, editor]);
+
+  // 에디터 초기 로드시 기존 이미지 추출 (editor 선언 후)
+  useEffect(() => {
+    if (!editor) return;
+    // 에디터가 로드될 때 초기 이미지 상태 설정
+    handleImageNodeChanges(editor);
+  }, [editor, handleImageNodeChanges]);
+
+  // 이미지 렌더링 후 리사이즈 핸들 추가를 위한 useEffect
+  useEffect(() => {
+    if (!editor) return;
+
+    // 에디터 업데이트 시 리사이즈 핸들 렌더링 (필요 시)
+    const handleUpdate = () => {
+      // DOM 업데이트 후 핸들 렌더링 보장
+      requestAnimationFrame(() => {
+         renderResizeHandle();
+      });
+    };
+
+    editor.on('update', handleUpdate);
+
+    // 초기 로딩 시에도 핸들 렌더링
+    handleUpdate();
+
+    return () => {
+      editor.off('update', handleUpdate);
+    };
+    // renderResizeHandle 함수 자체는 의존성이 아님
+  }, [editor]);
 
   // 추가: 백엔드 서버 상태 확인 함수
   const checkServerStatus = async () => {
@@ -116,190 +424,170 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
       return false;
     }
   };
-
-  const handleUploadPhoto = useCallback(async (files: FileList | null, boardId?: number) => {
+  
+  const handleUploadPhoto = useCallback(async (files: FileList | null) => {
     if (files === null || !editor || isUploading) return;
 
     const file = files[0];
     if (!file) return;
 
-    // 파일 크기 제한 (5MB)
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
       alert(`이미지 크기가 너무 큽니다. 5MB 이하의 이미지를 사용해주세요.`);
+      setIsUploading(false);
       return;
     }
+
+    const tempId = crypto.randomUUID();
+    let insertPos: number | null = null;
 
     try {
       setIsUploading(true);
 
-      // 서버 상태 확인
       const serverOk = await checkServerStatus();
       if (!serverOk) {
         alert('서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        setIsUploading(false);
         return;
       }
 
-      // 임시 이미지 ID (나중에 식별하기 위함)
-      const tempImageId = `temp-image-${Date.now()}`;
+      // 로딩 이미지 표시
+      const loadingNode = editor.schema.nodes.customImage.create({
+        src: '/images/loading.gif',
+        'data-temp-id': tempId
+      });
 
-      // 서버로 업로드 전 미리보기 표시 (임시)
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        // 임시 이미지로 우선 표시 (data-id 속성 추가)
-        const { view } = editor;
-        const { state } = view;
-        const { schema } = state;
+      // 현재 커서 위치에 노드 삽입하고 그 위치 저장
+      insertPos = editor.state.selection.from;
+      editor.chain().focus().insertContentAt(insertPos, loadingNode).run();
 
-        // 현재 선택된 위치에 임시 이미지 노드 삽입
-        const imageNode = schema.nodes.image.create({
-          src: base64,
-          'data-id': tempImageId // 이미지 ID를 추가하여 나중에 찾을 수 있게 함
-        });
-
-        const transaction = state.tr.replaceSelectionWith(imageNode);
-        view.dispatch(transaction);
-      };
-      reader.readAsDataURL(file);
-
-      // 오류 발생 시 임시 이미지 제거 함수
-      const handleUploadFailure = (error: string) => {
-        try {
-          // data-id로 임시 이미지 찾아 제거
-          const deleteTransaction = editor.state.tr;
-          let imagePos = -1;
-
-          editor.state.doc.descendants((node, pos) => {
-            if (node.type.name === 'image' && node.attrs['data-id'] === tempImageId) {
-              imagePos = pos;
-              return false; // 찾았으므로 순회 중단
-            }
-            return true; // 계속 순회
-          });
-
-          if (imagePos >= 0) {
-            // 이미지 노드와 그 크기만큼 삭제
-            deleteTransaction.delete(imagePos, imagePos + 1);
-            editor.view.dispatch(deleteTransaction);
-          }
-        } catch (removeError) {
-          console.error('임시 이미지 제거 중 오류:', removeError);
-        }
-
-        // 오류 메시지 표시
-        alert(`이미지 업로드 실패: ${error}\n\n가능한 해결책:\n1. 로그인 상태를 확인해주세요\n2. 다른 이미지를 사용해보세요\n3. 네트워크 연결을 확인해주세요`);
-      };
-
-      // 임시 식별자 생성 (UUID)
-      const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // FormData 생성
-      const formData = new FormData();
-      formData.append('file', file);
-      // 이미지 엔티티에 저장하기 위한 추가 정보
-      formData.append('saveEntity', 'true');
-      formData.append('tempId', tempId);
-
-      // boardId가 있다면 추가
-      if (boardId) {
-        formData.append('boardId', boardId.toString());
+      // 삽입 직후 노드 상태 확인 로그 (유지)
+      console.log('Immediately after insert, checking nodes at pos:', insertPos);
+      const nodeRightAfter = editor.state.doc.nodeAt(insertPos);
+      if (nodeRightAfter) {
+        console.log('Found node right after insert:', nodeRightAfter.type.name, nodeRightAfter.attrs);
       }
 
-      // 5초 타임아웃 설정
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      // 이미지 업로드 함수
+      const uploadImage = async (): Promise<UploadResponse> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('tempId', tempId);
 
-      try {
-        // 백엔드 API 호출
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/upload_local`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/upload_temp`, {
           method: 'POST',
           body: formData,
-          signal: controller.signal,
-          credentials: 'include' // 인증 정보 포함
+          credentials: 'include'
         });
-
-        clearTimeout(timeoutId);
 
         if (!response.ok) {
-          const contentType = response.headers.get("content-type");
-          let errorMessage = '이미지 업로드에 실패했습니다.';
+          const errorData = await response.json().catch(() => ({ message: '업로드 실패' })) as ErrorResponse;
+          throw new Error(errorData.message || '이미지 업로드에 실패했습니다.');
+        }
 
-          if (contentType && contentType.indexOf("application/json") !== -1) {
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.message || errorMessage;
-            } catch (e) {
-              console.error('응답 파싱 오류:', e);
+        return await response.json();
+      };
+
+      // 재시도 로직으로 업로드 실행
+      const result = await retryOperation(uploadImage);
+      console.log('Image upload response:', result);
+
+      // 업로드 성공 시 이미지 노드 업데이트
+      if (result && result.tempUrl) {
+        console.log('Attempting to update image node using insertPos:', insertPos, 'with url:', result.tempUrl);
+
+        const updateTr = editor.state.tr;
+        const nodeAtInsertPos = insertPos !== null ? editor.state.doc.nodeAt(insertPos) : null;
+
+        // 저장된 위치의 노드가 유효하고 tempId가 일치하는지 확인
+        if (insertPos !== null && nodeAtInsertPos && nodeAtInsertPos.type.name === 'customImage' && nodeAtInsertPos.attrs['data-temp-id'] === tempId) {
+          console.log('Node found at insertPos matches tempId. Updating.');
+          const newAttrs = {
+            ...nodeAtInsertPos.attrs,
+            src: result.tempUrl,
+            // 'data-temp-id': null // 필요하다면 업데이트 후 tempId 제거
+          };
+          updateTr.setNodeMarkup(insertPos, undefined, newAttrs);
+          console.log('Dispatching transaction to update editor view.');
+          editor.view.dispatch(updateTr);
+          onImageUploadSuccess?.(tempId);
+        } else {
+          // Fallback: 저장된 위치에서 못 찾으면 tempId로 다시 검색
+          console.warn('Node at insertPos mismatch or not found. Falling back to search by tempId. Node found:', nodeAtInsertPos?.attrs);
+          let updatedFallback = false;
+          const fallbackTr = editor.state.tr;
+          editor.state.doc.descendants((node, pos) => {
+            if (node.type.name === 'customImage' && node.attrs['data-temp-id'] === tempId) {
+              console.log('Fallback search found node at pos:', pos);
+              const newAttrs = { ...node.attrs, src: result.tempUrl }; // 'data-temp-id': null
+              fallbackTr.setNodeMarkup(pos, undefined, newAttrs);
+              updatedFallback = true;
+              return false;
             }
+            return true;
+          });
+
+          if (updatedFallback) {
+            console.log('Dispatching fallback transaction.');
+            editor.view.dispatch(fallbackTr);
+            onImageUploadSuccess?.(tempId);
+          } else {
+            console.error('Failed to update image node using both insertPos and fallback search for tempId:', tempId);
+            // 실패 시 로딩 이미지 제거 로직 추가 필요 (아래 catch 블록 참조)
           }
-
-          console.error(`서버 응답 오류 (상태 코드: ${response.status}):`, errorMessage);
-
-          // 상태 코드에 따른 맞춤형 메시지
-          let userMessage = errorMessage;
-          if (response.status === 413) {
-            userMessage = '이미지 크기가 너무 큽니다. 더 작은 이미지를 사용해주세요.';
-          } else if (response.status === 415) {
-            userMessage = '지원되지 않는 이미지 형식입니다. JPG, PNG 등의 일반적인 형식을 사용해주세요.';
-          } else if (response.status === 401 || response.status === 403) {
-            userMessage = '로그인이 필요하거나 권한이 없습니다. 다시 로그인해주세요.';
-          } else if (response.status >= 500) {
-            userMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-          }
-
-          handleUploadFailure(userMessage);
-          return;
         }
-
-        // 서버에서 반환된 이미지 URL 및 임시 ID 받기
-        const jsonResponse = await response.json();
-        const imageUrl = jsonResponse.filePath;
-        const serverTempId = jsonResponse.tempId || tempId;
-
-        // 임시 ID 목록에 추가 - 로컬 상태에만 추가하고 즉시 부모에게 알리지 않음
-        setUploadedTempIds(prev => {
-          // 이미 있는 ID는 추가하지 않음
-          if (prev.includes(serverTempId)) return prev;
-          return [...prev, serverTempId];
-        });
-
-        // 중요: 이미지를 새로 추가하지 않고, 기존 임시 이미지의 src만 업데이트
-        const updateTransaction = editor.state.tr;
-        let updated = false;
-
-        // 문서 내의 이미지 노드를 순회하며 임시 이미지를 찾아 업데이트
-        editor.state.doc.descendants((node, pos) => {
-          if (node.type.name === 'image' && node.attrs['data-id'] === tempImageId) {
-            // 임시 이미지를 찾았으면 URL만 업데이트
-            const newAttrs = {
-              ...node.attrs,
-              src: imageUrl, // URL만 변경
-              'data-temp-id': serverTempId // 서버에서 받은 임시 ID 저장
-            };
-            updateTransaction.setNodeMarkup(pos, undefined, newAttrs);
-            updated = true;
-            return false; // 찾았으므로 순회 중단
-          }
-          return true; // 계속 순회
-        });
-
-        // 트랜잭션 실행
-        if (updated) {
-          editor.view.dispatch(updateTransaction);
+      } else {
+        console.warn('Upload result or tempUrl missing:', result);
+        // 실패 시 로딩 이미지 제거 필요
+        if (insertPos !== null) {
+            const deleteTr = editor.state.tr;
+            const nodeAtInsertPos = editor.state.doc.nodeAt(insertPos);
+            if (nodeAtInsertPos && nodeAtInsertPos.type.name === 'customImage' && nodeAtInsertPos.attrs['data-temp-id'] === tempId) {
+                deleteTr.delete(insertPos, insertPos + nodeAtInsertPos.nodeSize);
+                editor.view.dispatch(deleteTr);
+            } // 필요시 tempId 검색으로 fallback 삭제 추가
         }
-      } catch (error) {
-        console.error('이미지 업로드 중 네트워크 오류:', error);
-        handleUploadFailure(error instanceof Error ? error.message : '네트워크 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error);
+
+      let errorMessage = '이미지 업로드에 실패했습니다.';
+      if (error instanceof Error) {
+        errorMessage = error.message.includes('401') ? '세션이 만료되었습니다. 다시 로그인해주세요.' : error.message;
       }
 
-    } catch (error) {
-      console.error('이미지 처리 중 일반 오류:', error);
-      alert('이미지 처리 중 오류가 발생했습니다.');
+      // 실패한 로딩 이미지 노드 제거 (insertPos null 체크 추가)
+      if (insertPos !== null) {
+          let deleted = false;
+          const deleteTr = editor.state.tr;
+          const nodeAtInsertPosOnFail = editor.state.doc.nodeAt(insertPos);
+
+          if (nodeAtInsertPosOnFail && nodeAtInsertPosOnFail.type.name === 'customImage' && nodeAtInsertPosOnFail.attrs['data-temp-id'] === tempId) {
+              deleteTr.delete(insertPos, insertPos + nodeAtInsertPosOnFail.nodeSize);
+              deleted = true;
+          } else {
+              // Fallback: 위치로 못찾으면 tempId로 검색해서 삭제
+              editor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === 'customImage' && node.attrs['data-temp-id'] === tempId) {
+                      deleteTr.delete(pos, pos + node.nodeSize);
+                      deleted = true;
+                      return false;
+                  }
+                  return true;
+              });
+          }
+
+          if (deleted) {
+              console.log('Deleting failed/loading image node.');
+              editor.view.dispatch(deleteTr);
+          }
+      }
+
+      alert(errorMessage);
     } finally {
       setIsUploading(false);
     }
-  }, [editor, isUploading, checkServerStatus]);
+  }, [editor, isUploading, onImageUploadSuccess]);
 
   const addImage = useCallback(() => {
     if (!isMounted || !editor) return;
@@ -308,11 +596,11 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
     input.type = 'file';
     input.accept = 'image/*';
     input.onchange = (e) => {
-      handleUploadPhoto((e.target as HTMLInputElement).files, boardId);
+      handleUploadPhoto((e.target as HTMLInputElement).files);
       input.value = '';
     };
     input.click();
-  }, [editor, handleUploadPhoto, isMounted, boardId]);
+  }, [editor, handleUploadPhoto, isMounted]);
 
   const addLink = useCallback(() => {
     if (!editor) return;
@@ -592,8 +880,8 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
         
         .tiptap-content-wrapper .ProseMirror {
           outline: none;
-          height: auto; /* 💡 이거 추가 */
-          overflow-y: auto; /* 💡 이것도 추가 (스크롤 가능하게) */
+          height: auto;
+          overflow-y: auto;
           min-height: 300px;
           padding: 16px 20px;
           background: #ffffff;
@@ -663,27 +951,72 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
           margin-right: auto !important;
         }
         
-        /* 기존 image-resizer 스타일은 유지하되 표시방식 변경 */
+        /* CSS 커서 스타일 추가 */
+        img {
+          cursor: pointer; /* 이미지에 마우스 올리면 포인터 커서로 변경 */
+        }
+        
+        /* 이미지 리사이저 스타일 강화 */
         .image-resizer {
           display: block;
           position: relative;
           margin-top: 0.5em;
           margin-bottom: 0.5em;
           max-width: 100%;
+          /* 이미지 외곽선 추가로 리사이즈 대상 명확하게 표시 */
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+          border-radius: 2px;
+          overflow: visible;
         }
         
+        /* 리사이징 중인 이미지에 강조 표시 */
+        .image-resizer.resizing {
+          outline: 2px solid #4263EB;
+          box-shadow: 0 0 8px rgba(66, 99, 235, 0.5);
+        }
+        
+        /* 리사이즈 핸들 스타일 더 두드러지게 */
         .image-resizer .resize-trigger {
-          position: absolute;
-          right: -6px;
-          bottom: -9px;
+          position: absolute !important;
+          right: -8px !important;
+          bottom: -8px !important;
+          width: 16px !important;
+          height: 16px !important;
+          border-radius: 50% !important;
+          background-color: #4263EB !important;
+          border: 2px solid white !important;
+          color: white !important;
+          font-size: 10px !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          cursor: se-resize !important;
           opacity: 0;
-          transition: opacity .3s ease;
-          color: #3259a5;
-          cursor: se-resize;
+          transition: opacity 0.3s ease;
+          z-index: 9999 !important;
+          box-shadow: 0 0 3px rgba(0, 0, 0, 0.5) !important;
+          transform: translate(0, 0) !important;
+          pointer-events: auto !important;
         }
         
         .image-resizer:hover .resize-trigger {
-          opacity: 1;
+          opacity: 1 !important; /* !important 추가 */
+        }
+        
+        /* 드래그 중에는 항상 표시 */
+        .image-resizer:active .resize-trigger {
+          opacity: 1 !important; /* !important 추가 */
+        }
+        
+        /* ProseMirror 선택 노드일 때 항상 표시 */
+        .ProseMirror-selectednode .resize-trigger {
+          opacity: 1 !important;
+        }
+        
+        /* 이미지가 선택됐을 때 하이라이트 효과 */
+        .image-resizer.ProseMirror-selectednode {
+          outline: 2px solid #4263EB;
+          border-radius: 2px;
         }
         
         .tiptap-content-wrapper h1,
@@ -799,6 +1132,13 @@ const TiptapEditor = ({ content = '', onChange, boardId, onImageUpload }: Tiptap
         .tiptap-content-wrapper h3 {
           font-size: 20px !important;
           line-height: 1.4;
+        }
+        
+        /* 이미지 내부 img 태그 스타일 */
+        .image-resizer img {
+          display: block;
+          max-width: 100%;
+          border-radius: 2px;
         }
       `}</style>
     </div>

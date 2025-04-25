@@ -173,3 +173,29 @@ export function patch<T>(url: string, data: any, options?: RequestInit): Promise
 export function del<T>(url: string, options?: RequestInit): Promise<T> {
   return fetchJson<T>(url, { ...options, method: 'DELETE' });
 }
+
+import { ImageUploadResponse } from '../types/image';
+
+export const uploadImage = async (file: File): Promise<ImageUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/upload`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    let errorMsg = '이미지 업로드에 실패했습니다.';
+    try {
+      const errorData = await response.json();
+      errorMsg = errorData.message || `서버 응답 오류: ${response.status}`;
+    } catch {
+      errorMsg = response.statusText || `서버 오류: ${response.status}`;
+    }
+    throw new Error(errorMsg);
+  }
+
+  return response.json();
+};
