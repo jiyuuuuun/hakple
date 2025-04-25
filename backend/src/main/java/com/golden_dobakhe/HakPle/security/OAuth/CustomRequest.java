@@ -1,6 +1,7 @@
 package com.golden_dobakhe.HakPle.security.OAuth;
 
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import com.golden_dobakhe.HakPle.security.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -67,7 +68,7 @@ public class CustomRequest {
     }
 
     //쿠키 세팅
-    public void setCookie(String name, String value) {
+    public void setCookie(String name, String value, Long maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .path("/")
                 .domain("localhost")
@@ -75,6 +76,7 @@ public class CustomRequest {
                 //애 부분은 https부분에서 먹히도록 한 것이라고 한다
                 //.secure(true)
                 .httpOnly(true)
+                .maxAge(maxAge)
                 .build();
         resp.addHeader("Set-Cookie", cookie.toString());
     }
@@ -133,8 +135,8 @@ public class CustomRequest {
 
 
         //api키는 없이 토큰만 있다고 칩시다
-        setCookie("refreshToken", refreshToken);
-        setCookie("accessToken", accessToken);
+        setCookie("refreshToken", refreshToken, JwtTokenizer.REFRESH_TOKEN_EXPIRE_COUNT);
+        setCookie("accessToken", accessToken, JwtTokenizer.ACCESS_TOKEN_EXPIRE_COUNT);
 
         return accessToken;
     }
