@@ -44,15 +44,15 @@ const renderResizeHandle = () => {
   resizeHandles.forEach(container => {
     // 이미 핸들이 있으면 추가하지 않음
     if (container.querySelector('.resize-trigger')) return;
-
+    
     // 핸들 요소 생성
     const handle = document.createElement('div');
     handle.className = 'resize-trigger';
     handle.innerHTML = '⊙';
-
+    
     // 인라인 스타일 적용
     Object.assign(handle.style, resizeHandleStyles);
-
+    
     // 이미지 컨테이너에 핸들 추가
     container.appendChild(handle);
   });
@@ -126,7 +126,7 @@ const CustomImage = Image.extend({
   // 렌더링 HTML 수정 - 이미지 리사이저 래퍼 추가
   renderHTML({ HTMLAttributes }) {
     const attrs = { ...HTMLAttributes };
-
+    
     return [
       'div',
       { class: 'image-resizer' },
@@ -182,11 +182,11 @@ const CustomImage = Image.extend({
 
                 // 이미지 노드 선택 (선택적, 시각적 피드백)
                 try {
-                  const selection = NodeSelection.create(view.state.doc, imgPos);
-                  const trSelect = view.state.tr.setSelection(selection);
-                  view.dispatch(trSelect);
+                   const selection = NodeSelection.create(view.state.doc, imgPos);
+                   const trSelect = view.state.tr.setSelection(selection);
+                   view.dispatch(trSelect);
                 } catch(e) {
-                  console.warn("Could not select image node during resize start", e);
+                   console.warn("Could not select image node during resize start", e);
                 }
 
 
@@ -201,11 +201,11 @@ const CustomImage = Image.extend({
 
                   // 트랜잭션 생성 및 디스패치 (ProseMirror 상태 업데이트)
                   const tr = view.state.tr.setNodeMarkup(imgPos, undefined, {
-                    ...node.attrs,
-                    width: Math.round(newWidth),
-                    height: Math.round(newHeight),
-                    // 스타일 속성도 업데이트 (선택적)
-                    style: `width: ${Math.round(newWidth)}px; height: ${Math.round(newHeight)}px;`,
+                      ...node.attrs,
+                      width: Math.round(newWidth),
+                      height: Math.round(newHeight),
+                      // 스타일 속성도 업데이트 (선택적)
+                      style: `width: ${Math.round(newWidth)}px; height: ${Math.round(newHeight)}px;`,
                   });
                   view.dispatch(tr);
                 };
@@ -239,12 +239,12 @@ interface TiptapEditorProps {
 }
 
 interface UploadResponse {
-  tempUrl: string;
-  tempId: string;
+    tempUrl: string;
+    tempId: string;
 }
 
 interface ErrorResponse {
-  message: string;
+    message: string;
 }
 
 // 재시도 유틸리티 함수
@@ -253,18 +253,18 @@ const retryOperation = async <T,>(
     maxRetries: number = 3,
     delay: number = 1000
 ): Promise<T> => {
-  let lastError: Error | undefined;
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error as Error;
-      if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
-      }
+    let lastError: Error | undefined;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+            if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+            }
+        }
     }
-  }
-  throw lastError;
+    throw lastError;
 };
 
 const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDelete }: TiptapEditorProps) => {
@@ -285,10 +285,10 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (showLinkModal &&
-          linkModalRef.current &&
-          !linkModalRef.current.contains(event.target as Node) &&
-          linkButtonRef.current &&
-          !linkButtonRef.current.contains(event.target as Node)) {
+        linkModalRef.current &&
+        !linkModalRef.current.contains(event.target as Node) &&
+        linkButtonRef.current &&
+        !linkButtonRef.current.contains(event.target as Node)) {
         setShowLinkModal(false);
       }
     };
@@ -301,35 +301,35 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
   // 이미지 제거 감지 및 부모 컴포넌트에 알림
   const handleImageNodeChanges = useCallback(
-      (editorInstance: Editor) => {
-        if (!editorInstance) return;
+    (editorInstance: Editor) => {
+      if (!editorInstance) return;
 
-        const currentTempIds = new Set<string>();
-        editorInstance.state.doc.descendants((node: ProseMirrorNode) => {
-          if (node.type.name === 'customImage') {
-            // data-temp-id 속성에 저장된 실제 tempId 사용
-            const tempId = node.attrs['data-temp-id'];
-            if (tempId && typeof tempId === 'string') {
-              currentTempIds.add(tempId);
-            }
+      const currentTempIds = new Set<string>();
+      editorInstance.state.doc.descendants((node: ProseMirrorNode) => {
+        if (node.type.name === 'customImage') {
+          // data-temp-id 속성에 저장된 실제 tempId 사용
+          const tempId = node.attrs['data-temp-id'];
+          if (tempId && typeof tempId === 'string') {
+            currentTempIds.add(tempId);
           }
-          return true;
-        });
+        }
+        return true;
+      });
 
-        const prevSet = prevTempIdsRef.current;
+      const prevSet = prevTempIdsRef.current;
 
-        // 제거된 이미지 찾기: 이전 목록에는 있었지만 현재 목록에는 없는 ID
-        prevSet.forEach(prevId => {
-          if (!currentTempIds.has(prevId)) {
-            console.log(`Image removed with tempId: ${prevId}`);
-            onImageDelete?.(prevId); // 부모 컴포넌트에 삭제 알림
-          }
-        });
+      // 제거된 이미지 찾기: 이전 목록에는 있었지만 현재 목록에는 없는 ID
+      prevSet.forEach(prevId => {
+        if (!currentTempIds.has(prevId)) {
+          console.log(`Image removed with tempId: ${prevId}`);
+          onImageDelete?.(prevId); // 부모 컴포넌트에 삭제 알림
+        }
+      });
 
-        // 현재 이미지 목록으로 업데이트
-        prevTempIdsRef.current = new Set(currentTempIds);
-      },
-      [onImageDelete] // onImageDelete가 변경될 때만 함수 재생성
+      // 현재 이미지 목록으로 업데이트
+      prevTempIdsRef.current = new Set(currentTempIds);
+    },
+    [onImageDelete] // onImageDelete가 변경될 때만 함수 재생성
   );
 
   const editor = useEditor({
@@ -396,7 +396,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
     const handleUpdate = () => {
       // DOM 업데이트 후 핸들 렌더링 보장
       requestAnimationFrame(() => {
-        renderResizeHandle();
+         renderResizeHandle();
       });
     };
 
@@ -424,7 +424,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
       return false;
     }
   };
-
+  
   const handleUploadPhoto = useCallback(async (files: FileList | null) => {
     if (files === null || !editor || isUploading) return;
 
@@ -540,12 +540,12 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         console.warn('Upload result or tempUrl missing:', result);
         // 실패 시 로딩 이미지 제거 필요
         if (insertPos !== null) {
-          const deleteTr = editor.state.tr;
-          const nodeAtInsertPos = editor.state.doc.nodeAt(insertPos);
-          if (nodeAtInsertPos && nodeAtInsertPos.type.name === 'customImage' && nodeAtInsertPos.attrs['data-temp-id'] === tempId) {
-            deleteTr.delete(insertPos, insertPos + nodeAtInsertPos.nodeSize);
-            editor.view.dispatch(deleteTr);
-          } // 필요시 tempId 검색으로 fallback 삭제 추가
+            const deleteTr = editor.state.tr;
+            const nodeAtInsertPos = editor.state.doc.nodeAt(insertPos);
+            if (nodeAtInsertPos && nodeAtInsertPos.type.name === 'customImage' && nodeAtInsertPos.attrs['data-temp-id'] === tempId) {
+                deleteTr.delete(insertPos, insertPos + nodeAtInsertPos.nodeSize);
+                editor.view.dispatch(deleteTr);
+            } // 필요시 tempId 검색으로 fallback 삭제 추가
         }
       }
     } catch (error) {
@@ -558,29 +558,29 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
       // 실패한 로딩 이미지 노드 제거 (insertPos null 체크 추가)
       if (insertPos !== null) {
-        let deleted = false;
-        const deleteTr = editor.state.tr;
-        const nodeAtInsertPosOnFail = editor.state.doc.nodeAt(insertPos);
+          let deleted = false;
+          const deleteTr = editor.state.tr;
+          const nodeAtInsertPosOnFail = editor.state.doc.nodeAt(insertPos);
 
-        if (nodeAtInsertPosOnFail && nodeAtInsertPosOnFail.type.name === 'customImage' && nodeAtInsertPosOnFail.attrs['data-temp-id'] === tempId) {
-          deleteTr.delete(insertPos, insertPos + nodeAtInsertPosOnFail.nodeSize);
-          deleted = true;
-        } else {
-          // Fallback: 위치로 못찾으면 tempId로 검색해서 삭제
-          editor.state.doc.descendants((node, pos) => {
-            if (node.type.name === 'customImage' && node.attrs['data-temp-id'] === tempId) {
-              deleteTr.delete(pos, pos + node.nodeSize);
+          if (nodeAtInsertPosOnFail && nodeAtInsertPosOnFail.type.name === 'customImage' && nodeAtInsertPosOnFail.attrs['data-temp-id'] === tempId) {
+              deleteTr.delete(insertPos, insertPos + nodeAtInsertPosOnFail.nodeSize);
               deleted = true;
-              return false;
-            }
-            return true;
-          });
-        }
+          } else {
+              // Fallback: 위치로 못찾으면 tempId로 검색해서 삭제
+              editor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === 'customImage' && node.attrs['data-temp-id'] === tempId) {
+                      deleteTr.delete(pos, pos + node.nodeSize);
+                      deleted = true;
+                      return false;
+                  }
+                  return true;
+              });
+          }
 
-        if (deleted) {
-          console.log('Deleting failed/loading image node.');
-          editor.view.dispatch(deleteTr);
-        }
+          if (deleted) {
+              console.log('Deleting failed/loading image node.');
+              editor.view.dispatch(deleteTr);
+          }
       }
 
       alert(errorMessage);
@@ -632,516 +632,516 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
   if (!editor || !isMounted) return null;
 
   return (
-      <div className="prose max-w-none codemirror-like-editor">
-        <div className="flex items-center p-[12px] border-b w-full bg-[#ffffff]">
-          <div className="flex mr-2">
-            <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                className={`p-2 hover:bg-gray-300 border-none outline-none ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-300 text-black' : 'text-gray-600 bg-transparent'}`}
-                title="제목 1"
-            >
-              <span className="text-lg font-semibold">H1</span>
-            </button>
-            <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                className={`p-2 hover:bg-gray-300 border-none outline-none ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-300 text-black' : 'text-gray-600 bg-transparent'}`}
-                title="제목 2"
-            >
-              <span className="text-lg font-semibold">H2</span>
-            </button>
-            <button
-                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                className={`p-2 hover:bg-gray-300 border-none outline-none ${editor.isActive('heading', { level: 3 }) ? 'bg-gray-300 text-black' : 'text-gray-600 bg-transparent'}`}
-                title="제목 3"
-            >
-              <span className="text-lg font-semibold">H3</span>
-            </button>
-          </div>
-
-          <div className="flex items-center mx-2 text-gray-400">
-            <span>|</span>
-          </div>
-
+    <div className="prose max-w-none codemirror-like-editor">
+      <div className="flex items-center p-[12px] border-b w-full bg-[#ffffff]">
+        <div className="flex mr-2">
           <button
-              onClick={() => editor.chain().focus().toggleBold().run()}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('bold') ? 'bg-gray-300' : ''}`}
-              title="굵게"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={`p-2 hover:bg-gray-300 border-none outline-none ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-300 text-black' : 'text-gray-600 bg-transparent'}`}
+            title="제목 1"
           >
-            <span className="material-icons" style={{ fontSize: '20px' }}>format_bold</span>
+            <span className="text-lg font-semibold">H1</span>
           </button>
-
           <button
-              onClick={() => editor.chain().focus().toggleItalic().run()}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('italic') ? 'bg-gray-300' : ''}`}
-              title="기울임"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={`p-2 hover:bg-gray-300 border-none outline-none ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-300 text-black' : 'text-gray-600 bg-transparent'}`}
+            title="제목 2"
           >
-            <span className="material-icons" style={{ fontSize: '20px' }}>format_italic</span>
+            <span className="text-lg font-semibold">H2</span>
           </button>
-
           <button
-              onClick={() => editor.chain().focus().toggleUnderline().run()}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('underline') ? 'bg-gray-300' : ''}`}
-              title="밑줄"
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={`p-2 hover:bg-gray-300 border-none outline-none ${editor.isActive('heading', { level: 3 }) ? 'bg-gray-300 text-black' : 'text-gray-600 bg-transparent'}`}
+            title="제목 3"
           >
-            <span className="material-icons" style={{ fontSize: '20px' }}>format_underlined</span>
-          </button>
-
-          <div className="flex items-center mx-2 text-gray-400">
-            <span>|</span>
-          </div>
-
-          <div className="flex mx-1">
-            <button
-                onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                className={`p-2 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-300' : ''}`}
-                title="왼쪽 정렬"
-            >
-              <span className="material-icons" style={{ fontSize: '20px' }}>format_align_left</span>
-            </button>
-            <button
-                onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                className={`p-2 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-300' : ''}`}
-                title="가운데 정렬"
-            >
-              <span className="material-icons" style={{ fontSize: '20px' }}>format_align_center</span>
-            </button>
-            <button
-                onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                className={`p-2 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-300' : ''}`}
-                title="오른쪽 정렬"
-            >
-              <span className="material-icons" style={{ fontSize: '20px' }}>format_align_right</span>
-            </button>
-          </div>
-
-          <div className="flex items-center mx-2 text-gray-400">
-            <span>|</span>
-          </div>
-
-          <button
-              onClick={() => editor.chain().focus().toggleBlockquote().run()}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('blockquote') ? 'bg-gray-300' : ''}`}
-              title="인용구"
-          >
-            <span className="material-icons" style={{ fontSize: '20px' }}>format_quote</span>
-          </button>
-
-          <button
-              onClick={addLink}
-              ref={linkButtonRef}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('link') ? 'bg-gray-300' : ''}`}
-              title="링크"
-          >
-            <span className="material-icons" style={{ fontSize: '20px' }}>link</span>
-          </button>
-
-          <button
-              onClick={addImage}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title="이미지"
-              disabled={isUploading}
-          >
-            <span className="material-icons" style={{ fontSize: '20px' }}>{isUploading ? 'hourglass_empty' : 'image'}</span>
-          </button>
-
-          <div className="flex items-center mx-2 text-gray-400">
-            <span>|</span>
-          </div>
-
-          <button
-              onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('codeBlock') ? 'bg-gray-300' : ''}`}
-              title="코드 블록"
-          >
-            <span className="material-icons" style={{ fontSize: '20px' }}>code</span>
-          </button>
-
-          <button
-              onClick={() => editor.chain().focus().toggleBulletList().run()}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('bulletList') ? 'bg-gray-300' : ''}`}
-              title="글머리 기호"
-          >
-            <span className="material-icons" style={{ fontSize: '20px' }}>format_list_bulleted</span>
-          </button>
-
-          <button
-              onClick={() => editor.chain().focus().toggleOrderedList().run()}
-              className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('orderedList') ? 'bg-gray-300' : ''}`}
-              title="번호 매기기"
-          >
-            <span className="material-icons" style={{ fontSize: '20px' }}>format_list_numbered</span>
+            <span className="text-lg font-semibold">H3</span>
           </button>
         </div>
 
-        <div className="CodeMirror-scroll" ref={editorContainerRef}>
-          <div className="CodeMirror-sizer">
-            <div style={{ position: 'relative', top: '0px' }}>
-              <div className="CodeMirror-lines" role="presentation">
-                <div role="presentation" style={{ position: 'relative', outline: 'none' }}>
-                  <div className="tiptap-content-wrapper">
-                    <EditorContent className="h-full" editor={editor} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center mx-2 text-gray-400">
+          <span>|</span>
         </div>
 
-        {/* 링크 삽입 모달 */}
-        {showLinkModal && (
-            <div className="absolute z-50" style={{
-              top: linkButtonRef.current ? linkButtonRef.current.offsetTop + linkButtonRef.current.offsetHeight + 5 : 0,
-              left: linkButtonRef.current ? linkButtonRef.current.offsetLeft : 0,
-            }} ref={linkModalRef}>
-              <div className="bg-[#ffffff] p-4 rounded-lg shadow-lg border border-gray-200" style={{ width: '320px' }}>
-                <h3 className="text-base font-medium mb-3 m-[10px]">링크 삽입</h3>
-                <input
-                    type="text"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="URL 입력"
-                    className="w-full px-3 py-2 border border-gray-300 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-[#980ffa] m-[10px]"
-                    style={{ width: '270px' }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleLinkConfirm();
-                      }
-                    }}
-                    autoFocus
-                />
-                <div className="flex justify-end space-x-2">
-                  <button
-                      onClick={handleLinkCancel}
-                      className="px-3 py-1 bg-gray-200 text-[#000000] rounded hover:bg-gray-300 m-[10px] border-none rounded-[10px] p-[5px]"
-                  >
-                    취소
-                  </button>
-                  <button
-                      onClick={handleLinkConfirm}
-                      className="px-3 py-1 bg-[#980ffa] text-[#ffffff] rounded hover:bg-[#8e44ad] m-[10px] border-none  rounded-[10px] p-[5px]"
-                  >
-                    확인
-                  </button>
-                </div>
-              </div>
-            </div>
-        )}
+        <button
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('bold') ? 'bg-gray-300' : ''}`}
+          title="굵게"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>format_bold</span>
+        </button>
 
-        <style jsx global>{`
-          @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+        <button
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('italic') ? 'bg-gray-300' : ''}`}
+          title="기울임"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>format_italic</span>
+        </button>
 
-          .codemirror-like-editor {
-            font-family: monospace;
-            height: 100%;
-            font-size: 14px;
-            position: relative;
-          }
+        <button
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('underline') ? 'bg-gray-300' : ''}`}
+          title="밑줄"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>format_underlined</span>
+        </button>
 
-          .CodeMirror-scroll {
-            min-height: 300px;
-            border: 1px solid #F9FAFB;
-            border-radius: 4px;
-            overflow: auto;
-            position: relative;
-            background: #ffffff;
-            padding: 16px;
-          }
+        <div className="flex items-center mx-2 text-gray-400">
+          <span>|</span>
+        </div>
 
-          .is-editor-empty:first-child::before {
-            content: attr(data-placeholder);
-            float: left;
-            color: #aaa;
-            pointer-events: none;
-            height: 0;
-          }
+        <div className="flex mx-1">
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            className={`p-2 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-300' : ''}`}
+            title="왼쪽 정렬"
+          >
+            <span className="material-icons" style={{ fontSize: '20px' }}>format_align_left</span>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            className={`p-2 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-300' : ''}`}
+            title="가운데 정렬"
+          >
+            <span className="material-icons" style={{ fontSize: '20px' }}>format_align_center</span>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            className={`p-2 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-300' : ''}`}
+            title="오른쪽 정렬"
+          >
+            <span className="material-icons" style={{ fontSize: '20px' }}>format_align_right</span>
+          </button>
+        </div>
 
-          .ProseMirror {
-            outline: none;
-            padding: 8px;
-            caret-color: #000;
-            min-height: calc(100% - 16px);
-            background: #ffffff;
-          }
+        <div className="flex items-center mx-2 text-gray-400">
+          <span>|</span>
+        </div>
 
-          .ProseMirror p.is-empty:first-child::before {
-            content: attr(data-placeholder);
-            float: left;
-            color: #aaa;
-            pointer-events: none;
-            height: 0;
-          }
+        <button
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('blockquote') ? 'bg-gray-300' : ''}`}
+          title="인용구"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>format_quote</span>
+        </button>
 
-          .tiptap-content-wrapper {
-            background: #ffffff;
-            border-radius: 15px;
-            height: 100%;
-            overflow: hidden;
-          }
+        <button
+          onClick={addLink}
+          ref={linkButtonRef}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('link') ? 'bg-gray-300' : ''}`}
+          title="링크"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>link</span>
+        </button>
 
-          .tiptap-content-wrapper .ProseMirror {
-            outline: none;
-            height: auto;
-            overflow-y: auto;
-            min-height: 300px;
-            padding: 16px 20px;
-            background: #ffffff;
-          }
+        <button
+          onClick={addImage}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title="이미지"
+          disabled={isUploading}
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>{isUploading ? 'hourglass_empty' : 'image'}</span>
+        </button>
 
-          .ProseMirror p.is-empty:first-child::before {
-            color: #9ca3af;
-            content: "당신의 이야기를 적어보세요...";
-          }
+        <div className="flex items-center mx-2 text-gray-400">
+          <span>|</span>
+        </div>
 
-          .tiptap-content-wrapper .ProseMirror {
-            outline: none;
-          }
+        <button
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('codeBlock') ? 'bg-gray-300' : ''}`}
+          title="코드 블록"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>code</span>
+        </button>
 
-          .tiptap-content-wrapper img {
-            max-width: 100%;
-            margin: 0 auto;
-            display: block;
-          }
+        <button
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('bulletList') ? 'bg-gray-300' : ''}`}
+          title="글머리 기호"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>format_list_bulleted</span>
+        </button>
 
-          /* 전역 정렬 스타일 추가 */
-          [data-text-align=center] {
-            text-align: center !important;
-          }
-
-          [data-text-align=right] {
-            text-align: right !important;
-          }
-
-          [data-text-align=left] {
-            text-align: left !important;
-          }
-
-          /* 이미지 정렬 관련 스타일 수정 */
-          .tiptap-content-wrapper [data-text-align=center],
-          .tiptap-content-wrapper [style*="text-align: center"] {
-            text-align: center !important;
-          }
-
-          .tiptap-content-wrapper [data-text-align=right],
-          .tiptap-content-wrapper [style*="text-align: right"] {
-            text-align: right !important;
-          }
-
-          .tiptap-content-wrapper [data-text-align=left],
-          .tiptap-content-wrapper [style*="text-align: left"] {
-            text-align: left !important;
-          }
-
-          .tiptap-content-wrapper img {
-            max-width: 100%;
-            display: block;
-          }
-
-          .tiptap-content-wrapper [data-text-align=center] img {
-            margin-left: auto !important;
-            margin-right: auto !important;
-          }
-
-          .tiptap-content-wrapper [data-text-align=right] img {
-            margin-left: auto !important;
-            margin-right: 0 !important;
-          }
-
-          .tiptap-content-wrapper [data-text-align=left] img {
-            margin-left: 0 !important;
-            margin-right: auto !important;
-          }
-
-          /* CSS 커서 스타일 추가 */
-          img {
-            cursor: pointer; /* 이미지에 마우스 올리면 포인터 커서로 변경 */
-          }
-
-          /* 이미지 리사이저 스타일 강화 */
-          .image-resizer {
-            display: block;
-            position: relative;
-            margin-top: 0.5em;
-            margin-bottom: 0.5em;
-            max-width: 100%;
-            /* 이미지 외곽선 추가로 리사이즈 대상 명확하게 표시 */
-            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
-            border-radius: 2px;
-            overflow: visible;
-          }
-
-          /* 리사이징 중인 이미지에 강조 표시 */
-          .image-resizer.resizing {
-            outline: 2px solid #4263EB;
-            box-shadow: 0 0 8px rgba(66, 99, 235, 0.5);
-          }
-
-          /* 리사이즈 핸들 스타일 더 두드러지게 */
-          .image-resizer .resize-trigger {
-            position: absolute !important;
-            right: -8px !important;
-            bottom: -8px !important;
-            width: 16px !important;
-            height: 16px !important;
-            border-radius: 50% !important;
-            background-color: #4263EB !important;
-            border: 2px solid white !important;
-            color: white !important;
-            font-size: 10px !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
-            cursor: se-resize !important;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 9999 !important;
-            box-shadow: 0 0 3px rgba(0, 0, 0, 0.5) !important;
-            transform: translate(0, 0) !important;
-            pointer-events: auto !important;
-          }
-
-          .image-resizer:hover .resize-trigger {
-            opacity: 1 !important; /* !important 추가 */
-          }
-
-          /* 드래그 중에는 항상 표시 */
-          .image-resizer:active .resize-trigger {
-            opacity: 1 !important; /* !important 추가 */
-          }
-
-          /* ProseMirror 선택 노드일 때 항상 표시 */
-          .ProseMirror-selectednode .resize-trigger {
-            opacity: 1 !important;
-          }
-
-          /* 이미지가 선택됐을 때 하이라이트 효과 */
-          .image-resizer.ProseMirror-selectednode {
-            outline: 2px solid #4263EB;
-            border-radius: 2px;
-          }
-
-          .tiptap-content-wrapper h1,
-          .tiptap-content-wrapper h2,
-          .tiptap-content-wrapper h3,
-          .tiptap-content-wrapper h4,
-          .tiptap-content-wrapper h5,
-          .tiptap-content-wrapper h6 {
-            font-weight: bold;
-            margin: 0.8em 0 0.5em;
-          }
-
-          .tiptap-content-wrapper blockquote {
-            border-left: 3px solid #000000;
-            padding-left: 1em;
-            margin-left: 0;
-          }
-
-          .tiptap-content-wrapper pre {
-            background-color: #f5f5f5;
-            padding: 0.5em;
-            border-radius: 4px;
-            font-family: 'Courier New', Courier, monospace;
-            border: 1px solid #F9FAFB;
-          }
-
-          .tiptap-content-wrapper ul,
-          .tiptap-content-wrapper ol {
-            padding-left: 1em;
-          }
-
-          .tiptap-content-wrapper ul li::marker,
-          .tiptap-content-wrapper ol li::marker {
-            color: #000000 !important;
-          }
-
-          /* 추가 강화 스타일 */
-          .ProseMirror ul li::marker,
-          .ProseMirror ol li::marker {
-            color: #000000 !important;
-          }
-
-          /* 추가: 에디터 내부의 모든 마커에 강제 적용 */
-          .ProseMirror ul li::before,
-          .ProseMirror ol li::before,
-          .ProseMirror ul li::marker,
-          .ProseMirror ol li::marker,
-          .ProseMirror ul > li,
-          .ProseMirror ol > li,
-          .tiptap-content-wrapper ul > li,
-          .tiptap-content-wrapper ol > li {
-            color: #000000 !important;
-          }
-
-          /* 에디터 특정 버튼 클릭 후 생성되는 요소에 직접 적용 */
-          .ProseMirror ul,
-          .ProseMirror ol {
-            color: #000000 !important;
-          }
-
-          /* 특정 리스트 유형에 대한 명시적 스타일 */
-          .ProseMirror ul {
-            list-style-type: disc !important;
-          }
-
-          .ProseMirror ol {
-            list-style-type: decimal !important;
-          }
-
-          /* 에디터 내부 요소들에 대한 색상 정의 강화 */
-          .ProseMirror h1,
-          .ProseMirror h2,
-          .ProseMirror h3,
-          .ProseMirror blockquote,
-          .ProseMirror ul li::marker,
-          .ProseMirror ol li::marker {
-            color: #000000 !important;
-          }
-
-          /* 헤딩 태그에 명확한 크기 지정 */
-          .ProseMirror h1 {
-            font-size: 28px !important;
-            line-height: 1.2;
-            margin-top: 0.8em;
-            margin-bottom: 0.5em;
-          }
-
-          .ProseMirror h2 {
-            font-size: 24px !important;
-            line-height: 1.3;
-            margin-top: 0.7em;
-            margin-bottom: 0.5em;
-          }
-
-          .ProseMirror h3 {
-            font-size: 20px !important;
-            line-height: 1.4;
-            margin-top: 0.6em;
-            margin-bottom: 0.5em;
-          }
-
-          /* tiptap-content-wrapper에도 동일하게 적용 */
-          .tiptap-content-wrapper h1 {
-            font-size: 28px !important;
-            line-height: 1.2;
-          }
-
-          .tiptap-content-wrapper h2 {
-            font-size: 24px !important;
-            line-height: 1.3;
-          }
-
-          .tiptap-content-wrapper h3 {
-            font-size: 20px !important;
-            line-height: 1.4;
-          }
-
-          /* 이미지 내부 img 태그 스타일 */
-          .image-resizer img {
-            display: block;
-            max-width: 100%;
-            border-radius: 2px;
-          }
-        `}</style>
+        <button
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('orderedList') ? 'bg-gray-300' : ''}`}
+          title="번호 매기기"
+        >
+          <span className="material-icons" style={{ fontSize: '20px' }}>format_list_numbered</span>
+        </button>
       </div>
+
+      <div className="CodeMirror-scroll" ref={editorContainerRef}>
+        <div className="CodeMirror-sizer">
+          <div style={{ position: 'relative', top: '0px' }}>
+            <div className="CodeMirror-lines" role="presentation">
+              <div role="presentation" style={{ position: 'relative', outline: 'none' }}>
+                <div className="tiptap-content-wrapper">
+                  <EditorContent className="h-full" editor={editor} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 링크 삽입 모달 */}
+      {showLinkModal && (
+        <div className="absolute z-50" style={{
+          top: linkButtonRef.current ? linkButtonRef.current.offsetTop + linkButtonRef.current.offsetHeight + 5 : 0,
+          left: linkButtonRef.current ? linkButtonRef.current.offsetLeft : 0,
+        }} ref={linkModalRef}>
+          <div className="bg-[#ffffff] p-4 rounded-lg shadow-lg border border-gray-200" style={{ width: '320px' }}>
+            <h3 className="text-base font-medium mb-3 m-[10px]">링크 삽입</h3>
+            <input
+              type="text"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="URL 입력"
+              className="w-full px-3 py-2 border border-gray-300 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-[#980ffa] m-[10px]"
+              style={{ width: '270px' }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleLinkConfirm();
+                }
+              }}
+              autoFocus
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleLinkCancel}
+                className="px-3 py-1 bg-gray-200 text-[#000000] rounded hover:bg-gray-300 m-[10px] border-none rounded-[10px] p-[5px]"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleLinkConfirm}
+                className="px-3 py-1 bg-[#980ffa] text-[#ffffff] rounded hover:bg-[#8e44ad] m-[10px] border-none  rounded-[10px] p-[5px]"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+        
+        .codemirror-like-editor {
+          font-family: monospace;
+          height: 100%;
+          font-size: 14px;
+          position: relative;
+        }
+        
+        .CodeMirror-scroll {
+          min-height: 300px;
+          border: 1px solid #F9FAFB;
+          border-radius: 4px;
+          overflow: auto;
+          position: relative;
+          background: #ffffff;
+          padding: 16px;
+        }
+        
+        .is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: #aaa;
+          pointer-events: none;
+          height: 0;
+        }
+        
+        .ProseMirror {
+          outline: none;
+          padding: 8px;
+          caret-color: #000;
+          min-height: calc(100% - 16px);
+          background: #ffffff;
+        }
+        
+        .ProseMirror p.is-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: #aaa;
+          pointer-events: none;
+          height: 0;
+        }
+        
+        .tiptap-content-wrapper {
+          background: #ffffff;
+          border-radius: 15px;
+          height: 100%;
+          overflow: hidden;
+        }
+        
+        .tiptap-content-wrapper .ProseMirror {
+          outline: none;
+          height: auto;
+          overflow-y: auto;
+          min-height: 300px;
+          padding: 16px 20px;
+          background: #ffffff;
+        }
+        
+        .ProseMirror p.is-empty:first-child::before {
+          color: #9ca3af;
+          content: "당신의 이야기를 적어보세요...";
+        }
+        
+        .tiptap-content-wrapper .ProseMirror {
+          outline: none;
+        }
+        
+        .tiptap-content-wrapper img {
+          max-width: 100%;
+          margin: 0 auto;
+          display: block;
+        }
+        
+        /* 전역 정렬 스타일 추가 */
+        [data-text-align=center] {
+          text-align: center !important;
+        }
+        
+        [data-text-align=right] {
+          text-align: right !important;
+        }
+        
+        [data-text-align=left] {
+          text-align: left !important;
+        }
+        
+        /* 이미지 정렬 관련 스타일 수정 */
+        .tiptap-content-wrapper [data-text-align=center],
+        .tiptap-content-wrapper [style*="text-align: center"] {
+          text-align: center !important;
+        }
+        
+        .tiptap-content-wrapper [data-text-align=right],
+        .tiptap-content-wrapper [style*="text-align: right"] {
+          text-align: right !important;
+        }
+        
+        .tiptap-content-wrapper [data-text-align=left],
+        .tiptap-content-wrapper [style*="text-align: left"] {
+          text-align: left !important;
+        }
+        
+        .tiptap-content-wrapper img {
+          max-width: 100%;
+          display: block;
+        }
+        
+        .tiptap-content-wrapper [data-text-align=center] img {
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }
+        
+        .tiptap-content-wrapper [data-text-align=right] img {
+          margin-left: auto !important;
+          margin-right: 0 !important;
+        }
+        
+        .tiptap-content-wrapper [data-text-align=left] img {
+          margin-left: 0 !important;
+          margin-right: auto !important;
+        }
+        
+        /* CSS 커서 스타일 추가 */
+        img {
+          cursor: pointer; /* 이미지에 마우스 올리면 포인터 커서로 변경 */
+        }
+        
+        /* 이미지 리사이저 스타일 강화 */
+        .image-resizer {
+          display: block;
+          position: relative;
+          margin-top: 0.5em;
+          margin-bottom: 0.5em;
+          max-width: 100%;
+          /* 이미지 외곽선 추가로 리사이즈 대상 명확하게 표시 */
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+          border-radius: 2px;
+          overflow: visible;
+        }
+        
+        /* 리사이징 중인 이미지에 강조 표시 */
+        .image-resizer.resizing {
+          outline: 2px solid #4263EB;
+          box-shadow: 0 0 8px rgba(66, 99, 235, 0.5);
+        }
+        
+        /* 리사이즈 핸들 스타일 더 두드러지게 */
+        .image-resizer .resize-trigger {
+          position: absolute !important;
+          right: -8px !important;
+          bottom: -8px !important;
+          width: 16px !important;
+          height: 16px !important;
+          border-radius: 50% !important;
+          background-color: #4263EB !important;
+          border: 2px solid white !important;
+          color: white !important;
+          font-size: 10px !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          cursor: se-resize !important;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          z-index: 9999 !important;
+          box-shadow: 0 0 3px rgba(0, 0, 0, 0.5) !important;
+          transform: translate(0, 0) !important;
+          pointer-events: auto !important;
+        }
+        
+        .image-resizer:hover .resize-trigger {
+          opacity: 1 !important; /* !important 추가 */
+        }
+        
+        /* 드래그 중에는 항상 표시 */
+        .image-resizer:active .resize-trigger {
+          opacity: 1 !important; /* !important 추가 */
+        }
+        
+        /* ProseMirror 선택 노드일 때 항상 표시 */
+        .ProseMirror-selectednode .resize-trigger {
+          opacity: 1 !important;
+        }
+        
+        /* 이미지가 선택됐을 때 하이라이트 효과 */
+        .image-resizer.ProseMirror-selectednode {
+          outline: 2px solid #4263EB;
+          border-radius: 2px;
+        }
+        
+        .tiptap-content-wrapper h1,
+        .tiptap-content-wrapper h2,
+        .tiptap-content-wrapper h3,
+        .tiptap-content-wrapper h4,
+        .tiptap-content-wrapper h5,
+        .tiptap-content-wrapper h6 {
+          font-weight: bold;
+          margin: 0.8em 0 0.5em;
+        }
+        
+        .tiptap-content-wrapper blockquote {
+          border-left: 3px solid #000000;
+          padding-left: 1em;
+          margin-left: 0;
+        }
+        
+        .tiptap-content-wrapper pre {
+          background-color: #f5f5f5;
+          padding: 0.5em;
+          border-radius: 4px;
+          font-family: 'Courier New', Courier, monospace;
+          border: 1px solid #F9FAFB;
+        }
+        
+        .tiptap-content-wrapper ul,
+        .tiptap-content-wrapper ol {
+          padding-left: 1em;
+        }
+        
+        .tiptap-content-wrapper ul li::marker,
+        .tiptap-content-wrapper ol li::marker {
+          color: #000000 !important;
+        }
+        
+        /* 추가 강화 스타일 */
+        .ProseMirror ul li::marker,
+        .ProseMirror ol li::marker {
+          color: #000000 !important;
+        }
+        
+        /* 추가: 에디터 내부의 모든 마커에 강제 적용 */
+        .ProseMirror ul li::before,
+        .ProseMirror ol li::before,
+        .ProseMirror ul li::marker,
+        .ProseMirror ol li::marker,
+        .ProseMirror ul > li,
+        .ProseMirror ol > li,
+        .tiptap-content-wrapper ul > li,
+        .tiptap-content-wrapper ol > li {
+          color: #000000 !important;
+        }
+        
+        /* 에디터 특정 버튼 클릭 후 생성되는 요소에 직접 적용 */
+        .ProseMirror ul,
+        .ProseMirror ol {
+          color: #000000 !important;
+        }
+        
+        /* 특정 리스트 유형에 대한 명시적 스타일 */
+        .ProseMirror ul {
+          list-style-type: disc !important;
+        }
+        
+        .ProseMirror ol {
+          list-style-type: decimal !important;
+        }
+        
+        /* 에디터 내부 요소들에 대한 색상 정의 강화 */
+        .ProseMirror h1,
+        .ProseMirror h2, 
+        .ProseMirror h3,
+        .ProseMirror blockquote,
+        .ProseMirror ul li::marker,
+        .ProseMirror ol li::marker {
+          color: #000000 !important;
+        }
+
+        /* 헤딩 태그에 명확한 크기 지정 */
+        .ProseMirror h1 {
+          font-size: 28px !important;
+          line-height: 1.2;
+          margin-top: 0.8em;
+          margin-bottom: 0.5em;
+        }
+        
+        .ProseMirror h2 {
+          font-size: 24px !important;
+          line-height: 1.3;
+          margin-top: 0.7em;
+          margin-bottom: 0.5em;
+        }
+        
+        .ProseMirror h3 {
+          font-size: 20px !important;
+          line-height: 1.4;
+          margin-top: 0.6em;
+          margin-bottom: 0.5em;
+        }
+        
+        /* tiptap-content-wrapper에도 동일하게 적용 */
+        .tiptap-content-wrapper h1 {
+          font-size: 28px !important;
+          line-height: 1.2;
+        }
+        
+        .tiptap-content-wrapper h2 {
+          font-size: 24px !important;
+          line-height: 1.3;
+        }
+        
+        .tiptap-content-wrapper h3 {
+          font-size: 20px !important;
+          line-height: 1.4;
+        }
+        
+        /* 이미지 내부 img 태그 스타일 */
+        .image-resizer img {
+          display: block;
+          max-width: 100%;
+          border-radius: 2px;
+        }
+      `}</style>
+    </div>
   );
 };
 

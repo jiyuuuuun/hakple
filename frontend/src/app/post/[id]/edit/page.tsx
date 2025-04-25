@@ -5,16 +5,27 @@ import dynamic from 'next/dynamic'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
+// TiptapEditor를 동적으로 불러오기 (SSR 비활성화)
 const TiptapEditor = dynamic(() => import('@/components/editor/TiptapEditor'), { ssr: false })
 
+// 게시글 타입 정의
 type BoardType = 'free' | 'notice';
 
+// --- 태그 입력 컴포넌트 ---
 interface TagInputProps {
     tags: string[]
     onTagsChange: (tags: string[]) => void
 }
 
+/**
+ * IME(Input Method Editor)란?
+ * - 한글, 중국어, 일본어 등과 같은 조합형 문자를 입력할 때 사용되는 입력 방식
+ * - 예: 한글 '가'를 입력할 때 'ㄱ'+'ㅏ'를 조합하는 과정이 있음
+ * - IME 입력 중에는 composition 이벤트가 발생하며, 조합이 끝나기 전에 Enter나 다른 키 이벤트가
+ *   중간에 처리되면 원치 않는 동작이 발생할 수 있음 (마지막 글자만 별도 태그로 추가되는 문제)
+ */
 
+// 문자열을 태그로 변환하는 헬퍼 함수 - 절대 분리하지 않음
 const sanitizeTag = (input: string): string => {
     // 1. 입력값 유효성 검사
     // 인풋이 없거나 공백인 경우 빈 문자열 반환
@@ -29,6 +40,8 @@ const sanitizeTag = (input: string): string => {
 }
 
 const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
+    console.log("TagInput received props - tags:", tags); // <<< 받은 prop 확인 로그
+
     // 상태 관리
     const [inputValue, setInputValue] = useState('') // 입력 필드 값
     const [isComposing, setIsComposing] = useState(false) // IME 입력 상태 (조합 중인지 여부)
@@ -258,12 +271,15 @@ const EditPostPage = () => {
     useEffect(() => {
         const fetchPostData = async () => {
             // 가드 로직 추가: isLogin이 false이거나 loginMember가 없으면 함수 종료
-            if (!isLogin || !loginMember) {
-                // 필요하다면 로딩 상태를 false로 설정하거나 사용자에게 알림 표시
-                // setIsLoading(false);
-                // setError('로그인 정보가 유효하지 않습니다.');
+            // loginMember 객체 자체를 확인하는 것이 더 안전할 수 있음
+            if (!isLogin || !loginMember) { 
+                console.log('fetchPostData: Not logged in or loginMember not available yet.');
+                // setIsLoading(false); // 로딩 상태를 여기서 해제하면 안됨
+                // setError('로그인 정보가 유효하지 않습니다.'); // 로그인 페이지로 리다이렉트될 것이므로 불필요
                 return; // 여기서 중단
             }
+            // 로그인 정보 로깅 추가
+            console.log('fetchPostData: Starting fetch, Login Member:', loginMember);
 
             setIsLoading(true);
             setError('');
@@ -294,12 +310,12 @@ const EditPostPage = () => {
                   Array.isArray(data.tags) // data.tags가 배열인지 먼저 확인
                     ? data.tags
                         // 각 요소가 문자열이고 비어있지 않은지 확인하여 필터링
-                        .filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '')
+                        .filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '') 
                     : [] // 배열이 아니거나 없으면 빈 배열로 설정
                 );
-                console.log('State after setTags:',
-                  Array.isArray(data.tags)
-                    ? data.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '')
+                console.log('State after setTags:', 
+                  Array.isArray(data.tags) 
+                    ? data.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '') 
                     : []
                 ); // Verify the result being set
 
@@ -310,18 +326,18 @@ const EditPostPage = () => {
                 const ownerUserName = data.userName;
                 console.log('--- Permission Check ---');
                 console.log('Login Member Info:', loginMember);
-
+                
                 // Trim strings before comparison and log values right before comparison
                 const loggedInUserName = loginMember?.userName?.trim();
                 const postOwnerName = ownerUserName?.trim();
                 console.log(`Comparing: '${loggedInUserName}' (Length: ${loggedInUserName?.length}) with '${postOwnerName}' (Length: ${postOwnerName?.length})`);
 
-                console.log('Logged In User Name (Trimmed):', loggedInUserName, '(Type:', typeof loggedInUserName, ')');
+                console.log('Logged In User Name (Trimmed):', loggedInUserName, '(Type:', typeof loggedInUserName, ')'); 
                 console.log('Post Owner Name from API (Trimmed):', postOwnerName, '(Type:', typeof postOwnerName, ')');
                 console.log('Is Admin:', isAdmin);
                 
                 // Compare trimmed userNames or check if admin
-                const hasPermission = loggedInUserName && postOwnerName !== undefined &&
+                const hasPermission = loggedInUserName && postOwnerName !== undefined && 
                                       (loggedInUserName === postOwnerName || isAdmin);
                 
                 console.log('Is Owner Check (trimmed comparison):', loggedInUserName === postOwnerName);
@@ -341,7 +357,7 @@ const EditPostPage = () => {
                 setIsLoading(false)
             }
         }
-
+        
         // isLogin과 loginMember가 준비된 후에 fetchPostData 호출
         if (isLogin && loginMember) {
              fetchPostData();

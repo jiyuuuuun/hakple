@@ -72,7 +72,6 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public BoardResponse createBoard(BoardRequest request, Long userId, String academyCode) {
-        // 1. 생성 전: 불필요한 임시 이미지 정리 (요청된 tempIdList와 content 기준)
         fileService.cleanTempImagesNotIn(request.getTempIdList(), request.getContent());
         validateBoardRequest(request);
 
@@ -83,15 +82,12 @@ public class BoardServiceImpl implements BoardService {
 
         if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
             resolvedAcademyCode = request.getAcademyCode();
-            log.info("사용자 요청 academyCode 사용: {}", resolvedAcademyCode);
         }
         else if (academyCode != null && !academyCode.isEmpty()) {
             resolvedAcademyCode = academyCode;
-            log.info("URL 파라미터 academyCode 사용: {}", resolvedAcademyCode);
         }
         else {
             resolvedAcademyCode = user.getAcademyId();
-            log.info("사용자 기본 academyCode 사용: {}", resolvedAcademyCode);
         }
 
         Board board = Board.builder()
@@ -130,12 +126,10 @@ public class BoardServiceImpl implements BoardService {
             }
         }
 
-        // 2. 새로 추가된 이미지 연결 (isTemp=false, board 연결)
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             fileService.linkImagesToBoard(request.getTempIdList(), board.getId());
         }
 
-        // 생성 시 modificationTime 초기화
         board.setModificationTime(null);
         boardRepository.save(board);
 
@@ -155,7 +149,6 @@ public class BoardServiceImpl implements BoardService {
                 .orElseThrow(() -> BoardException.notFound());
 
         if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
-            log.info("제공된 academyCode: {}, 게시글의 academyCode: {}", academyCode, board.getAcademyCode());
         }
 
         board.getUser().getNickName();
@@ -214,7 +207,6 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public BoardResponse updateBoard(Long id, BoardRequest request, Long userId, String academyCode) {
-        // 1. 수정 전: 불필요한 임시 이미지 정리 (요청된 tempIdList와 content 기준)
         fileService.cleanTempImagesNotIn(request.getTempIdList(), request.getContent());
         validateBoardRequest(request);
 
@@ -223,7 +215,6 @@ public class BoardServiceImpl implements BoardService {
 
         board.validateUser(userId);
         board.validateStatus();
-        // 2. 게시글 기본 정보 업데이트 (title, content, boardType 등)
         board.update(request.getTitle(), request.getContent(), request.getBoardType());
 
         board.getTags().clear();
@@ -234,19 +225,14 @@ public class BoardServiceImpl implements BoardService {
 
         if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
             resolvedAcademyCode = request.getAcademyCode();
-            log.info("수정 - 사용자 요청 academyCode 사용: {}", resolvedAcademyCode);
         }
         else if (academyCode != null && !academyCode.isEmpty()) {
             resolvedAcademyCode = academyCode;
-            log.info("수정 - URL 파라미터 academyCode 사용: {}", resolvedAcademyCode);
         }
         else {
             resolvedAcademyCode = user.getAcademyId();
-            log.info("수정 - 사용자 기본 academyCode 사용: {}", resolvedAcademyCode);
         }
 
-        // 3. academyCode 변경 감지 및 업데이트 (필요 시)
-        // if (!board.getAcademyCode().equals(resolvedAcademyCode)) { ... }
 
         if (request.getTags() != null) {
             for (String tagName : request.getTags()) {
@@ -267,17 +253,15 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
+                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e); // 원복: log.error 사용
                 }
             }
         }
 
-        // 4. 기존 이미지 중 사용되지 않는 것 정리
-        if (request.getUsedImageUrls() != null) { // null 체크 추가
+        if (request.getUsedImageUrls() != null) {
             fileService.cleanUpUnused(id, request.getUsedImageUrls());
         }
 
-        // 5. 새로 추가된 임시 이미지 연결
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             fileService.linkImagesToBoard(request.getTempIdList(), id);
         }
@@ -302,7 +286,6 @@ public class BoardServiceImpl implements BoardService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> BoardException.notFound());
         if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
-            log.info("제공된 academyCode: {}, 게시글의 academyCode: {}", academyCode, board.getAcademyCode());
         }
 
         boolean isAdmin = user.getRoles().contains(Role.ADMIN);
@@ -329,7 +312,6 @@ public class BoardServiceImpl implements BoardService {
                 .orElseThrow(() -> BoardException.notFound());
 
         if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
-            log.info("제공된 academyCode: {}, 게시글의 academyCode: {}", academyCode, board.getAcademyCode());
         }
 
         board.validateStatus();
@@ -393,7 +375,7 @@ public class BoardServiceImpl implements BoardService {
                         .orElseThrow(() -> BoardException.notFound()))
                 .build();
 
-        user.setReportedCount(user.getReportedCount() + 1); // 신고 횟수 누적
+        user.setReportedCount(user.getReportedCount() + 1);
 
         boardReportRepository.save(boardReport);
     }
@@ -650,7 +632,6 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional(readOnly = true)
     public Page<BoardResponse> getNoticeBoards(String academyCode, String sortType, Pageable pageable) {
-        log.info("공지사항 조회 - 정렬 방식: {}", sortType);
         String translatedSortType = translateSortType(sortType);
         
         if (translatedSortType == null || translatedSortType.isEmpty()) {
@@ -767,8 +748,6 @@ public class BoardServiceImpl implements BoardService {
                 .orElse(null);
 
         if (hashtag != null) {
-            log.info("Using existing hashtag: {}, academyCode: {}, id: {}",
-                    tagName, academyCode, hashtag.getId());
             return hashtag;
         }
 
@@ -778,23 +757,14 @@ public class BoardServiceImpl implements BoardService {
                     .academyCode(academyCode)
                     .build();
             hashtag = hashtagRepository.save(newHashtag);
-            log.info("Created new hashtag: {}, academyCode: {}, id: {}",
-                    tagName, academyCode, hashtag.getId());
             return hashtag;
         } catch (DataIntegrityViolationException e) {
-            log.warn("Duplicate key error while saving hashtag: {}, retrying lookup", e.getMessage());
             hashtag = retryGetHashtag(tagName, academyCode);
             if (hashtag != null) {
-                log.info("Found existing hashtag after duplicate error: {}, academyCode: {}, id: {}",
-                        tagName, academyCode, hashtag.getId());
                 return hashtag;
             }
-            log.error("Failed to find hashtag after duplicate error: {}, academyCode: {}",
-                    tagName, academyCode);
             throw new IllegalStateException("Unable to create or find hashtag: " + tagName, e);
         } catch (Exception e) {
-            log.error("Unexpected error while creating hashtag: {}, academyCode: {}",
-                    tagName, academyCode, e);
             throw new IllegalStateException("Failed to process hashtag: " + tagName, e);
         }
     }
@@ -836,7 +806,6 @@ public class BoardServiceImpl implements BoardService {
     @Transactional(readOnly = true)
     public Page<BoardResponse> searchBoardsDynamic(String academyCode, String searchType, 
                                                  String searchKeyword, String type, Pageable pageable) {
-        System.out.println("게시글 동적 검색3 " + academyCode +" "+ searchType+" "+ searchKeyword+" "+ type +" "+ pageable);
         Page<Board> boardPage = boardRepository.searchBoardsDynamic(
             academyCode, 
             searchType,

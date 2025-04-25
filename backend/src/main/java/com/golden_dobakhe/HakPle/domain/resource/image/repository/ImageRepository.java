@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,7 +31,7 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
     Long countByBoardId(Long boardId);
     
     // 임시 식별자로 이미지 찾기
-    List<Image> findByTempId(String tempId);
+    Optional<Image> findByTempId(String tempId);
     
     // 여러 임시 식별자로 이미지 찾기
     List<Image> findByTempIdIn(List<String> tempIds);
@@ -43,5 +44,5 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
     @Query("UPDATE Image i SET i.board.id = :boardId WHERE i.tempId IN :tempIds")
     int updateBoardIdByTempIds(@Param("boardId") Long boardId, @Param("tempIds") List<String> tempIds);
 
-
+    List<Image> findByIsTemporaryTrueAndExpiresAtBefore(LocalDateTime dateTime);
 }

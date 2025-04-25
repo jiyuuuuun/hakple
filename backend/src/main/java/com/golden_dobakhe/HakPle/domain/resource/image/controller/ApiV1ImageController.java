@@ -1,7 +1,7 @@
 package com.golden_dobakhe.HakPle.domain.resource.image.controller;
 
-
 import com.golden_dobakhe.HakPle.domain.resource.image.dto.ImageUpdateRequest;
+import com.golden_dobakhe.HakPle.domain.resource.image.dto.ImageUploadResponse;
 import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,12 +21,38 @@ import java.util.UUID;
 @RequestMapping("/api/v1/images")
 @Tag(name = "Images", description = "이미지 관리 API")
 public class ApiV1ImageController {
-
-    //private final AmazonS3 amazonS3; // ✅ 필드 추가
     private final FileService fileService;
 
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, Object>> uploadImage(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "boardId", required = false) Long boardId
+    ) {
+        // 파일 유효성 검사
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("파일이 비어있습니다.");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("이미지 파일만 업로드 가능합니다.");
+        }
+
+        // 파일 크기 제한 (5MB)
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("파일 크기는 5MB를 초과할 수 없습니다.");
+        }
+
+        // 임시 ID 생성
+        String tempId = UUID.randomUUID().toString();
+
+        // 파일 저장 및 응답
+        Map<String, Object> result = fileService.saveFileWithTempId(file, true, boardId, tempId);
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/upload_local")
-    public ResponseEntity<?> uploadFile1(
+    public ResponseEntity<?> uploadLocal(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "saveEntity", defaultValue = "false") boolean saveEntity,
             @RequestParam(value = "boardId", required = false) Long boardId,
@@ -53,23 +78,11 @@ public class ApiV1ImageController {
                 tempId = UUID.randomUUID().toString();
             }
             
-            // 로컬에 파일 저장 (saveEntity와 boardId 매개변수 전달)
+            // 로컬에 파일 저장
             Map<String, Object> result = fileService.saveFileWithTempId(file, saveEntity, boardId, tempId);
             
-            // 로그 출력
-            System.out.println("파일 저장 경로: " + result.get("filePath"));
-            System.out.println("이미지 엔티티 저장 여부: " + saveEntity);
-            System.out.println("게시글 ID: " + (boardId != null ? boardId : "없음"));
-            System.out.println("임시 식별자: " + tempId);
-            
-            // 성공 응답 반환
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            // 오류 로그 출력
-            System.err.println("파일 업로드 오류: " + e.getMessage());
-            e.printStackTrace();
-            
-            // 오류 응답 반환
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("message", "파일 업로드 중 오류가 발생했습니다: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
@@ -85,6 +98,7 @@ public class ApiV1ImageController {
 
             // temp 이미지 링크 처리 (isTemp=false, board 연결)
             int updatedCount = fileService.linkImagesToBoard(request.getTempIds(), request.getBoardId());
+            
             // 수정 시: 기존 이미지 중 사용하지 않는 것 정리
             if (request.getUsedImageUrls() != null && !request.getUsedImageUrls().isEmpty()) {
                 fileService.cleanUpUnused(request.getBoardId(), request.getUsedImageUrls());
@@ -109,31 +123,29 @@ public class ApiV1ImageController {
         return ResponseEntity.ok().build();
     }
 
-    // 서버 상태 확인용 엔드포인트 추가
     @GetMapping("/health")
-    public ResponseEntity<String> checkHealth() {
-        return ResponseEntity.ok("OK");
+    public ResponseEntity<Void> checkHealth() {
+        return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/upload_temp")
+    public ResponseEntity<ImageUploadResponse> uploadTemp(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("tempId") String tempId) throws IOException {
+        // saveFileWithTempId 호출 (saveEntity=true, boardId=null)
+        Map<String, Object> result = fileService.saveFileWithTempId(file, true, null, tempId);
+        // 반환값 Map에서 필요한 정보를 추출하여 ImageUploadResponse 생성
+        ImageUploadResponse response = new ImageUploadResponse(tempId, (String) result.get("url"));
+        return ResponseEntity.ok(response);
+    }
 
-
-//    @PostMapping("/upload_S3")
-//    public String uploadFile2(@RequestParam("file") MultipartFile file) {
-//        String bucketName = "your-bucket";
-//        String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
-//
-//        ObjectMetadata metadata = new ObjectMetadata();
-//        metadata.setContentLength(file.getSize());
-//        metadata.setContentType(file.getContentType());
-//
-//        try (InputStream inputStream = file.getInputStream()) {
-//            amazonS3.putObject(
-//                    new PutObjectRequest(bucketName, fileName, inputStream, metadata)
-//                            .withCannedAcl(CannedAccessControlList.PublicRead)
-//            );
-//            return amazonS3.getUrl(bucketName, fileName).toString();
-//        } catch (IOException e) {
-//            throw new RuntimeException("파일 업로드 실패", e);
-//        }
-//    }
+    // 삭제 시작
+    /*
+    @PostMapping("/move_to_permanent")
+    public ResponseEntity<Void> moveToPermanent(@RequestParam("tempId") String tempId) {
+        fileService.moveToPermanent(tempId);
+        return ResponseEntity.ok().build();
+    }
+    */
+    // 삭제 끝
 }

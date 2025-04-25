@@ -21,7 +21,9 @@ public class BoardResponse {
     private int commentCount;
     private Status status;
     private String academyCode;
+    private Long userId;
     private String nickname;
+    private String userName;
     private List<String> tags;
     private LocalDateTime creationTime;
     private LocalDateTime modificationTime;
@@ -51,7 +53,9 @@ public class BoardResponse {
                 .commentCount(0)
                 .status(board.getStatus())
                 .academyCode(board.getAcademyCode())
+                .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
+                .userName(board.getUser() != null ? board.getUser().getUserName() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
@@ -75,7 +79,9 @@ public class BoardResponse {
                 .commentCount(commentCount)
                 .status(board.getStatus())
                 .academyCode(board.getAcademyCode())
+                .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
+                .userName(board.getUser() != null ? board.getUser().getUserName() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
@@ -98,7 +104,9 @@ public class BoardResponse {
                 .commentCount(0)
                 .status(board.getStatus())
                 .academyCode(board.getAcademyCode())
+                .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
+                .userName(board.getUser() != null ? board.getUser().getUserName() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
@@ -120,7 +128,9 @@ public class BoardResponse {
                 .commentCount(commentCount)
                 .status(board.getStatus())
                 .academyCode(board.getAcademyCode())
+                .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
+                .userName(board.getUser() != null ? board.getUser().getUserName() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())

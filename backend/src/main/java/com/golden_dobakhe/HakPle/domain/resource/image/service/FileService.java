@@ -28,6 +28,7 @@ import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,12 +90,20 @@ public class FileService {
             Long imageId = null; // DB에 저장된 Image ID
             // saveEntity 플래그가 true일 경우 DB에 이미지 정보 저장
             if (saveEntity) {
-                // Image 엔티티 생성 (임시 상태)
+                // Image 엔티티 생성 (임시 상태) - 모든 필수 필드 포함
                 Image image = Image.builder()
                     .filePath(fileUrl) // S3 URL 저장
                     .tempId(tempId) // 임시 ID 저장
                     .isTemp(true) // 임시 파일 플래그
-                    .isDeleted(false) // 삭제 플래그
+                    .isDeleted(false) // 삭제 플래그 (초기값)
+                    .originalName(file.getOriginalFilename()) // 원본 파일명
+                    .storedName(s3Key) // 저장된 이름 (S3 키 사용)
+                    .path(s3Key) // 저장 경로 (S3 키 사용) - 또는 fileUrl 사용 결정 필요
+                    .size(file.getSize()) // 파일 크기
+                    .contentType(file.getContentType()) // 콘텐츠 타입
+                    .isTemporary(true) // 임시 파일 여부 (isTemp와 역할 유사하나, 엔티티 정의에 따라 추가)
+                    .expiresAt(LocalDateTime.now().plusHours(24)) // 만료 시간 (예: 24시간 후)
+                    .s3Key(s3Key) // S3 키 저장
                     .build();
 
                 // boardId가 제공되면 게시글과 연결 시도
@@ -123,10 +132,13 @@ public class FileService {
             }
 
             return result;
-        } catch (IOException e) {
-            log.error("Failed to save file to S3 or DB: {}", e.getMessage(), e);
+        } catch (IOException e) { // S3 업로드 중 I/O 오류 처리
+            log.error("Failed to save file to S3 (IOException): {}", e.getMessage(), e);
             // 파일 저장 실패 시 런타임 예외 발생
-            throw new RuntimeException("파일 저장 실패: " + e.getMessage(), e);
+            throw new RuntimeException("파일 저장 실패 (I/O): " + e.getMessage(), e);
+        } catch (Exception e) { // 그 외 모든 예외 (DB 저장 오류, S3 API 오류 등)
+            log.error("Unexpected error during file save: {}", e.getMessage(), e);
+             throw new RuntimeException("서버 처리 중 오류가 발생했습니다: " + e.getMessage(), e); // 좀 더 명확한 메시지
         }
     }
     
@@ -208,27 +220,100 @@ public class FileService {
      * 글 수정 후 사용되지 않는 이미지 정리 (DB + S3 객체)
      */
     @Transactional
-    public void cleanUpUnused(Long boardId, List<String> usedUrls) {
-        if (boardId == null) return;
-        List<Image> images = imageRepository.findByBoardId(boardId);
-        Set<String> usedUrlSet = new HashSet<>(usedUrls != null ? usedUrls : List.of()); // Null-safe Set
+    public void cleanUpUnused(Long boardId, List<String> usedImageUrls) {
+        if (boardId == null || usedImageUrls == null) return;
 
-        for (Image img : images) {
-            // isTemp가 false이고(연결된 이미지), 사용 목록에 없는 경우 삭제
-            if (Boolean.FALSE.equals(img.getIsTemp()) && !usedUrlSet.contains(img.getFilePath())) {
-                try {
-                    // S3 URL에서 키 추출 및 삭제 (영구 경로에서)
-                    String s3Key = extractS3KeyFromUrl(img.getFilePath());
-                    if (s3Key != null && s3Key.startsWith("board/")) { // 영구 경로 확인
-                        amazonS3.deleteObject(new DeleteObjectRequest(bucketName, s3Key));
-                        log.info("Deleted unused S3 object: {}", s3Key);
-                    } else {
-                         log.warn("Skipping delete for non-board or invalid S3 key: {}", s3Key);
-                    }
-                } catch (Exception ignored) {}
-                imageRepository.delete(img);
+        // URL 디코딩 및 정규화
+        Set<String> usedUrlsSet = new HashSet<>();
+        for (String url : usedImageUrls) {
+            try {
+                usedUrlsSet.add(URLDecoder.decode(url, StandardCharsets.UTF_8));
+            } catch (IllegalArgumentException e) {
+                log.warn("Failed to decode URL, using raw: {}", url, e);
+                usedUrlsSet.add(url); // 디코딩 실패 시 원본 사용
             }
         }
+
+        List<Image> images = imageRepository.findByBoardId(boardId);
+
+        for (Image img : images) {
+            // DB에 저장된 URL도 디코딩하여 비교
+            String decodedDbUrl = null;
+            try {
+                decodedDbUrl = URLDecoder.decode(img.getFilePath(), StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException e) {
+                log.warn("Failed to decode DB URL, using raw: {}", img.getFilePath(), e);
+                decodedDbUrl = img.getFilePath(); // 디코딩 실패 시 원본 사용
+            }
+
+            if (!usedUrlsSet.contains(decodedDbUrl)) {
+                // S3 객체 삭제
+                String s3Key = extractS3KeyFromUrl(img.getFilePath());
+                if (s3Key != null) {
+                    try {
+                        amazonS3.deleteObject(new DeleteObjectRequest(bucketName, s3Key));
+                        log.info("Deleted unused S3 object for board {}: {}", boardId, s3Key);
+                    } catch (Exception e) {
+                        log.error("Failed to delete unused S3 object for board {}: {}", boardId, s3Key, e);
+                        // S3 삭제 실패 시 DB 삭제는 진행하지 않을 수 있음 (정책 결정 필요)
+                        continue; // DB 삭제 건너뛰기 (현재 로직 유지)
+                    }
+                } else {
+                    log.warn("Could not extract S3 key for unused image URL: {}", img.getFilePath());
+                }
+                // DB 레코드 삭제
+                try {
+                    imageRepository.delete(img);
+                    log.info("Deleted unused image entity for board {}: ID {}", boardId, img.getId());
+                } catch (Exception e) {
+                    log.error("Failed to delete unused image entity: ID={}. Error: {}", img.getId(), e.getMessage(), e);
+                }
+            }
+        }
+    }
+
+    /**
+     * 만료된 임시 이미지들을 정리합니다 (isTemporary=true & expiresAt 이전).
+     * S3 객체와 DB 레코드를 함께 삭제합니다.
+     */
+    @Transactional
+    public void cleanupExpiredTemporaryImages() {
+        LocalDateTime now = LocalDateTime.now();
+        log.info("Starting cleanupExpiredTemporaryImages job at {}", now);
+
+        List<Image> expiredImages = imageRepository.findByIsTemporaryTrueAndExpiresAtBefore(now);
+        log.info("Found {} expired temporary images to clean up.", expiredImages.size());
+
+        for (Image image : expiredImages) {
+            log.debug("Processing expired image: ID={}, S3Key={}, ExpiresAt={}",
+                      image.getId(), image.getS3Key(), image.getExpiresAt());
+
+            // 1. S3 객체 삭제
+            String s3Key = image.getS3Key(); // 직접 S3 Key 사용
+            if (s3Key != null && s3Key.startsWith("temp/")) { // 임시 경로 확인
+                try {
+                    amazonS3.deleteObject(new DeleteObjectRequest(bucketName, s3Key));
+                    log.info("Successfully deleted expired S3 object: {}", s3Key);
+                } catch (Exception e) {
+                    log.error("Failed to delete expired S3 object: {}. Error: {}", s3Key, e.getMessage(), e);
+                    // S3 삭제 실패 시 DB 삭제를 건너뛸 수 있음 (오류 로깅 후 계속 진행)
+                    continue;
+                }
+            } else {
+                log.warn("Skipping S3 delete for expired image ID {}: Invalid or non-temporary S3 key '{}'", image.getId(), s3Key);
+                // S3 키가 이상해도 DB는 삭제 시도 (고아 레코드 방지)
+            }
+
+            // 2. DB 레코드 삭제
+            try {
+                imageRepository.delete(image);
+                log.info("Successfully deleted expired image entity: ID={}", image.getId());
+            } catch (Exception e) {
+                log.error("Failed to delete expired image entity: ID={}. Error: {}", image.getId(), e.getMessage(), e);
+                // DB 삭제 실패 시 추가 처리 필요 (예: 재시도 로직, 관리자 알림)
+            }
+        }
+        log.info("Finished cleanupExpiredTemporaryImages job.");
     }
 
     /**
@@ -242,16 +327,34 @@ public class FileService {
             Pattern pattern = Pattern.compile("<img[^>]+src=[\\\"']([^\\\"']+)[\\\"']");
             Matcher matcher = pattern.matcher(content);
             while (matcher.find()) {
-                usedUrls.add(matcher.group(1));
+                try {
+                    // URL 디코딩 시도 (cleanUpUnused와 일관성 유지)
+                    usedUrls.add(URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8));
+                } catch (Exception e) {
+                    log.warn("cleanTempImagesNotIn - Content URL 디코딩 실패, 원본 사용: {}", matcher.group(1), e);
+                    usedUrls.add(matcher.group(1)); // 디코딩 실패 시 원본 추가
+                }
             }
         }
-        // DB에서 임시 이미지 조회
+
+        // DB에서 임시 이미지 조회 (board is null)
         List<Image> temps = imageRepository.findByBoardIsNull();
+
         for (Image img : temps) {
-            if (Boolean.TRUE.equals(img.getIsTemp())) {
+            if (Boolean.TRUE.equals(img.getIsTemp())) { // isTemp가 true인 것만 대상
                 boolean keepById = keepTempIds != null && keepTempIds.contains(img.getTempId());
-                boolean keepByUrl = usedUrls.contains(img.getFilePath());
-                if (!keepById && !keepByUrl) {
+                
+                // DB URL도 디코딩하여 비교
+                String decodedDbUrl = null;
+                try {
+                    decodedDbUrl = URLDecoder.decode(img.getFilePath(), StandardCharsets.UTF_8);
+                } catch (Exception e) {
+                    log.warn("cleanTempImagesNotIn - DB URL 디코딩 실패, 원본 사용: {}", img.getFilePath(), e);
+                    decodedDbUrl = img.getFilePath();
+                }
+                boolean keepByUrl = usedUrls.contains(decodedDbUrl);
+                
+                if (!keepById && !keepByUrl) { // 둘 다 false일 때만 삭제
                     try {
                         // S3 URL에서 키 추출 및 삭제 (임시 경로에서)
                         String s3Key = extractS3KeyFromUrl(img.getFilePath());
@@ -261,8 +364,16 @@ public class FileService {
                         } else {
                             log.warn("Skipping cleanup for non-temp or invalid S3 key: {}", s3Key);
                         }
-                    } catch (Exception ignored) {}
-                    imageRepository.delete(img);
+                    } catch (Exception e) {
+                        log.error("cleanTempImagesNotIn - S3 임시 객체 삭제 중 오류 발생 (Image ID: {}): {}", img.getId(), e.getMessage(), e);
+                    } 
+                    // S3 삭제 성공 여부와 관계없이 DB 삭제 시도 (또는 S3 성공 시에만 시도하도록 변경 가능)
+                    try {
+                        imageRepository.delete(img); // DB 레코드 삭제
+                        log.info("Deleted unused temp image entity: ID={}", img.getId());
+                    } catch (Exception e) {
+                        log.error("Failed to delete unused temp image entity: ID={}. Error: {}", img.getId(), e.getMessage(), e);
+                    }
                 }
             }
         }
