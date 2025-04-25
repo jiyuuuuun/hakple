@@ -100,8 +100,6 @@ public class ApiV1AuthController {
         //만든걸 보내야지
         LoginResponseDto loginResponseDto = new LoginResponseDto(accessToken, refreshToken, user.getId(), user.getUserName());
 
-
-
         //만약 쿠키에도 저장하고 싶다면?
         Cookie accesTokenCookie = new Cookie("accessToken", accessToken);
         accesTokenCookie.setHttpOnly(true); //보안, 자바스크립트로는 안되고 http로만

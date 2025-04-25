@@ -5,11 +5,10 @@ variable "prefix" {
 
 variable "region" {
   description = "region"
-  type        = string
   default     = "ap-northeast-2"
 }
 
 variable "nickname" {
   description = "nickname"
-  default     = "asd"
+  default     = "golen-dobakhe" #본인 닉네임
 }
