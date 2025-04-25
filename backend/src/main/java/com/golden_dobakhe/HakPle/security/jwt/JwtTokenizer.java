@@ -61,13 +61,13 @@ public class JwtTokenizer {
     }
 
     // 이전 버전 호환성을 위한 메서드
-    public String createAccessToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles) {
-        return createToken(id, userName, nickName, phoneNum, status, ACCESS_TOKEN_EXPIRE_COUNT, accessSecret, roles, null);
-    }
-
-    public String createRefreshToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles) {
-        return createToken(id, userName, nickName, phoneNum, status, REFRESH_TOKEN_EXPIRE_COUNT, refreshSecret, roles, null);
-    }
+//    public String createAccessToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles) {
+//        return createToken(id, userName, nickName, phoneNum, status, ACCESS_TOKEN_EXPIRE_COUNT, accessSecret, roles, null);
+//    }
+//
+//    public String createRefreshToken(Long id, String userName, String nickName, String phoneNum, Status status, Set<Role> roles) {
+//        return createToken(id, userName, nickName, phoneNum, status, REFRESH_TOKEN_EXPIRE_COUNT, refreshSecret, roles, null);
+//    }
 
     //jwt인증에 필요한 서명만들기
     private static Key getSignKey(byte[] secretKey) {
