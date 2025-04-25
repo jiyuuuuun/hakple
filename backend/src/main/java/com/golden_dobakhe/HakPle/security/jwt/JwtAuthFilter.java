@@ -101,9 +101,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     return cookie.getValue();
             }
         }
-
-
-
         return null;
     }
 

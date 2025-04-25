@@ -40,6 +40,7 @@ export const LoginMemberContext = createContext<{
     setNoLoginMember: () => void
     isLoginMemberPending: boolean
     isLogin: boolean
+    setIsLogin: (value: boolean) => void
     logout: (callback: () => void) => void
     logoutAndHome: () => void
     checkAdminAndRedirect: () => Promise<boolean>
@@ -49,6 +50,9 @@ export const LoginMemberContext = createContext<{
     setNoLoginMember: () => { },
     isLoginMemberPending: true,
     isLogin: false,
+
+    setIsLogin: () => { },
+
     logout: () => { },
     logoutAndHome: () => { },
     checkAdminAndRedirect: async () => false,
@@ -76,6 +80,7 @@ export function useLoginMember() {
 
     const removeLoginMember = () => {
         _setLoginMember(createEmptyMember())
+        setIsLogin(false)
         setLoginMemberPending(false)
     }
 
@@ -113,6 +118,9 @@ export function useLoginMember() {
 
         console.log('생성된 User 객체:', user)
         _setLoginMember(user)
+
+        const isValidLogin = !!user.userName || !!user.nickname // <- 사용자 확인 가능한 핵심 필드
+
         setIsLogin(true); // ✅ 로그인 상태 설정
         setLoginMemberPending(false)
         console.groupEnd()
@@ -128,11 +136,13 @@ export function useLoginMember() {
             method: 'DELETE',
             credentials: 'include',
         }).then(() => {
-            removeLoginMember()
+            _setLoginMember(createEmptyMember())
+            setIsLogin(false)
+            setLoginMemberPending(false)
             callback()
         })
     }
-    //로그아웃 하고
+
     const logoutAndHome = () => {
         logout(() => router.replace('/'))
     }
@@ -166,6 +176,7 @@ export function useLoginMember() {
         isLoginMemberPending,
         setNoLoginMember,
         isLogin,
+        setIsLogin,
         logout,
         logoutAndHome,
         checkAdminAndRedirect,
