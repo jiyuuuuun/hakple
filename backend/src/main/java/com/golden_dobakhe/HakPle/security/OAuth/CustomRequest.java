@@ -72,12 +72,16 @@ public class CustomRequest {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .path("/")
                 .domain("localhost")
-                .sameSite("Strict")
-                //애 부분은 https부분에서 먹히도록 한 것이라고 한다
-                //.secure(true)
+                .sameSite("Lax") // Strict 대신 Lax로 완화
                 .httpOnly(true)
-                .maxAge(maxAge)
+                .maxAge(maxAge/1000) // 밀리초 → 초 변환
                 .build();
+//                .path("/")
+//                .domain("localhost")
+//                .sameSite("Strict")
+//                .httpOnly(true)
+//                .maxAge(maxAge)
+//                .build();
         resp.addHeader("Set-Cookie", cookie.toString());
     }
 
