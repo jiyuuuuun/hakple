@@ -5,10 +5,15 @@ import com.golden_dobakhe.HakPle.global.Status;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class UserListDto {
 
-    @Schema(description = "유저 ID")
+    @Schema(description = "ID")
+    private Long id;
+
+    @Schema(description = "유저 아이디")
     private String userName;
 
     @Schema(description = "유저 닉네임")
@@ -32,7 +37,11 @@ public class UserListDto {
     @Schema(description = "유저 신고 횟수")
     private int reportedCount;
 
+    @Schema(description = "가입일")
+    private LocalDateTime creationTime; // 생성 시간
+
     public UserListDto(User user,String academyName) {
+        this.id=user.getId();
         this.userName = user.getUserName();
         this.nickName=user.getNickName();
         this.socialProvider = user.getSocialProvider();
@@ -41,5 +50,6 @@ public class UserListDto {
         this.academyName=academyName;
         this.status = user.getStatus();
         this.reportedCount = user.getReportedCount();
+        this.creationTime = user.getCreationTime();
     }
 }

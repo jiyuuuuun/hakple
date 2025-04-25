@@ -159,13 +159,14 @@ public class AdminService {
         comment.setStatus(Status.PENDING);
     }
     //관리자 목록 조회
-    public List<User> getAdminUsers() {
-        return userRepository.findAllByRole(Role.ADMIN);
+    public Page<AdminUserListDto> getAdminUsers(Pageable pageable) {
+        return userRepository.findAllByRoles(Role.ADMIN, pageable)
+                .map(AdminUserListDto::new);
     }
 
     //등록되어 있는 학원 조회, 학원 별 사용 자 수
-    public List<AcademyWithUserCountDto> getAcademyListWithUserCounts() {
-        return academyRepository.findAllAcademiesWithUserCount();
+    public Page<AcademyWithUserCountDto> getAcademyListWithUserCounts(Pageable pageable) {
+        return academyRepository.findAllAcademiesWithUserCount(pageable);
     }
 
     public Page<TotalBoardResponse> getBoardsByFilterNullable(Status status, String academyCode, Pageable pageable) {
@@ -201,24 +202,26 @@ public class AdminService {
     }
 
     //회원 목록 조회
-    public List<UserListDto> getUser(){
-        List<User> userList=userRepository.findAllUserByRoles(Role.USER).orElse(null);
-        if(userList.isEmpty()){
+    public Page<UserListDto> getUser(Pageable pageable) {
+        Page<User> userList = userRepository.findAllUserByRoles(Role.USER, pageable);
+
+        if (userList.isEmpty()) {
             throw new UserException(UserErrorCode.USER_NOT_FOUND);
         }
-        List<UserListDto> userListDto=new ArrayList<>();
-        String academyName;
-        for (User user : userList) {
-            if(user.getAcademyId()!=null) {
-                Academy academy = academyRepository.findByAcademyCode(user.getAcademyId()).orElse(null);
+
+        return userList.map(user -> {
+            String academyName;
+            if (user.getAcademyId() != null) {
+                Academy academy = academyRepository.findByAcademyCode(user.getAcademyId())
+                        .orElse(null);
                 academyName = (academy != null) ? academy.getAcademyName() : "학원 정보 없음";
-            }else{
-                academyName="학원 정보 없음";
+            } else {
+                academyName = "학원 정보 없음";
             }
-            userListDto.add(new UserListDto(user,academyName));
-        }
-    return userListDto;
+            return new UserListDto(user, academyName);
+        });
     }
+
 
     //회원 상태 바꾸기
     public void changeUserStatus(Long userId,Status status) {

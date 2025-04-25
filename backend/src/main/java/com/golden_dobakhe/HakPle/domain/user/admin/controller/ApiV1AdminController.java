@@ -99,16 +99,24 @@ public class ApiV1AdminController {
     @Operation(summary = "학원 목록 조회 (유저 수 포함)", description = "모든 학원의 기본 정보와 소속 유저 수를 반환합니다.")
     @ApiResponse(responseCode = "200", description = "성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AcademyWithUserCountDto.class)))
     @GetMapping("/academies")
-    public ResponseEntity<List<AcademyWithUserCountDto>> getAcademiesWithUserCount() {
-        List<AcademyWithUserCountDto> result = adminService.getAcademyListWithUserCounts();
+    public ResponseEntity<Page<AcademyWithUserCountDto>> getAcademiesWithUserCount(
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name="size",defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        Page<AcademyWithUserCountDto> result = adminService.getAcademyListWithUserCounts(pageable);
         return ResponseEntity.ok(result);
     }
 
     @Operation(summary = "관리자 권한 유저 목록 조회", description = "권한이 ADMIN인 유저만 조회합니다.")
     @GetMapping("/admins")
-    public ResponseEntity<List<User>> getAdminUsers() {
-        List<User> adminUsers = adminService.getAdminUsers();
-        return ResponseEntity.ok(adminUsers);
+    public ResponseEntity<Page<AdminUserListDto>> getAdminUsers(
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name="size",defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        Page<AdminUserListDto> adminUserListDtos = adminService.getAdminUsers(pageable);
+        return ResponseEntity.ok(adminUserListDtos);
     }
 
     @GetMapping("/boards")
@@ -137,8 +145,12 @@ public class ApiV1AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<UserListDto>> getUsers() {
-        return ResponseEntity.ok(adminService.getUser());
+    public ResponseEntity<Page<UserListDto>> getUsers(
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name="size",defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        return ResponseEntity.ok(adminService.getUser(pageable));
     }
 
     @PostMapping("/user/status")
