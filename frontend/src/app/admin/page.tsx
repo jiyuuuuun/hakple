@@ -215,7 +215,7 @@ export default function AdminPage() {
           </Link>
 
           <div className="block p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition">
-            <h2 className="text-xl font-semibold mb-2">📢 아카데미 공지사항 관리</h2>
+            <h2 className="text-xl font-semibold mb-2">📢 학원 별 공지사항 관리</h2>
             <div className="flex items-center space-x-2 mt-2">
               <select
                 value={selectedAcademy}

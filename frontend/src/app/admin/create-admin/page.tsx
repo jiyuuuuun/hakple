@@ -31,20 +31,11 @@ export default function CreateAdminPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        // 로컬 스토리지에서 액세스 토큰 가져오기
-        const token = localStorage.getItem('accessToken');
-        
-        if (!token) {
-          router.push('/login');
-          return;
-        }
-        
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
           method: 'GET',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
           },
         });
 
@@ -142,14 +133,12 @@ export default function CreateAdminPage() {
     });
     
     try {
-      const token = localStorage.getItem('accessToken');
       
       // API 요청
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(formData)
       });

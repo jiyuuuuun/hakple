@@ -17,10 +17,12 @@ export default function LoginPage() {
     const [error, setError] = useState('')
     const [rememberMe, setRememberMe] = useState(false)
     const router = useRouter()
+    const [isLoading, setIsLoading] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
+        setIsLoading(true)
 
         try {
             console.log('로그인 요청 시작')
@@ -38,26 +40,35 @@ export default function LoginPage() {
             })
 
             if (!response.ok) {
-                throw new Error('로그인에 실패했습니다.')
+                const errorData = await response.json().catch(() => null);
+                if (errorData && errorData.message) {
+                    throw new Error(errorData.message);
+                } else if (response.status === 401) {
+                    throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+                } else if (response.status === 403) {
+                    throw new Error('접근이 거부되었습니다. 권한을 확인해주세요.');
+                } else {
+                    throw new Error('로그인에 실패했습니다.');
+                }
             }
 
             const data = await response.json()
             console.log('로그인 응답 데이터:', data)
 
-            // 로그인 성공 후 사용자 정보 조회
-            const userInfoResponse = await fetch('http://localhost:8090/api/v1/myInfos', {
-                credentials: 'include',
-            })
-
-            if (userInfoResponse.ok) {
-                const userInfo = await userInfoResponse.json()
-                console.log('MyInfo 응답 데이터:', userInfo)
-                console.log('프로필 이미지 URL 확인:', userInfo.profileImageUrl || '없음')
-                setLoginMember(userInfo)
-            } else {
-                console.error('사용자 정보 조회 실패')
-                setLoginMember(data)
+            // 응답 데이터 안전하게 확인
+            if (!data || !data.accessToken) {
+                throw new Error('서버 응답 데이터가 올바르지 않습니다.')
             }
+
+            console.log('로그인 성공, 토큰 받음', data.accessToken)
+
+            // 서버 응답 구조에 맞게 로그인 멤버 정보 설정
+            setLoginMember({
+                id: data.userId,
+                name: data.name,
+                accessToken: data.accessToken,
+                refreshToken: data.refreshToken
+            })
 
             // 관리자 권한 확인
             console.log('관리자 권한 확인 시작')
@@ -74,10 +85,13 @@ export default function LoginPage() {
                     console.log('일반 사용자로 로그인 - 홈 페이지로 이동')
                     router.push('/home')
                 }
+                // 페이지 이동 후에도 로딩 상태 해제
+                setIsLoading(false)
             }, 500)
         } catch (error) {
             console.log('로그인 에러:', error)
             setError(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.')
+            setIsLoading(false)
         }
     }
 
@@ -169,9 +183,22 @@ export default function LoginPage() {
 
                     <button
                         type="submit"
-                        className="w-full py-4 text-lg bg-[#9C50D4] text-white rounded-lg hover:bg-[#8a45bc] transition-colors mb-1"
+                        disabled={isLoading}
+                        className={`w-full py-4 text-lg ${
+                            isLoading 
+                                ? 'bg-purple-300 cursor-not-allowed' 
+                                : 'bg-[#9C50D4] hover:bg-[#8a45bc] transition-colors'
+                        } text-white rounded-lg mb-1 flex items-center justify-center`}
                     >
-                        로그인
+                        {isLoading ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                로그인 중...
+                            </>
+                        ) : '로그인'}
                     </button>
 
                     <div className="flex items-center my-2">

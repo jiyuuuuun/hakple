@@ -48,6 +48,7 @@ export default function Home() {
   // 사용자 로그인 상태를 강제로 true로 설정 (테스트용)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // 로그인 상태 확인
   useEffect(() => {
@@ -70,14 +71,16 @@ export default function Home() {
           setIsLoggedIn(true);
           
           // 관리자 권한 확인
-          checkAdminPermission();
+          await checkAdminPermission();
         } else {
           console.log('로그인 필요');
           setIsLoggedIn(false);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('로그인 상태 확인 중 오류:', error);
         setIsLoggedIn(false);
+        setIsLoading(false);
       }
     };
     
@@ -100,13 +103,21 @@ export default function Home() {
         console.log('관리자 권한 확인:', isAdminResult);
         
         setIsAdmin(isAdminResult === true);
+        
+        // 관리자인 경우 관리자 페이지로 리다이렉트
+        if (isAdminResult === true) {
+          console.log('관리자로 로그인 - 관리자 페이지로 이동');
+          router.push('/admin');
+        }
       } else {
         console.log('관리자 권한 없음');
         setIsAdmin(false);
       }
+      setIsLoading(false);
     } catch (error) {
       console.error('관리자 권한 확인 중 오류:', error);
       setIsAdmin(false);
+      setIsLoading(false);
     }
   };
 
@@ -135,6 +146,17 @@ export default function Home() {
     const timer = setTimeout(typeText, isDeleting ? typingSpeed / 2 : typingSpeed);
     return () => clearTimeout(timer);
   }, [typedText, currentTextIndex, isDeleting, typingSpeed, texts]);
+
+  // 로딩 중 표시
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <div className="text-lg">로딩 중...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-white via-purple-50 to-indigo-50">

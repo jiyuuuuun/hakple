@@ -24,20 +24,11 @@ export default function AdminListPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        // 로컬 스토리지에서 액세스 토큰 가져오기
-        const token = localStorage.getItem('accessToken');
-        
-        if (!token) {
-          router.push('/login');
-          return;
-        }
-        
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
           method: 'GET',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
           },
         });
 
@@ -51,7 +42,7 @@ export default function AdminListPage() {
         
         if (isAdminResult === true) {
           setIsAdmin(true);
-          fetchAdmins(token);
+          fetchAdmins();
         } else {
           router.push('/');
         }
@@ -67,7 +58,7 @@ export default function AdminListPage() {
   }, [router]);
 
   // 관리자 목록 가져오기
-  const fetchAdmins = async (token: string) => {
+  const fetchAdmins = async () => {
     try {
       console.log('관리자 목록 조회 API 요청 시작');
       
@@ -76,7 +67,6 @@ export default function AdminListPage() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
       });
       
