@@ -3,8 +3,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   // 타이핑 애니메이션을 위한 상태
   const [typedText, setTypedText] = useState("");
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
@@ -43,24 +45,71 @@ export default function Home() {
     }
   };
 
-  // 사용자 로그인 상태 (실제 구현에서는 상태 관리 라이브러리나 Context API 사용 권장)
+  // 사용자 로그인 상태를 강제로 true로 설정 (테스트용)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   
-  // 로그인 상태 확인 (쿠키에서 액세스 토큰 확인)
+  // 로그인 상태 확인
   useEffect(() => {
-    const checkLoginStatus = () => {
-      // 쿠키에서 액세스 토큰 확인
-      const cookies = document.cookie.split('; ');
-      const accessTokenCookie = cookies.find(cookie => cookie.startsWith('accessToken='));
-      
-      if (accessTokenCookie) {
-        setIsLoggedIn(true);
+    // API를 통한 로그인 상태 확인
+    const checkLoginStatus = async () => {
+      try {
+        const response = await fetch(`http://localhost:8090/api/v1/auth/me`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('로그인 상태 응답:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('로그인 상태 성공:', data);
+          setIsLoggedIn(true);
+          
+          // 관리자 권한 확인
+          checkAdminPermission();
+        } else {
+          console.log('로그인 필요');
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error('로그인 상태 확인 중 오류:', error);
+        setIsLoggedIn(false);
       }
     };
     
     checkLoginStatus();
   }, []);
-  
+
+  // 관리자 권한 확인
+  const checkAdminPermission = async () => {
+    try {
+      const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const isAdminResult = await response.json();
+        console.log('관리자 권한 확인:', isAdminResult);
+        
+        setIsAdmin(isAdminResult === true);
+      } else {
+        console.log('관리자 권한 없음');
+        setIsAdmin(false);
+      }
+    } catch (error) {
+      console.error('관리자 권한 확인 중 오류:', error);
+      setIsAdmin(false);
+    }
+  };
+
   // 타이핑 효과 구현
   useEffect(() => {
     const typeText = () => {
@@ -182,63 +231,63 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 relative">
           <div className="flex flex-col md:flex-row items-center gap-12">
             {/* 왼쪽 콘텐츠 */}
-            <div className="flex-1 text-center md:text-left">
+          <div className="flex-1 text-center md:text-left">
               <div className="inline-block px-4 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium mb-6 animate-bounce">✨ 새로운 학습 경험을 만나보세요</div>
               <h1 className="text-4xl md:text-6xl font-extrabold bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 bg-clip-text text-transparent mb-6 leading-tight">
                 학원생들을 위한<br />스마트 커뮤니티
-              </h1>
-              <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
+            </h1>
+            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
                 HakPle와 <span className="text-purple-600 font-medium">{typedText}</span><span className="animate-blink">|</span> 특별한 공간입니다.<br />
-                동료들과 함께 지식을 나누고, 경험을 공유하세요.
-              </p>
-              <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              동료들과 함께 지식을 나누고, 경험을 공유하세요.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                 {isLoggedIn ? (
                   // 로그인된 사용자용 버튼
                   <>
                     <Link
-                      href="/dashboard"
-                      className="inline-flex items-center px-8 py-3 rounded-full bg-[#9C50D4] text-white font-medium hover:bg-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-purple-300 group"
+                      href="/post"
+                      className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full bg-[#9C50D4] text-white font-medium hover:bg-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-purple-300 group"
                     >
-                      <span className="group-hover:scale-110 transition-transform">학습 대시보드</span>
+                      <span className="group-hover:scale-110 transition-transform">실시간 커뮤니티</span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
                     </Link>
                     <Link
-                      href="/my-study"
-                      className="inline-flex items-center px-8 py-3 rounded-full bg-white text-[#9C50D4] font-medium border-2 border-[#9C50D4] hover:bg-purple-50 transform hover:scale-105 transition-all duration-200"
+                      href="/post?type=popular"
+                      className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full bg-white text-[#9C50D4] font-medium border-2 border-[#9C50D4] hover:bg-purple-50 transform hover:scale-105 transition-all duration-200"
                     >
-                      <span className="material-icons mr-2 text-[#9C50D4]">groups</span>
-                      내 스터디 그룹
+                      <span className="material-icons mr-2 text-[#9C50D4]">trending_up</span>
+                      인기 게시물
                     </Link>
                   </>
                 ) : (
                   // 비로그인 사용자용 버튼
                   <>
-                    <Link
-                      href="/signup"
-                      className="inline-flex items-center px-8 py-3 rounded-full bg-[#9C50D4] text-white font-medium hover:bg-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-purple-300 group"
-                    >
+              <Link
+                href="/signup"
+                      className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full bg-[#9C50D4] text-white font-medium hover:bg-purple-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-purple-300 group"
+              >
                       <span className="group-hover:scale-110 transition-transform">지금 시작하기</span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </Link>
-                    <Link
-                      href="/login"
-                      className="inline-flex items-center px-8 py-3 rounded-full bg-white text-[#9C50D4] font-medium border-2 border-[#9C50D4] hover:bg-purple-50 transform hover:scale-105 transition-all duration-200"
-                    >
-                      로그인하기
-                    </Link>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+              <Link
+                href="/login"
+                      className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 rounded-full bg-white text-[#9C50D4] font-medium border-2 border-[#9C50D4] hover:bg-purple-50 transform hover:scale-105 transition-all duration-200"
+              >
+                로그인하기
+              </Link>
                   </>
                 )}
               </div>
             </div>
 
             {/* 오른쪽 콘텐츠 - 플로팅 카드 */}
-            <div className="relative flex-1 h-[450px]">
+            <div className="relative flex-1 h-[350px] sm:h-[400px] md:h-[450px] mt-12 md:mt-0">
               {/* 중앙 노트북/디바이스 이미지 */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl shadow-2xl z-30 rotate-12 animate-float">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl shadow-2xl z-30 rotate-12 animate-float">
                 <div className="absolute inset-1 bg-white rounded-xl overflow-hidden flex flex-col">
                   <div className="h-6 bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center px-2">
                     <div className="flex space-x-1">
@@ -258,86 +307,86 @@ export default function Home() {
                     <div className="h-10 bg-white rounded mb-2"></div>
                     <div className="h-2 bg-purple-200 rounded-full w-2/3"></div>
                   </div>
-                </div>
-              </div>
+            </div>
+          </div>
 
               {/* 카드 1 */}
-              <div className="absolute top-0 left-[10%] w-[280px] bg-white rounded-2xl shadow-xl p-6 transform -rotate-6 hover:rotate-0 transition-all duration-300 hover:scale-105 z-10 animate-float">
+              <div className="absolute top-0 left-[5%] sm:left-[10%] w-[240px] sm:w-[280px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform -rotate-6 hover:rotate-0 transition-all duration-300 hover:scale-105 z-10 animate-float">
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-400 rounded-full flex items-center justify-center text-white text-xs shadow-lg">New</div>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-100 flex items-center justify-center">
                     <span className="material-icons text-[#9C50D4]">group_add</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">스터디 그룹 매칭</h3>
-                    <p className="text-sm text-gray-500">관심사가 같은 친구 찾기</p>
+                    <h3 className="font-semibold text-sm sm:text-base text-gray-900">스터디 그룹 매칭</h3>
+                    <p className="text-xs sm:text-sm text-gray-500">관심사가 같은 친구 찾기</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex-shrink-0"></div>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex-shrink-0"></div>
                   <div className="bg-blue-50 text-blue-800 p-2 rounded-lg text-xs">프론트엔드 스터디 모집 중 🖐️</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex-shrink-0"></div>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-100 flex-shrink-0"></div>
                   <div className="bg-purple-50 text-purple-800 p-2 rounded-lg text-xs">같이 공부할 4명 모였어요!</div>
                 </div>
               </div>
 
               {/* 카드 2 */}
-              <div className="absolute top-[30%] right-[5%] w-[300px] bg-white rounded-2xl shadow-xl p-6 transform rotate-6 hover:rotate-0 transition-all duration-300 hover:scale-105 z-20 animate-float" style={{ animationDelay: '0.5s' }}>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+              <div className="absolute top-[30%] right-[5%] w-[240px] sm:w-[280px] md:w-[300px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform rotate-6 hover:rotate-0 transition-all duration-300 hover:scale-105 z-20 animate-float" style={{ animationDelay: '0.5s' }}>
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-100 flex items-center justify-center">
                     <span className="material-icons text-indigo-600">forum</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">지식 공유 플랫폼</h3>
-                    <p className="text-sm text-gray-500">경험과 노하우 공유</p>
-                  </div>
-                </div>
+                    <h3 className="font-semibold text-sm sm:text-base text-gray-900">지식 공유 플랫폼</h3>
+                    <p className="text-xs sm:text-sm text-gray-500">경험과 노하우 공유</p>
+              </div>
+            </div>
                 <div className="space-y-2">
-                  <div className="h-3 bg-indigo-100 rounded-full w-2/3"></div>
-                  <div className="h-3 bg-indigo-100 rounded-full w-4/5"></div>
-                  <div className="h-3 bg-indigo-100 rounded-full w-3/4"></div>
+                  <div className="h-2 sm:h-3 bg-indigo-100 rounded-full w-2/3"></div>
+                  <div className="h-2 sm:h-3 bg-indigo-100 rounded-full w-4/5"></div>
+                  <div className="h-2 sm:h-3 bg-indigo-100 rounded-full w-3/4"></div>
                 </div>
-                <div className="mt-4 flex justify-between">
+                <div className="mt-3 sm:mt-4 flex justify-between">
                   <div className="flex items-center gap-1 text-gray-500 text-xs">
-                    <span className="material-icons text-sm">thumb_up</span>
+                    <span className="material-icons text-xs sm:text-sm">thumb_up</span>
                     <span>28</span>
                   </div>
                   <div className="flex items-center gap-1 text-gray-500 text-xs">
-                    <span className="material-icons text-sm">comment</span>
+                    <span className="material-icons text-xs sm:text-sm">comment</span>
                     <span>14</span>
                   </div>
                   <div className="flex items-center gap-1 text-gray-500 text-xs">
-                    <span className="material-icons text-sm">visibility</span>
+                    <span className="material-icons text-xs sm:text-sm">visibility</span>
                     <span>142</span>
                   </div>
                 </div>
               </div>
 
               {/* 카드 3 */}
-              <div className="absolute bottom-0 left-[15%] w-[280px] bg-white rounded-2xl shadow-xl p-6 transform rotate-3 hover:rotate-0 transition-all duration-300 hover:scale-105 z-30 animate-float" style={{ animationDelay: '1s' }}>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+              <div className="absolute bottom-0 left-[5%] sm:left-[15%] w-[240px] sm:w-[280px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform rotate-3 hover:rotate-0 transition-all duration-300 hover:scale-105 z-30 animate-float" style={{ animationDelay: '1s' }}>
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 flex items-center justify-center">
                     <span className="material-icons text-amber-600">calendar_today</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">스마트 일정 관리</h3>
-                    <p className="text-sm text-gray-500">체계적인 학습 계획</p>
-                  </div>
-                </div>
+                    <h3 className="font-semibold text-sm sm:text-base text-gray-900">스마트 일정 관리</h3>
+                    <p className="text-xs sm:text-sm text-gray-500">체계적인 학습 계획</p>
+              </div>
+            </div>
                 <div className="grid grid-cols-7 gap-1 mb-2">
                   {Array.from({ length: 7 }).map((_, i) => (
-                    <div key={i} className={`h-6 rounded ${i % 3 === 0 ? 'bg-amber-200' : 'bg-amber-100'} text-xs flex items-center justify-center ${i === 2 ? 'ring-2 ring-amber-400' : ''}`}>{i + 10}</div>
+                    <div key={i} className={`h-5 sm:h-6 rounded ${i % 3 === 0 ? 'bg-amber-200' : 'bg-amber-100'} text-xs flex items-center justify-center ${i === 2 ? 'ring-2 ring-amber-400' : ''}`}>{i + 10}</div>
                   ))}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-green-400"></div>
                     <div className="h-2 bg-green-100 rounded-full flex-1"></div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-amber-400"></div>
                     <div className="h-2 bg-amber-100 rounded-full flex-1"></div>
                   </div>
                 </div>
@@ -364,8 +413,8 @@ export default function Home() {
           <div className="text-center mb-16">
             <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium mb-3">특별한 기능</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              HakPle만의 특별한 기능
-            </h2>
+            HakPle만의 특별한 기능
+          </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">학생들의 실제 요구사항을 반영하여 개발된 편리한 기능들로 더 효율적인 학습 경험을 제공합니다.</p>
           </div>
 

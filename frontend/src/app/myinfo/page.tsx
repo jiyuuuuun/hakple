@@ -417,35 +417,37 @@ export default function MyInfoPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <div>
-                <main className="max-w-screen-lg mx-auto pb-10 pt-6">
+                <main className="max-w-4xl mx-auto pb-10 pt-6 px-4">
                     {error && (
-                        <div className="mx-1 mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+                        <div className="mx-1 mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-md">
                             <p>{error}</p>
                         </div>
                     )}
 
                     {/* 프로필 섹션 */}
-                    <div className="relative h-56 bg-[#f2edf4] rounded-t-lg mt-4 mx-4">
-                        <div className="absolute left-8 bottom-0 translate-y-23">
+                    <div className="relative h-64 bg-[#F7F3FD] rounded-t-lg mt-4 shadow-sm overflow-hidden border border-gray-100">
+                        <div className="absolute left-8 bottom-6 md:bottom-8">
                             <div className="relative">
-                                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white bg-white relative group">
+                                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-white relative group shadow-sm">
                                     {combinedUserInfo.profileImageUrl ? (
+                                        <div className="w-full h-full overflow-hidden">
                                         <Image
                                             src={combinedUserInfo.profileImageUrl}
                                             alt="프로필 이미지"
-                                            width={112}
-                                            height={112}
-                                            className="object-cover"
+                                                width={128}
+                                                height={128}
+                                                className="object-cover w-full h-full"
                                             onError={(e) => {
                                                 const target = e.target as HTMLImageElement
-                                                target.src = 'https://via.placeholder.com/112?text=사용자'
+                                                    target.src = 'https://via.placeholder.com/128?text=사용자'
                                             }}
                                         />
+                                        </div>
                                     ) : (
-                                        <div className="w-full h-full bg-purple-50 flex items-center justify-center">
+                                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
                                             <svg
                                                 xmlns="http://www.w3.org/2000/svg"
-                                                className="h-16 w-16 text-[#9C50D4]"
+                                                className="h-16 w-16 text-[#8a63d2]"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 strokeWidth={1.5}
@@ -461,12 +463,12 @@ export default function MyInfoPage() {
                                     )}
                                     <Link
                                         href="/myinfo/profile-image"
-                                        className="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 transition-colors"
+                                        className="absolute bottom-1 right-1 bg-white rounded-full p-1.5 shadow-sm hover:bg-gray-100 transition-colors"
                                         title="프로필 이미지 변경"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
-                                            className="h-5 w-5 text-purple-600"
+                                            className="h-5 w-5 text-[#8a63d2]"
                                             viewBox="0 0 20 20"
                                             fill="currentColor"
                                         >
@@ -475,66 +477,84 @@ export default function MyInfoPage() {
                                     </Link>
                                 </div>
                             </div>
-                            <div className="mt-5 text-left pl-1">
-                                <h1 className="text-2xl font-semibold text-[#9C50D4]">{combinedUserInfo.nickName}</h1>
+                            <div className="mt-2 text-left pl-1">
+                                <h1 className="text-2xl font-bold text-gray-800">{combinedUserInfo.nickName}</h1>
+                                <p className="text-gray-500 text-sm mt-0.5">가입일: {combinedUserInfo.creationTime}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* 흰색 배경 컨테이너 시작 */}
-                    <div className="bg-white mx-4 rounded-b-2xl shadow-sm pb-6 mt-0 pt-20">
+                    {/* 흰색 배경 컨테이너 시작 - 프로필 섹션과 공백 없이 바로 연결 */}
+                    <div className="bg-white rounded-b-lg shadow-sm pb-8 -mt-12 pt-16 border-t-0">
                         {/* 정보 섹션 - 그리드 레이아웃으로 변경 */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mx-4 mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mx-6 mt-6">
                             {/* 기본 정보 카드 */}
-                            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 md:col-span-2">
-                                <h2 className="text-lg font-medium text-gray-800 mb-5">기본 정보</h2>
-
-                                <div className="space-y-5">
-                                    <div className="flex justify-between">
+                            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 md:col-span-2">
+                                <div className="flex items-center mb-4">
+                                    <UserIcon className="h-5 w-5 text-[#8a63d2] mr-2" />
+                                    <h2 className="text-lg font-medium text-gray-800">기본 정보</h2>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span className="text-gray-500">닉네임</span>
-                                        <span className="text-gray-900">{combinedUserInfo.nickName}</span>
+                                        <span className="text-gray-900 font-medium">{combinedUserInfo.nickName}</span>
                                     </div>
 
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span className="text-gray-500">휴대폰 번호</span>
-                                        <span className="text-gray-900">
+                                        <span className="text-gray-900 font-medium">
                                             {combinedUserInfo.phoneNum
                                                 ? formatPhoneNumber(combinedUserInfo.phoneNum)
                                                 : '등록된 번호가 없습니다'}
                                         </span>
                                     </div>
 
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span className="text-gray-500">아이디</span>
-                                        <span className="text-gray-900">
+                                        <span className="text-gray-900 font-medium">
                                             {combinedUserInfo.userName?.startsWith('kakao_')
                                                 ? `(카카오) ${combinedUserInfo.userName.substring(6)}`
                                                 : combinedUserInfo.userName || '정보를 불러올 수 없습니다'}
                                         </span>
                                     </div>
 
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span className="text-gray-500">가입일</span>
-                                        <span className="text-gray-900">
+                                        <span className="text-gray-900 font-medium">
                                             {combinedUserInfo.creationTime || '정보를 불러올 수 없습니다'}
                                         </span>
                                     </div>
 
                                     {!isAdmin && (
-                                        <AcademyInfo
-                                            academyCode={combinedUserInfo.academyCode}
-                                            academyName={combinedUserInfo.academyName}
-                                        />
+                                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                            <span className="text-gray-500">등록된 학원</span>
+                                            <span className="text-gray-900">
+                                                {combinedUserInfo.academyCode ? (
+                                                    <Link href="/myinfo/academyRegister" className="text-[#8a63d2] hover:text-[#6d4bb1] hover:underline">
+                                                        {combinedUserInfo.academyName}
+                                                    </Link>
+                                                ) : (
+                                                    <Link href="/myinfo/academyRegister" className="text-[#8a63d2] hover:text-[#6d4bb1] hover:underline flex items-center">
+                                                        학원 등록하기
+                                                        <ChevronRightIcon className="h-4 w-4 ml-1 inline" />
+                                                    </Link>
+                                                )}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* 계정 설정 카드 */}
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-                                <h2 className="text-lg font-medium text-gray-800 p-6 pb-2">계정 설정</h2>
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+                                <div className="flex items-center p-6 pb-3">
+                                    <LockClosedIcon className="h-5 w-5 text-[#8a63d2] mr-2" />
+                                    <h2 className="text-lg font-medium text-gray-800">계정 설정</h2>
+                                </div>
 
                                 <div>
-                                    <Link href="/myinfo/update" className="flex items-center justify-between p-6">
+                                    <Link href="/myinfo/update" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
                                         <div className="flex items-center">
                                             <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
                                             <span className="text-gray-700">프로필 수정</span>
@@ -542,7 +562,7 @@ export default function MyInfoPage() {
                                         <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                                     </Link>
 
-                                    <Link href="/change-password" className="flex items-center justify-between p-6">
+                                    <Link href="/myinfo/password" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
                                         <div className="flex items-center">
                                             <LockClosedIcon className="h-5 w-5 text-gray-400 mr-3" />
                                             <span className="text-gray-700">비밀번호 변경</span>
@@ -550,7 +570,7 @@ export default function MyInfoPage() {
                                         <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                                     </Link>
 
-                                    <Link href="/myinfo/withdraw" className="flex items-center justify-between p-6">
+                                    <Link href="/myinfo/withdraw" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
                                         <div className="flex items-center">
                                             <ExclamationCircleIcon className="h-5 w-5 text-red-500 mr-3" />
                                             <span className="text-red-500">회원 탈퇴</span>
@@ -564,22 +584,61 @@ export default function MyInfoPage() {
                         {/* 최근 활동 카드 - 관리자가 아닐 때만 표시 */}
                         {!isAdmin &&
                             (countLoading ? (
-                                <div className="mx-4 mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                    <h2 className="text-lg font-medium text-gray-800 pb-2">최근 활동</h2>
-                                    <div className="flex justify-center items-center py-10">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#8C4FF2]"></div>
+                                <div className="mx-6 mt-6 bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+                                    <div className="flex items-center mb-4">
+                                        <ChatBubbleLeftIcon className="h-5 w-5 text-[#8a63d2] mr-2" />
+                                        <h2 className="text-lg font-medium text-gray-800">최근 활동</h2>
+                                    </div>
+                                    <div className="flex justify-center items-center py-8">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#8a63d2]"></div>
                                     </div>
                                 </div>
                             ) : (
-                                <RecentActivity
-                                    postCount={combinedUserInfo.postCount}
-                                    commentCount={combinedUserInfo.commentCount}
-                                    likeCount={combinedUserInfo.likeCount}
-                                />
+                                <div className="mx-6 mt-6 bg-white rounded-lg shadow-sm border border-gray-100">
+                                    <div className="flex items-center p-6 pb-3">
+                                        <ChatBubbleLeftIcon className="h-5 w-5 text-[#8a63d2] mr-2" />
+                                        <h2 className="text-lg font-medium text-gray-800">최근 활동</h2>
+                                    </div>
+
+                                    <div>
+                                        <Link href="/my-posts" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                            <div className="flex items-center">
+                                                <PencilIcon className="h-5 w-5 text-gray-500 mr-3" />
+                                                <span className="text-gray-700">내가 작성한 게시글</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span className="text-[#8a63d2] font-medium mr-2">{postCount}개</span>
+                                                <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                                            </div>
+                                        </Link>
+
+                                        <Link href="/my-comments" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                            <div className="flex items-center">
+                                                <ChatBubbleLeftIcon className="h-5 w-5 text-gray-500 mr-3" />
+                                                <span className="text-gray-700">내가 작성한 댓글</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span className="text-[#8a63d2] font-medium mr-2">{commentCount}개</span>
+                                                <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                                            </div>
+                                        </Link>
+
+                                        <Link href="/my-likes" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                            <div className="flex items-center">
+                                                <HeartIcon className="h-5 w-5 text-gray-500 mr-3" />
+                                                <span className="text-gray-700">내가 좋아요한 게시글</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span className="text-[#8a63d2] font-medium mr-2">{likeCount}개</span>
+                                                <ChevronRightIcon className="h-5 w-5 text-gray-400" />
+                                            </div>
+                                        </Link>
+                                    </div>
+                                </div>
                             ))}
                     </div>
                 </main>
             </div>
         </div>
-    )
+    );
 }

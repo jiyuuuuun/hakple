@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function ForgotUsername() {
     const router = useRouter()
@@ -11,6 +12,7 @@ export default function ForgotUsername() {
         phone: '',
     })
     const [isLoading, setIsLoading] = useState(false)
+    const [errorMessage, setErrorMessage] = useState('')
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
@@ -21,11 +23,12 @@ export default function ForgotUsername() {
         e.preventDefault()
 
         if (!formData.nickName || !formData.phone) {
-            alert('닉네임과 휴대폰 번호를 모두 입력해주세요.')
+            setErrorMessage('닉네임과 휴대폰 번호를 모두 입력해주세요.')
             return
         }
 
         setIsLoading(true)
+        setErrorMessage('')
 
         // API 서버 연결 시도
         let foundUser = null
@@ -122,64 +125,82 @@ export default function ForgotUsername() {
             router.push('/forgot-username/result')
         } else {
             console.log('일치하는 회원 정보 없음')
-            alert('입력하신 정보와 일치하는 회원을 찾을 수 없습니다.')
+            setErrorMessage('입력하신 정보와 일치하는 회원을 찾을 수 없습니다.')
         }
 
         setIsLoading(false)
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
-            <div className="w-full max-w-md">
-                <h1 className="text-2xl font-bold text-center mb-8">아이디 찾기</h1>
+        <div className="min-h-screen flex items-center justify-center bg-[#F5EEF8] px-4 pt-0">
+            <div className="w-full max-w-[600px] bg-white rounded-3xl p-12 shadow-lg mt-[-200px]">
+                <div className="flex flex-col items-center mb-10 mt-[-10px]">
+                    <Link href="/" className="cursor-pointer">
+                        <Image src="/logo.png" alt="Hakple 로고" width={120} height={120} className="mb-2" />
+                    </Link>
+                    <h1 className="text-4xl font-bold text-center">
+                        <span className="text-[#9C50D4]">아이디</span>
+                        <span className="text-black"> 찾기</span>
+                    </h1>
+                    <p className="text-base text-gray-600 mt-2 text-center">
+                        가입 시 등록한 닉네임과 휴대폰 번호로 아이디를 찾을 수 있습니다
+                    </p>
+                </div>
 
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-6">
-                        <h2 className="text-lg font-medium mb-2">닉네임</h2>
-                        <div className="mb-4">
-                            <input
-                                type="text"
-                                name="nickName"
-                                value={formData.nickName}
-                                onChange={handleChange}
-                                placeholder="닉네임을 입력하세요"
-                                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
+                {errorMessage && (
+                    <div className="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+                        <p>{errorMessage}</p>
                     </div>
+                )}
 
-                    <div className="mb-6">
-                        <h2 className="text-lg font-medium mb-2">휴대폰 번호</h2>
-                        <div className="mb-4">
-                            <input
-                                type="tel"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                placeholder="휴대폰 번호를 입력하세요"
-                                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        <p className="text-gray-600 text-sm mb-6">- 숫자만 입력해주세요</p>
-                    </div>
-
-                    <div className="flex w-full">
-                        <Link href="/login" className="w-1/2 mr-2">
-                            <button
-                                type="button"
-                                className="w-full bg-white border border-gray-300 text-black font-medium py-3 rounded-lg"
-                            >
-                                취소
-                            </button>
-                        </Link>
-                        <button
-                            type="submit"
-                            className="w-1/2 ml-2 bg-gray-300 text-white font-medium py-3 rounded-lg"
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="space-y-3">
+                        <label htmlFor="nickName" className="block text-gray-700 text-lg">
+                            닉네임
+                        </label>
+                        <input
+                            id="nickName"
+                            type="text"
+                            name="nickName"
+                            value={formData.nickName}
+                            onChange={handleChange}
+                            placeholder="닉네임을 입력하세요"
+                            className="w-full px-5 py-4 text-lg text-black rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
                             disabled={isLoading}
-                        >
-                            {isLoading ? '처리 중...' : '아이디 찾기'}
-                        </button>
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <label htmlFor="phone" className="block text-gray-700 text-lg">
+                            휴대폰 번호
+                        </label>
+                        <input
+                            id="phone"
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder="휴대폰 번호를 입력하세요"
+                            className="w-full px-5 py-4 text-lg text-black rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
+                            disabled={isLoading}
+                        />
+                        <p className="text-sm text-gray-500">숫자만 입력해주세요</p>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className={`w-full py-4 text-lg ${
+                            isLoading ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#9C50D4] hover:bg-[#8a45bc]'
+                        } text-white rounded-lg transition-colors mt-6`}
+                    >
+                        {isLoading ? '처리 중...' : '아이디 찾기'}
+                    </button>
+
+                    <div className="text-center mt-4">
+                        <Link href="/login" className="text-base text-gray-600 hover:text-purple-600">
+                            로그인 페이지로 돌아가기
+                        </Link>
                     </div>
                 </form>
             </div>

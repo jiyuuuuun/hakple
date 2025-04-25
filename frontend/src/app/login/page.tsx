@@ -14,6 +14,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
+    const [rememberMe, setRememberMe] = useState(false)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -29,6 +30,7 @@ export default function LoginPage() {
                 body: JSON.stringify({
                     username,
                     password,
+                    rememberMe,
                 }),
                 credentials: 'include',
             })
@@ -77,13 +79,13 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#FAF9FE] px-4 pt-0">
+        <div className="min-h-screen flex items-center justify-center bg-[#F5EEF8] px-4 pt-0">
             <div className="w-full max-w-[600px] bg-white rounded-3xl p-12 shadow-lg mt-[-100px]">
                 <div className="flex flex-col items-center mb-12 mt-[-10px]">
                     <Link href="/" className="cursor-pointer">
                         <Image src="/logo.png" alt="Hakple 로고" width={120} height={120} className="mb-3" />
                     </Link>
-                    <h1 className="text-4xl font-bold">
+                    <h1 className="text-2xl md:text-4xl font-bold text-center">
                         <span className="text-[#9C50D4]">Hakple</span>
                         <span className="text-black">에 오신 것을 환영합니다</span>
                     </h1>
@@ -106,7 +108,7 @@ export default function LoginPage() {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="아이디를 입력하세요"
-                            className="w-full px-5 py-4 text-lg text-black rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            className="w-full px-5 py-4 text-lg text-black rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 shadow-md hover:shadow-lg transition-shadow"
                         />
                     </div>
 
@@ -121,7 +123,7 @@ export default function LoginPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="비밀번호를 입력하세요"
-                                className="w-full px-5 py-4 text-lg text-black rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                className="w-full px-5 py-4 text-lg text-black rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 shadow-md hover:shadow-lg transition-shadow"
                             />
                             <button
                                 type="button"
@@ -138,27 +140,27 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between mb-8 text-sm">
-                        <div className="flex items-center min-w-fit">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-8 text-sm">
+                        <div className="flex items-center">
                             <input
                                 type="checkbox"
                                 id="remember"
-                                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer flex-shrink-0"
+                                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
                             />
-                            <label htmlFor="remember" className="ml-2 text-gray-600 cursor-pointer select-none whitespace-nowrap">
+                            <label htmlFor="remember" className="ml-2 text-gray-600 cursor-pointer select-none">
                                 로그인 상태 유지
                             </label>
                         </div>
-                        <div className="flex items-center min-w-fit">
-                            <div className="flex items-center space-x-2">
-                                <Link href="/forgot-username" className="text-gray-600 hover:text-purple-600 hover:underline whitespace-nowrap">
-                                    아이디 찾기
-                                </Link>
-                                <span className="text-gray-300">|</span>
-                                <Link href="/forgot-password" className="text-gray-600 hover:text-purple-600 hover:underline whitespace-nowrap">
-                                    비밀번호 찾기
-                                </Link>
-                            </div>
+                        <div className="flex items-center mt-2 sm:mt-0">
+                            <Link href="/forgot-username" className="text-gray-600 hover:text-purple-600 hover:underline">
+                                아이디 찾기
+                            </Link>
+                            <span className="text-gray-300 mx-2">|</span>
+                            <Link href="/forgot-password" className="text-gray-600 hover:text-purple-600 hover:underline">
+                                비밀번호 찾기
+                            </Link>
                         </div>
                     </div>
 

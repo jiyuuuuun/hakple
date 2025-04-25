@@ -59,6 +59,13 @@ export default function Header() {
         }
     }, [pathname, isLogin, isAuthPage])
 
+    // 관리자인 경우 루트 페이지 접속 시 관리자 페이지로 리다이렉트
+    // useEffect(() => {
+    //     if (isAdmin && pathname === '/') {
+    //         router.push('/admin/admins')
+    //     }
+    // }, [isAdmin, pathname, router])
+
     // 관리자 권한 확인 함수
     const checkAdminPermission = async () => {
         try {
@@ -163,9 +170,15 @@ export default function Header() {
                         </button>
 
                         {/* 로고 */}
-                        <Link href="/" className="flex items-center flex-shrink-0">
-                            <img src="/logo.png" alt="HAKPLE" width={55} height={55} className="logo" />
-                        </Link>
+                        {isAdmin ? (
+                            <div className="flex items-center flex-shrink-0 cursor-default">
+                                <img src="/logo.png" alt="HAKPLE" width={55} height={55} className="logo" />
+                            </div>
+                        ) : (
+                            <Link href="/" className="flex items-center flex-shrink-0">
+                                <img src="/logo.png" alt="HAKPLE" width={55} height={55} className="logo" />
+                            </Link>
+                        )}
 
                         {/* 데스크탑 메뉴 */}
                         <nav className="hidden md:flex space-x-5 lg:space-x-8">
@@ -173,41 +186,49 @@ export default function Header() {
                                 <>
                                     <Link
                                         href="/home"
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-lg ${pathname === '/home' ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
                                     >
                                         홈
                                     </Link>
                                     <Link
                                         href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-lg ${pathname?.startsWith('/post/notice') ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
                                     >
                                         공지사항
                                     </Link>
                                     <Link
                                         href="/post"
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-lg ${pathname === '/post' ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
                                     >
                                         자유게시판
                                     </Link>
                                     <Link
                                         href="/post?type=popular"
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-lg ${pathname === '/post' && pathname.includes('type=popular') ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
                                     >
                                         인기글
                                     </Link>
                                     <Link
                                         href="/calendar"
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-lg ${pathname === '/calendar' ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
                                     >
                                         캘린더
                                     </Link>
+                                    {pathname?.startsWith('/myinfo') && (
+                                        <Link
+                                            href="/myinfo"
+                                            className="font-medium text-lg text-purple-700 font-semibold hover:text-gray-900 whitespace-nowrap transition-all"
+                                        >
+                                            내정보
+                                        </Link>
+                                    )}
                                 </>
                             )}
                             {/* 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
                             {isAdmin && (
                                 <Link
-                                    href="/admin"
-                                    className="font-medium text-lg text-red-600 hover:text-red-800 whitespace-nowrap hover:font-semibold transition-all flex items-center"
+                                    href="/admin/admins"
+                                    className={`font-medium text-lg ${pathname?.startsWith('/admin') ? 'text-red-700 font-semibold' : 'text-red-600'} hover:text-red-800 whitespace-nowrap hover:font-semibold transition-all flex items-center`}
                                 >
                                     <span className="mr-1">👑</span>
                                     관리자
@@ -350,6 +371,14 @@ export default function Header() {
                                     >
                                         캘린더
                                     </Link>
+                                    {pathname?.startsWith('/myinfo') && (
+                                        <Link
+                                            href="/myinfo"
+                                            className="font-medium text-base text-purple-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                        >
+                                            내정보
+                                        </Link>
+                                    )}
                                 </>
                             )}
                             {/* 모바일 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}

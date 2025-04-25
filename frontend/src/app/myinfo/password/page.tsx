@@ -184,72 +184,72 @@ export default function ChangePasswordPage() {
                         <form onSubmit={handleSubmit} className="space-y-8">
                             <div>
                                 <h3 className="text-xl font-medium text-gray-800 mb-3">현재 비밀번호</h3>
-                                    <div>
-                                        <input
-                                            id="current-password"
-                                            type="password"
-                                            value={currentPassword}
-                                            onChange={(e) => {
-                                                setCurrentPassword(e.target.value)
-                                                setPasswordError('')
-                                            }}
-                                            placeholder="현재 비밀번호 입력"
-                                        className="w-full px-5 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors bg-white"
-                                            disabled={isLoading || !!successMessage}
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
                                 <div>
+                                    <input
+                                        id="current-password"
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => {
+                                            setCurrentPassword(e.target.value)
+                                            setPasswordError('')
+                                        }}
+                                        placeholder="현재 비밀번호 입력"
+                                        className="w-full px-5 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors bg-gray-50"
+                                        disabled={isLoading || !!successMessage}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
                                 <h3 className="text-xl font-medium text-gray-800 mb-3">새 비밀번호</h3>
-                                    <div>
-                                        <input
-                                            id="new-password"
-                                            type="password"
-                                            value={newPassword}
-                                            onChange={(e) => {
-                                                setNewPassword(e.target.value)
-                                            }}
-                                            placeholder="새 비밀번호 입력"
+                                <div>
+                                    <input
+                                        id="new-password"
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => {
+                                            setNewPassword(e.target.value)
+                                        }}
+                                        placeholder="새 비밀번호 입력"
                                         className={`w-full px-5 py-4 text-lg border ${
-                                            passwordError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                            passwordError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'
                                         } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors`}
-                                            disabled={isLoading || !!successMessage}
-                                            required
-                                        />
-                                        <p
+                                        disabled={isLoading || !!successMessage}
+                                        required
+                                    />
+                                    <p
                                         className={`text-base mt-3 ${
-                                                validatePassword(newPassword) ? 'text-green-600' : 'text-gray-500'
+                                            validatePassword(newPassword) ? 'text-green-600' : 'text-gray-500'
                                         } flex items-center`}
-                                        >
+                                    >
                                         {validatePassword(newPassword) ? (
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                             </svg>
                                         ) : null}
-                                            비밀번호는 8자 이상이어야 합니다.
-                                        </p>
-                                    </div>
+                                        비밀번호는 8자 이상이어야 합니다.
+                                    </p>
                                 </div>
+                            </div>
 
-                                <div>
+                            <div>
                                 <h3 className="text-xl font-medium text-gray-800 mb-3">새 비밀번호 확인</h3>
-                                    <div>
-                                        <input
-                                            id="confirm-password"
-                                            type="password"
-                                            value={confirmPassword}
-                                            onChange={(e) => {
-                                                setConfirmPassword(e.target.value)
-                                            }}
-                                            placeholder="새 비밀번호 다시 입력"
+                                <div>
+                                    <input
+                                        id="confirm-password"
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => {
+                                            setConfirmPassword(e.target.value)
+                                        }}
+                                        placeholder="새 비밀번호 다시 입력"
                                         className={`w-full px-5 py-4 text-lg border ${
-                                            confirmError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white'
+                                            confirmError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'
                                         } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors`}
-                                            disabled={isLoading || !!successMessage}
-                                            required
-                                        />
+                                        disabled={isLoading || !!successMessage}
+                                        required
+                                    />
                                     {confirmError && (
                                         <p className="text-red-600 text-base mt-3 flex items-center">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -267,23 +267,23 @@ export default function ChangePasswordPage() {
                                         </p>
                                     )}
                                 </div>
-                                </div>
+                            </div>
 
                             <div className="flex justify-end space-x-4 pt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => router.back()}
+                                <button
+                                    type="button"
+                                    onClick={() => router.back()}
                                     className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-lg"
-                                        disabled={isLoading || !!successMessage}
-                                    >
-                                        취소
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitDisabled()}
+                                    disabled={isLoading || !!successMessage}
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitDisabled()}
                                     className={`px-6 py-3 ${
-                                            isSubmitDisabled()
-                                                ? 'bg-gray-300 cursor-not-allowed'
+                                        isSubmitDisabled()
+                                            ? 'bg-gray-300 cursor-not-allowed'
                                             : 'bg-[#9C50D4] hover:bg-[#8A45BC]'
                                     } text-white rounded-lg font-medium text-lg min-w-[100px] flex items-center justify-center`}
                                 >
@@ -293,7 +293,7 @@ export default function ChangePasswordPage() {
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
                                     ) : '변경하기'}
-                                    </button>
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -301,4 +301,4 @@ export default function ChangePasswordPage() {
             </div>
         </div>
     )
-}
+} 

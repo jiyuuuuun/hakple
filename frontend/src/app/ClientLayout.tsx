@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -33,6 +33,27 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         logoutAndHome,
         checkAdminAndRedirect
     }
+
+    // 현재 경로 가져오기
+    const [currentPath, setCurrentPath] = useState('')
+    
+    useEffect(() => {
+        setCurrentPath(window.location.pathname)
+    }, [])
+    
+    // 헤더와 푸터를 숨길 페이지 목록
+    const hideHeaderFooterPages = [
+        '/login', 
+        '/signup', 
+        '/forgot-username', 
+        '/forgot-password',
+        '/reset-password'
+    ]
+    
+    // 현재 페이지에서 헤더와 푸터를 숨길지 여부
+    const shouldHideHeaderFooter = hideHeaderFooterPages.some(page => 
+        currentPath.startsWith(page)
+    )
 
     const checkLoginStatus = async () => {
         try {
@@ -150,11 +171,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return (
         <LoginMemberContext.Provider value={loginMemberContextValue}>
             <div className="flex flex-col min-h-screen">
-                <Header />
+                {!shouldHideHeaderFooter && <Header />}
                 <div className="flex-grow">{children}</div>
-                <Footer />
+                {!shouldHideHeaderFooter && <Footer />}
                 {/* ✅ 모바일 하단 탭 추가 */}
-                <MobileBottomNav />
+                {!shouldHideHeaderFooter && <MobileBottomNav />}
             </div>
         </LoginMemberContext.Provider>
     )
