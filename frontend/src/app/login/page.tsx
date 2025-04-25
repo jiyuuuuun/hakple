@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import { useRouter } from 'next/navigation'
 
 const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao'
 const redirectUrlAfterSocialLogin = 'http://localhost:3000'
@@ -15,6 +16,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
     const [rememberMe, setRememberMe] = useState(false)
+    const router = useRouter()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -66,10 +68,10 @@ export default function LoginPage() {
                 // 관리자인 경우 관리자 페이지로, 일반 사용자인 경우 홈 페이지로 이동
                 if (isAdmin) {
                     console.log('관리자로 로그인 - 관리자 페이지로 이동')
-                    window.location.href = '/admin'
+                    router.push('/admin')
                 } else {
                     console.log('일반 사용자로 로그인 - 홈 페이지로 이동')
-                    window.location.href = '/home'
+                    router.push('/home')
                 }
             }, 500)
         } catch (error) {

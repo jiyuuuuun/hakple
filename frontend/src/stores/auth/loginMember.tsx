@@ -121,7 +121,7 @@ export function useLoginMember() {
 
         const isValidLogin = !!user.userName || !!user.nickname // <- 사용자 확인 가능한 핵심 필드
 
-        setIsLogin(true); // ✅ 로그인 상태 설정
+        setIsLogin(isValidLogin); // 유효한 사용자 정보가 있을 때만 로그인 상태로 설정
         setLoginMemberPending(false)
         console.groupEnd()
     }

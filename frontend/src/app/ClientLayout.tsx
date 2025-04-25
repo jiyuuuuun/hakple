@@ -96,7 +96,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
 
         // 로그인이 필요없는 페이지 목록
-        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password']
+        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
 
         const specialPages = ['/login', '/admin']
         const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
@@ -152,9 +152,33 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
         } else {
-        // 💡 공개 페이지에서는 로그인 체크 안 하지만 상태는 초기화해야 함
-        setNoLoginMember();
-        setIsLogin(false);
+        // 💡 공개 페이지에서는 로그인 체크를 하되, 리다이렉트는 하지 않음
+        fetch(`http://localhost:8090/api/v1/auth/me`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then((res) => {
+                if (!res.ok) {
+                    setNoLoginMember()
+                    setIsLogin(false)
+                    return Promise.reject(new Error('인증 필요'))
+                }
+                return res.json()
+            })
+            .then((data) => {
+                // 로그인 성공
+                console.log('로그인 상태 성공 (공개 페이지)', data)
+                setLoginMember(data)
+                setIsLogin(true)
+            })
+            .catch((error) => {
+                console.log('로그인 되어있지 않음 (공개 페이지)', error)
+                setNoLoginMember()
+                setIsLogin(false)
+            })
         }
 
     }, []) // 초기 로딩 시에만 실행
