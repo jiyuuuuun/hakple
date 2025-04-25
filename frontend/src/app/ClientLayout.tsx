@@ -16,7 +16,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         isLogin,
         logout,
         logoutAndHome,
-        checkAdminAndRedirect
+        checkAdminAndRedirect,
+        setIsLogin
     } = useLoginMember()
 
     const router = useRouter()
@@ -27,6 +28,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         setNoLoginMember,
         isLoginMemberPending,
         isLogin,
+        setIsLogin,
         logout,
         logoutAndHome,
         checkAdminAndRedirect
@@ -69,18 +71,66 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         console.log('ClientLayout - 로그인 상태 확인 시작')
 
         const currentPath = window.location.pathname
+
+
+        // 로그인이 필요없는 페이지 목록
         const publicPages = ['/login', '/signup', '/', '/about', '/signup/success']
+
         const specialPages = ['/login', '/admin']
         const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
         const isSpecialPage = specialPages.some((page) => currentPath.startsWith(page))
 
         console.log('페이지 정보 - 현재 경로:', currentPath, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
 
-        checkLoginStatus()
+
+        // 로그인 상태 체크 API 호출
+        fetch(`http://localhost:8090/api/v1/auth/me`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then((res) => {
+                console.log('로그인 상태 응답:', res.status)
+                if (!res.ok) {
+                    setNoLoginMember()
+                    setIsLogin(false)
+                    return Promise.reject(new Error('인증 필요'))
+                }
+                return res.json()
+            })
+            .then((data) => {
+                // 로그인 성공
+                console.log('로그인 상태 성공', data)
+                setLoginMember(data)
+                setIsLogin(true)
+
+                // 로그인 페이지에 있을 경우 홈으로 리다이렉트
+                if (currentPath === '/login' && !isSpecialPage) {
+                    console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
+                    router.replace("/")
+                }
+            })
+            .catch((error) => {
+                console.log('로그인 되어있지 않음', error)
+                setNoLoginMember()
+                setIsLogin(false)
+
+                // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
+                if (!isPublicPage && !isSpecialPage) {
+                    console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
+               //     router.replace("/login")
+                }
+            })
+            checkLoginStatus()
+
             .finally(() => {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
-    }, [])
+
+    }, []) // 초기 로딩 시에만 실행
+
 
     // ✅ 로그인 상태가 변경된 후 (렌더 기준) 로그 출력
     useEffect(() => {

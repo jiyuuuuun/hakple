@@ -223,10 +223,10 @@ export default function HomePage() {
     }
 
     useEffect(() => {
-        if (!isLogin) {
-            router.push('/login')
-            return
-        }
+   //     if (!isLogin) {
+   //         router.push('/login')
+   //         return
+   //     }
 
         fetchUserInfoAndStats()
         fetchLatestPosts()
