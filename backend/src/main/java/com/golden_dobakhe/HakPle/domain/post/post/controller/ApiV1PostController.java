@@ -7,11 +7,9 @@ import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
 import com.golden_dobakhe.HakPle.security.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -41,6 +39,7 @@ public class ApiV1PostController {
 
     private final BoardService boardService;
 
+    // 현재 인증된 사용자 ID를 반환하는 메서드
     private Long getCurrentUserId() {
         Long userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
@@ -65,6 +64,7 @@ public class ApiV1PostController {
             @PathVariable(name = "id") Long id,
             @RequestParam(name = "postView", required = false, defaultValue = "true") Boolean postView,
             @RequestParam(name = "academyCode", required = false) String academyCode) {
+        // 로그인 여부와 관계없이 게시글 조회 가능
         return ResponseEntity.ok(boardService.getBoard(id, postView, academyCode));
     }
 
@@ -118,7 +118,7 @@ public class ApiV1PostController {
             page = 1;
         }
         Pageable adjustedPageable = PageRequest.of(page - 1, size, sort);
-        
+
 
         return ResponseEntity.ok(
                 boardService.searchBoardsDynamic(academyCode, searchType, searchKeyword, type, adjustedPageable)
@@ -148,13 +148,23 @@ public class ApiV1PostController {
 
     @Operation(summary = "게시물 좋아요 토글", description = "게시물을 좋아요합니다.")
     @PostMapping("/{id}/likes")
-    public ResponseEntity<Void> toggleLike(
-            @PathVariable("id") Long id,
+    public ResponseEntity<?> toggleLike(
+            @PathVariable(name="id") Long id,
             @RequestParam(name = "academyCode", required = false) String academyCode
     ) {
+
+        log.info("❤️ 좋아요 요청: postId = {}", id);
         Long userId = getCurrentUserId();
-        boardService.toggleLike(id, userId, academyCode);
-        return ResponseEntity.ok().build();
+        log.info("👤 요청자 ID: {}", userId);
+
+        try{
+            boardService.toggleLike(id, userId, academyCode);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("🔥 좋아요 처리 실패", e);
+            return ResponseEntity.status(500).body(Map.of("message", "서버 내부 오류", "error", e.getMessage()));
+        }
+
     }
 
     @Operation(summary = "게시물 특정 태그로 이동합니다", description = "특정 ID의 게시물 태그로 이동합니다.")
@@ -241,7 +251,7 @@ public class ApiV1PostController {
     public ResponseEntity<Void> increaseViewCount(
             @PathVariable("id") Long id
     ) {
-        getCurrentUserId(); 
+        getCurrentUserId();
         boardService.increaseViewCount(id);
         return ResponseEntity.ok().build();
     }
@@ -267,7 +277,7 @@ public class ApiV1PostController {
             actualMinLikes = minLikesParam;
         }
 
-        log.debug("인기 태그 조회 - 요청 type: {}, 요청 minLikes: {}, 실제 type: {}, 실제 minLikes: {}", 
+        log.debug("인기 태그 조회 - 요청 type: {}, 요청 minLikes: {}, 실제 type: {}, 실제 minLikes: {}",
                   typeParam, minLikesParam, actualType, actualMinLikes);
 
         if (actualMinLikes != null) {
@@ -329,13 +339,13 @@ public class ApiV1PostController {
     @GetMapping("/notice")
     @Operation(summary = "공지사항 목록 조회")
     public ResponseEntity<Page<BoardResponse>> getNoticeBoards(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "keyword", required = false) String searchKeyword,
             @RequestParam(name = "searchType", required = false) String searchType,
-            @RequestParam(required = false) String searchKeyword,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) String academyCode) {
+            @RequestParam(name = "type", required = false) String type,
+            @RequestParam(name = "academyCode", required = false) String academyCode) {
 
         Long userId = getCurrentUserId();
         if (academyCode == null || academyCode.isEmpty()) {
@@ -386,5 +396,7 @@ public class ApiV1PostController {
         List<Long> likedIds = boardService.getLikedBoardIds(userId); // 서비스에서 ID만 추출
         return ResponseEntity.ok(likedIds);
     }
+
+
 
 }

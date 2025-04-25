@@ -240,7 +240,7 @@ export default function NoticePage() {
   // 아카데미 정보 조회
   // const fetchAcademyInfo = async () => {
   //   if (!academyCode) return;
-    
+
   //   try {
   //     const response = await fetchApi(`/api/v1/admin/academies/${academyCode}`, {
   //       headers: {
@@ -274,6 +274,9 @@ export default function NoticePage() {
     console.log(`정렬 방식 변경: ${newSortType}`);
     setSortType(newSortType);
     setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
+
+    // 정렬 변경 시 데이터 새로 불러오기
+    fetchNoticeBoards();
   };
 
   // 검색 처리 함수
@@ -600,7 +603,7 @@ function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.
         onChange={onChange}
       >
         <option value="creationTime">등록일순</option>
-        <option value="commentCount">댓글순</option> 
+        <option value="commentCount">댓글순</option>
         <option value="viewCount">조회순</option>
         <option value="likeCount">좋아요순</option>
       </select>

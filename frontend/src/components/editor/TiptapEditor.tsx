@@ -38,7 +38,7 @@ const CustomImage = Image.extend({
           return { 'data-id': attributes['data-id'] };
         },
       },
-      
+
       // 백엔드 임시 저장 ID
       'data-temp-id': {
         default: null,
@@ -78,11 +78,11 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
   // 모달 외부 클릭 감지를 위한 이벤트 핸들러
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showLinkModal && 
-          linkModalRef.current && 
-          !linkModalRef.current.contains(event.target as Node) &&
-          linkButtonRef.current && 
-          !linkButtonRef.current.contains(event.target as Node)) {
+      if (showLinkModal &&
+        linkModalRef.current &&
+        !linkModalRef.current.contains(event.target as Node) &&
+        linkButtonRef.current &&
+        !linkButtonRef.current.contains(event.target as Node)) {
         setShowLinkModal(false);
       }
     };
@@ -202,9 +202,9 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
       editor.state.doc.descendants((node, pos) => {
         if (node.type.name === 'image' && node.attrs && node.attrs['data-id'] === tempImageId) {
           imagePos = pos;
-          return false; 
+          return false;
         }
-        return true; 
+        return true;
       });
 
       if (imagePos >= 0) {
@@ -221,20 +221,20 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
   const handleUploadPhoto = useCallback(async (files: FileList | null) => {
     if (files === null || !editor || isUploading) return;
-    
+
     const file = files[0];
     if (!file) return;
-    
+
     // 파일 크기 제한 (5MB)
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     if (file.size > MAX_FILE_SIZE) {
       alert(`이미지 크기가 너무 큽니다. 5MB 이하의 이미지를 사용해주세요.`);
       return;
     }
-    
+
     try {
       setIsUploading(true);
-      
+
       // 서버 상태 확인
       const serverOk = await checkServerStatus();
       if (!serverOk) {
@@ -253,18 +253,18 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         const { view } = editor;
         const { state } = view;
         const { schema } = state;
-        
+
         // 현재 선택된 위치에 임시 이미지 노드 삽입
-        const imageNode = schema.nodes.image.create({ 
+        const imageNode = schema.nodes.image.create({
           src: base64,
           'data-id': tempImageId // 이미지 ID를 추가하여 나중에 찾을 수 있게 함
         });
-        
+
         const transaction = state.tr.replaceSelectionWith(imageNode);
         view.dispatch(transaction);
       };
       reader.readAsDataURL(file);
-      
+
       // 임시 식별자 생성 (UUID)
       const tempId = crypto.randomUUID ? crypto.randomUUID() : `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
@@ -310,7 +310,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           // 상태 코드에 따른 맞춤형 메시지
           const userMessage = errorMessage;
           // 컴포넌트 스코프의 함수 호출
-          handleUploadFailure(editor, tempImageId, userMessage); 
+          handleUploadFailure(editor, tempImageId, userMessage);
           return;
         }
         
@@ -318,7 +318,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         const jsonResponse = await response.json();
         const imageUrl = jsonResponse.filePath;
         const serverTempId = jsonResponse.tempId || tempId;
-        
+
         // 중요: 이미지를 새로 추가하지 않고, 기존 임시 이미지의 src만 업데이트
         const updateTransaction = editor.state.tr;
         let updated = false;
@@ -368,7 +368,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           if (imagePos >= 0 && imageNode) {
             // 임시 노드 삭제 후, 실제 이미지 노드를 해당 위치에 삽입
             const transaction = state.tr.delete(imagePos, imagePos + 1); // 임시 노드 삭제
-            
+
             // CustomImage 타입 가져오기 (타입 안전성)
             const imageNodeType = state.schema.nodes.image as NodeType;
 
@@ -423,7 +423,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
   const addImage = useCallback(() => {
     if (!isMounted || !editor) return;
-    
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -436,7 +436,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
   const addLink = useCallback(() => {
     if (!editor) return;
-    
+
     // 모달 열기
     setLinkUrl('');
     setShowLinkModal(true);
@@ -451,11 +451,11 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
   // 링크 모달에서 확인 버튼 클릭 시 처리하는 함수
   const handleLinkConfirm = useCallback(() => {
     if (!editor || !linkUrl.trim()) return;
-    
+
     // HTML 앵커 태그로 감싸서 삽입
     const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer">${linkUrl}</a>`;
     editor.chain().focus().insertContent(linkHtml).run();
-    
+
     // 모달 닫기
     setShowLinkModal(false);
     setLinkUrl('');
@@ -489,11 +489,11 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
             <span className="text-lg font-semibold">H3</span>
           </button>
         </div>
-        
+
         <div className="flex items-center mx-2 text-gray-400">
           <span>|</span>
         </div>
-        
+
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('bold') ? 'bg-gray-300' : ''}`}
@@ -501,7 +501,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         >
           <span className="material-icons" style={{ fontSize: '20px' }}>format_bold</span>
         </button>
-        
+
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('italic') ? 'bg-gray-300' : ''}`}
@@ -509,7 +509,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         >
           <span className="material-icons" style={{ fontSize: '20px' }}>format_italic</span>
         </button>
-        
+
         <button
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('underline') ? 'bg-gray-300' : ''}`}
@@ -517,11 +517,11 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         >
           <span className="material-icons" style={{ fontSize: '20px' }}>format_underlined</span>
         </button>
-        
+
         <div className="flex items-center mx-2 text-gray-400">
           <span>|</span>
         </div>
-        
+
         <div className="flex mx-1">
           <button
             onClick={() => editor.chain().focus().setTextAlign('left').run()}
@@ -545,11 +545,11 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
             <span className="material-icons" style={{ fontSize: '20px' }}>format_align_right</span>
           </button>
         </div>
-        
+
         <div className="flex items-center mx-2 text-gray-400">
           <span>|</span>
         </div>
-        
+
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('blockquote') ? 'bg-gray-300' : ''}`}
@@ -557,7 +557,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         >
           <span className="material-icons" style={{ fontSize: '20px' }}>format_quote</span>
         </button>
-        
+
         <button
           onClick={addLink}
           ref={linkButtonRef}
@@ -566,7 +566,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         >
           <span className="material-icons" style={{ fontSize: '20px' }}>link</span>
         </button>
-        
+
         <button
           onClick={addImage}
           className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -575,11 +575,11 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         >
           <span className="material-icons" style={{ fontSize: '20px' }}>{isUploading ? 'hourglass_empty' : 'image'}</span>
         </button>
-        
+
         <div className="flex items-center mx-2 text-gray-400">
           <span>|</span>
         </div>
-        
+
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={`p-2 mx-1 hover:bg-gray-300 border-none outline-none bg-transparent ${editor.isActive('codeBlock') ? 'bg-gray-300' : ''}`}
@@ -604,7 +604,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           <span className="material-icons" style={{ fontSize: '20px' }}>format_list_numbered</span>
         </button>
       </div>
-      
+
       <div className="CodeMirror-scroll" ref={editorContainerRef}>
         <div className="CodeMirror-sizer">
           <div style={{ position: 'relative', top: '0px' }}>
@@ -618,10 +618,10 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           </div>
         </div>
       </div>
-      
+
       {/* 링크 삽입 모달 */}
       {showLinkModal && (
-        <div className="absolute z-50" style={{ 
+        <div className="absolute z-50" style={{
           top: linkButtonRef.current ? linkButtonRef.current.offsetTop + linkButtonRef.current.offsetHeight + 5 : 0,
           left: linkButtonRef.current ? linkButtonRef.current.offsetLeft : 0,
         }} ref={linkModalRef}>
@@ -642,13 +642,13 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
               autoFocus
             />
             <div className="flex justify-end space-x-2">
-              <button 
+              <button
                 onClick={handleLinkCancel}
                 className="px-3 py-1 bg-gray-200 text-[#000000] rounded hover:bg-gray-300 m-[10px] border-none rounded-[10px] p-[5px]"
               >
                 취소
               </button>
-              <button 
+              <button
                 onClick={handleLinkConfirm}
                 className="px-3 py-1 bg-[#980ffa] text-[#ffffff] rounded hover:bg-[#8e44ad] m-[10px] border-none  rounded-[10px] p-[5px]"
               >
@@ -658,7 +658,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           </div>
         </div>
       )}
-      
+
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
         
@@ -675,7 +675,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           border-radius: 4px;
           overflow: auto;
           position: relative;
-          background: #fff;
+          background: #ffffff;
           padding: 16px;
         }
         
@@ -689,8 +689,10 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         
         .ProseMirror {
           outline: none;
-          padding: 0;
+          padding: 8px;
           caret-color: #000;
+          min-height: calc(100% - 16px);
+          background: #ffffff;
         }
         
         .ProseMirror p.is-empty:first-child::before {
@@ -701,8 +703,25 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           height: 0;
         }
         
-        .ProseMirror p.is-empty:not(:first-child)::before {
-          content: '';
+        .tiptap-content-wrapper {
+          background: #ffffff;
+          border-radius: 15px;
+          height: 100%;
+          overflow: hidden;
+        }
+        
+        .tiptap-content-wrapper .ProseMirror {
+          outline: none;
+          height: auto; /* 💡 이거 추가 */
+          overflow-y: auto; /* 💡 이것도 추가 (스크롤 가능하게) */
+          min-height: 300px;
+          padding: 16px 20px;
+          background: #ffffff;
+        }
+        
+        .ProseMirror p.is-empty:first-child::before {
+          color: #9ca3af;
+          content: "당신의 이야기를 적어보세요...";
         }
         
         .tiptap-content-wrapper .ProseMirror {
