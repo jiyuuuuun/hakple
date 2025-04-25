@@ -10,6 +10,7 @@ on:
     branches:
       - main
       - develop
+      - feat/#143
 jobs:
   makeTagAndRelease:
     runs-on: ubuntu-latest
