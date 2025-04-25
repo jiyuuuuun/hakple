@@ -34,6 +34,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u JOIN u.roles r WHERE r = :role")
     List<User> findAllByRole(@Param("role") Role role);
 
-
     Optional<User> findByPhoneNum(String testPhone);
+
+    Optional<List<User>> findAllUserByRoles(Role role);
 }

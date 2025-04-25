@@ -2,13 +2,11 @@ package com.golden_dobakhe.HakPle.domain.user.admin.controller;
 
 
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TotalBoardResponse;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.*;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +40,7 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 public class ApiV1AdminController {
 
     private final AdminService adminService;
+    private final UserRepository userRepository;
 
     @Operation(summary = "관리자 회원가입", description = "관리자 계정을 등록합니다.")
     @PostMapping("/register")
@@ -135,6 +134,17 @@ public class ApiV1AdminController {
     public ResponseEntity<Academy> getAcademyByCode(@PathVariable(name = "academyCode") String academyCode) {
         Academy academy = adminService.getAcademyByCode(academyCode);
         return ResponseEntity.ok(academy);
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<UserListDto>> getUsers() {
+        return ResponseEntity.ok(adminService.getUser());
+    }
+
+    @PostMapping("/user/status")
+    public ResponseEntity<?> changeUserStatus(@RequestBody ChangeUserStateRequestDto changeUserStateRequestDto){
+        adminService.changeUserStatus(changeUserStateRequestDto.getId(),changeUserStateRequestDto.getState());
+        return ResponseEntity.ok().build();
     }
 
 }

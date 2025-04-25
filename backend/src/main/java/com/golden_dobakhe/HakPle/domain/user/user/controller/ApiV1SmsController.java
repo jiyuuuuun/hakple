@@ -30,9 +30,6 @@ public class ApiV1SmsController {
             @Parameter(description = "휴대폰 번호", example = "01012345678")
             @RequestParam(name = "phone") String phone
     ) {
-        if(!userFindService.findUserByPhoneNum(phone)){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
         smsService.sendVerificationCode(phone);
         return ResponseEntity.ok("인증번호 전송 완료");
     }

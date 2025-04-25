@@ -54,7 +54,7 @@ public class SecurityConfig {
                                 "/api/v1/usernames/**",
                                 // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",
-                                "/api/v1/admin/register", "/api/v1/admin/check"
+                                "/api/v1/admin/register", "/api/v1/admin/check","/api/v1/sms/**"
                         ).permitAll()
                                 // 관리자 전용 API
                                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

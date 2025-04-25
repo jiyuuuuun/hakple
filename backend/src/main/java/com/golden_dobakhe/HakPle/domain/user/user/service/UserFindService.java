@@ -16,8 +16,8 @@ public class UserFindService {
     private final PasswordEncoder passwordEncoder;
 
     // 아이디(Username) 찾기
-    public String findUserNameByPhoneNum(String nickName, String phoneNum) {
-        return userRepository.findByNickNameAndPhoneNum(nickName, phoneNum)
+    public String findUserNameByPhoneNum(String phoneNum) {
+        return userRepository.findByPhoneNum(phoneNum)
                 .map(User::getUserName)
                 .orElseThrow(() -> new IllegalArgumentException("해당 전화번호로 등록된 아이디가 없습니다."));
     }

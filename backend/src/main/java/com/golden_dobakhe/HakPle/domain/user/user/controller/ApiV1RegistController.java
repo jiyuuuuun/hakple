@@ -70,17 +70,6 @@ public class ApiV1RegistController {
     }
 
     // 중복 확인
-    @Operation(summary = "닉네임 중복 확인", description = "닉네임의 중복 여부를 확인합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "사용 가능"),
-            @ApiResponse(responseCode = "409", description = "중복됨")
-    })
-    @GetMapping("/check-nickname")
-    public ResponseEntity<Boolean> checkNickName(@RequestParam(name = "nickName") String nickName) {
-        return ResponseEntity.ok(!userRepository.existsByNickName(nickName));
-    }
-
-    // 중복 확인
     @Operation(summary = "휴대폰 번호 중복 확인", description = "휴대폰 번호 중복 여부를 확인합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "사용 가능"),
@@ -89,7 +78,7 @@ public class ApiV1RegistController {
     @GetMapping("/check-phonenum")
     public ResponseEntity<Boolean> checkPhoneNum(@RequestParam(name = "phoneNum") String phoneNum) {
         return ResponseEntity.ok(!userRepository.existsByPhoneNum(phoneNum));
-    }
+    } //응답 True 전화번호 없음 False 이미 전화번호 있음
 
 
     // 탈퇴
@@ -113,7 +102,7 @@ public class ApiV1RegistController {
     }
 
     // 로그아웃
-    @Operation(summary = "로그아웃", description = "Access Token을 블랙리스트에 등록하고 Refresh Token을 제거합니다.")
+    @Operation(summary = "로그아웃", description = "Token 제거합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "로그아웃 성공"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),

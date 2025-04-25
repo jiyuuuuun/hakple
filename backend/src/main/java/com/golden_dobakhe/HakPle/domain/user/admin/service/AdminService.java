@@ -9,10 +9,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardReportRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.*;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
@@ -201,6 +198,32 @@ public class AdminService {
     public Academy getAcademyByCode(String academyCode) {
         return academyRepository.findByAcademyCode(academyCode)
                 .orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
+    }
+
+    //회원 목록 조회
+    public List<UserListDto> getUser(){
+        List<User> userList=userRepository.findAllUserByRoles(Role.USER).orElse(null);
+        if(userList.isEmpty()){
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
+        }
+        List<UserListDto> userListDto=new ArrayList<>();
+        String academyName;
+        for (User user : userList) {
+            if(user.getAcademyId()!=null) {
+                Academy academy = academyRepository.findByAcademyCode(user.getAcademyId()).orElse(null);
+                academyName = (academy != null) ? academy.getAcademyName() : "학원 정보 없음";
+            }else{
+                academyName="학원 정보 없음";
+            }
+            userListDto.add(new UserListDto(user,academyName));
+        }
+    return userListDto;
+    }
+
+    //회원 상태 바꾸기
+    public void changeUserStatus(Long userId,Status status) {
+        User user=userRepository.findById(userId).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        user.setStatus(status);
     }
 
 }
