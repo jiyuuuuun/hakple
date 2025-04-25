@@ -25,6 +25,8 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
+
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -48,6 +50,8 @@ import org.springframework.data.domain.PageRequest;
 @Transactional
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
+
+    private static final int MAX_CONTENT_LENGTH = 10000;
 
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
@@ -460,8 +464,8 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(request.getTitle())) {
             throw BoardException.invalidRequest();
         }
-        if (!StringUtils.hasText(request.getContent())) {
-            throw BoardException.invalidRequest();
+        if (request.getContent().getBytes(StandardCharsets.UTF_8).length > MAX_CONTENT_LENGTH) {
+            throw BoardException.invalidRequest("Content exceeds maximum allowed length of " + MAX_CONTENT_LENGTH + " characters.");
         }
 
     }

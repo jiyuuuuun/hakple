@@ -82,7 +82,7 @@ export default function PostPage() {
           }
           setPostType(type);
           prevPostTypeRef.current = type;
-          
+
           // type이 popular인 경우 자동으로 minLikes 10 설정
           if (type === 'popular' && !searchParams.has('minLikes')) {
             setMinLikes('10');
@@ -176,9 +176,9 @@ export default function PostPage() {
       // 백엔드는 0부터 시작하는 페이지 인덱스를 사용하므로 page - 1
       let url = `/api/v1/posts?page=${page}&size=${size}&type=${postType}`;
 
-      // size와 정렬 방식 추가
-      url += `&size=${size}`;
+      // 정렬 방식 추가
       url += `&sortType=${encodeURIComponent(sort)}`;
+
 
       // 필터 유형에 따라 적절한 파라미터 추가
       if (keyword && keyword.trim() !== '') {
@@ -237,6 +237,8 @@ export default function PostPage() {
 
       const postData = await postsResponse.json();
       const likedPostIds: number[] = await likeStatusResponse.json();
+
+      console.log('📦 게시글 응답 데이터:', postData);
 
       if (postData && Array.isArray(postData.content)) {
         setPosts(postData.content.map((post: Post) => ({
@@ -455,14 +457,14 @@ export default function PostPage() {
     setSelectedTag(null);
     setSearchMode(false);
     setSearchKeyword('');
-    
+
     // 인기게시판으로 변경 시 minLikes 설정
     if (newType === 'popular') {
       setMinLikes('10');
     } else if (prevPostTypeRef.current === 'popular') {
       setMinLikes(null);
     }
-    
+
     // 태그 활성화 상태 초기화
     setPopularTags(prevTags =>
       prevTags.map(tag => ({
@@ -546,41 +548,40 @@ export default function PostPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-4 py-6">
-        {/* 인기 게시판 / 자유 게시판 탭 UI */}
+
+        {/* 탭 메뉴 */}
         <div className="flex space-x-4 mb-6">
-          <button 
-            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              postType === 'free' 
-                ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-            onClick={() => {
-              if (postType !== 'free') {
-                router.push('/post');
-              }
-            }}
+          <button
+            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${postType === 'free'
+              ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            onClick={() => postType !== 'free' && router.push('/post')}
           >
             자유게시판
           </button>
-          <button 
-            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              postType === 'popular' 
-                ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-            onClick={() => {
-              if (postType !== 'popular') {
-                router.push('/post?type=popular');
-              }
-            }}
+          <button
+            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${postType === 'popular'
+              ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            onClick={() => postType !== 'popular' && router.push('/post?type=popular')}
           >
             인기글
           </button>
         </div>
 
-        {/* 게시글 작성 버튼 */}
+        {/* 타이틀 + 새 글쓰기 + 뷰모드 토글 */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">{postType === 'popular' ? '인기글' : '자유게시판'}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {loginMember?.academyName
+              ? postType === 'popular'
+                ? `${loginMember.academyName}의 인기글`
+                : `${loginMember.academyName}의 게시판`
+              : postType === 'popular'
+                ? '인기글'
+                : '게시판'}
+          </h1>
           <div className="flex items-center gap-4">
             <Link
               href="/post/new"
@@ -606,7 +607,7 @@ export default function PostPage() {
           </div>
         </div>
 
-        {/* 검색 및 필터 */}
+        {/* 필터/검색/정렬 */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-6 items-end">
             <div>
@@ -625,8 +626,8 @@ export default function PostPage() {
         </div>
 
         {/* 인기 태그 */}
-        {!searchMode && !minLikes && (
-          <div className="bg-white rounded-lg shadow p-4">
+        {!searchMode && (!postType || postType === 'free') && (
+          <div className="bg-white rounded-lg shadow p-4 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-gray-800">인기 태그</h2>
             <div className="flex flex-wrap gap-2">
               {tagsLoading ? (
@@ -781,20 +782,23 @@ function Tag({ text, count, active = false, onClick }: { text: string; count: st
     <button
       onClick={onClick}
       className={`
-        inline-flex items-center px-3 py-1.5 text-sm rounded-full transition-colors
+        inline-flex items-center px-3 py-1 text-sm rounded-full transition-colors cursor-pointer
         ${active
-          ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          ? 'bg-[#9C50D4] text-white'
+          : 'bg-purple-50 text-[#9C50D4] hover:bg-purple-100'
         }
       `}
     >
       #{text}
-      <span className="ml-1.5 text-xs text-gray-500">
-        ({count})
-      </span>
+      {count && (
+        <span className="ml-1 text-xs text-gray-400">
+          ({count})
+        </span>
+      )}
     </button>
   );
 }
+
 
 // 필터 드롭다운
 function FilterDropdown({ value, onChange }: { value: string; onChange: (type: string) => void }) {
@@ -921,7 +925,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             </div>
           </div>
         </div>
-        
+
         <Link href={`/post/${id}`} className="block no-underline">
           <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-[#9C50D4] transition-colors line-clamp-2">
             {title}
@@ -930,18 +934,24 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             )}
           </h3>
         </Link>
-        
-        <div className="flex flex-wrap gap-2 mb-4">
-          {tags.map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex px-2 py-1 text-xs text-gray-500 bg-gray-50 rounded-md"
-            >
-              #{tag}
-            </span>
-          ))}
+
+        <div className="flex flex-wrap gap-2 mb-4 min-h-[28px]">
+          {tags?.length > 0 ? (
+            tags.map((tag, index) => (
+              <span
+                key={index}
+                className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer"
+              >
+                #{tag}
+              </span>
+            ))
+          ) : (
+            <span className="invisible inline-block px-2 py-1 text-xs">#태그자리</span>
+          )}
         </div>
-        
+
+
+
         <div className="flex items-center gap-6 text-gray-500">
           <button
             onClick={onLikeClick}
@@ -963,7 +973,12 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             </svg>
             <span className="text-sm">{likeCount}</span>
           </button>
-          <div className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
+
+          {/* 댓글 버튼 */}
+          <Link
+            href={`/post/${id}`}
+            className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5 group-hover/comment:scale-110 transition-transform"
@@ -979,7 +994,8 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
               />
             </svg>
             <span className="text-sm">{commentCount}</span>
-          </div>
+          </Link>
+
           <div className="flex items-center gap-2 ml-auto">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1005,7 +1021,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -1060,14 +1076,11 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
 
         <div className="flex flex-wrap gap-2 mb-4">
           {tags.map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex px-2 py-1 text-xs text-gray-500 bg-gray-50 rounded-md"
-            >
-              #{tag}
-            </span>
+            <span key={index} className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer">#{tag}</span>
           ))}
         </div>
+
+
 
         <div className="flex items-center gap-6 text-gray-500">
           <button

@@ -28,7 +28,7 @@ public class Comment extends BaseEntity {
     private User user;
 
     @Lob // TEXT 타입
-    @Column(nullable = false)
+    @Column(nullable = false,columnDefinition = "TEXT")
     private String content; // 내용 (TEXT 타입)
 
     private int likeCount; // 댓글 좋아요 수
