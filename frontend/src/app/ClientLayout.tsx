@@ -55,6 +55,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         currentPath.startsWith(page)
     )
 
+    
     const checkLoginStatus = async () => {
         try {
             console.log('로그인 상태 확인 시작')
@@ -95,7 +96,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
 
         // 로그인이 필요없는 페이지 목록
-        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success']
+        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password']
 
         const specialPages = ['/login', '/admin']
         const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
@@ -104,6 +105,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         console.log('페이지 정보 - 현재 경로:', currentPath, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
 
 
+        if (!isPublicPage) {
         // 로그인 상태 체크 API 호출
         fetch(`http://localhost:8090/api/v1/auth/me`, {
             method: 'GET',
@@ -149,6 +151,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             .finally(() => {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
+        } else {
+        // 💡 공개 페이지에서는 로그인 체크 안 하지만 상태는 초기화해야 함
+        setNoLoginMember();
+        setIsLogin(false);
+        }
 
     }, []) // 초기 로딩 시에만 실행
 

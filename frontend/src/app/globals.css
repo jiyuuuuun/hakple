@@ -138,3 +138,10 @@ body {
 }
 
 /* 추가 애니메이션이 필요한 경우 여기에 정의하세요 */
+
+/* 헤더와 푸터 숨기기 클래스 */
+body.hide-header-footer header,
+body.hide-header-footer footer,
+body.hide-header-footer nav.bottom-nav {
+  display: none !important;
+}

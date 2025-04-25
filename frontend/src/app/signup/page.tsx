@@ -14,11 +14,14 @@ export default function Signup() {
     id: "",
     password: "",
     confirmPassword: "",
+    verificationCode: "",
   });
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [codeVerified, setCodeVerified] = useState(false);
 
   // Track validation status
   const [validations, setValidations] = useState({
@@ -35,20 +38,21 @@ export default function Signup() {
       setValidations((prev) => ({ ...prev, idChecked: false }));
     } else if (name === "phone") {
       setValidations((prev) => ({ ...prev, phoneChecked: false }));
+      setCodeSent(false);
+      setCodeVerified(false);
+    } else if (name === "verificationCode") {
+      setCodeVerified(false);
     }
 
     // Clear error when user starts typing
     setErrorMessage("");
   };
 
-  const checkDuplicate = async (type: "id" | "phone") => {
-    // 필드값 확인
-    const fieldValue = formData[type];
+  const checkIdDuplicate = async () => {
+    const fieldValue = formData.id;
 
     if (!fieldValue) {
-      setErrorMessage(
-        `${type === "id" ? "아이디" : "휴대폰 번호"}를 먼저 입력해주세요.`
-      );
+      setErrorMessage("아이디를 먼저 입력해주세요.");
       return;
     }
 
@@ -56,33 +60,158 @@ export default function Signup() {
     setErrorMessage("");
     
     try {
-      // 백엔드 API 호출
-      let available = false;
+      // API 기본 URL 설정
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
       
-      if (type === "id") {
-        const response = await get<boolean>(`/api/v1/users/check-username?userName=${fieldValue}`);
-        available = response;
-      } else if (type === "phone") {
-        const response = await get<boolean>(`/api/v1/users/check-phonenum?phoneNum=${fieldValue}`);
-        available = response;
+      // 백엔드 API 호출 (직접 fetch 사용)
+      const response = await fetch(`${API_BASE_URL}/api/v1/users/check-username?userName=${fieldValue}`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`아이디 중복 확인 실패: ${response.status}`);
       }
-
-      if (available) {
-      setValidations((prev) => ({
-        ...prev,
-          [type === "id" ? "idChecked" : "phoneChecked"]: true,
-      }));
-        setSuccessMessage(
-          `${type === "id" ? "아이디" : "휴대폰 번호"} 사용 가능합니다.`
-        );
+      
+      const isAvailable = await response.json();
+      
+      if (isAvailable) {
+        setValidations((prev) => ({
+          ...prev,
+          idChecked: true,
+        }));
+        setSuccessMessage("아이디 사용 가능합니다.");
       } else {
-      setErrorMessage(
-          `이미 사용 중인 ${type === "id" ? "아이디" : "휴대폰 번호"}입니다.`
-        );
+        setErrorMessage("이미 사용 중인 아이디입니다.");
       }
     } catch (error) {
       console.error("중복 확인 중 오류 발생:", error);
-      setErrorMessage("중복 확인 중 오류가 발생했습니다.");
+      setErrorMessage("서버 연결에 문제가 있습니다. 네트워크 연결을 확인하세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendVerificationCode = async () => {
+    const phone = formData.phone;
+
+    if (!phone) {
+      setErrorMessage("휴대폰 번호를 먼저 입력해주세요.");
+      return;
+    }
+
+    // 휴대폰 번호 형식 검사 (숫자만)
+    if (!/^\d+$/.test(phone)) {
+      setErrorMessage("휴대폰 번호는 숫자만 입력 가능합니다.");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+    
+    try {
+      // API 기본 URL 설정
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+      
+      // 먼저 휴대폰 번호 중복 확인 (직접 fetch 사용)
+      let duplicateCheckResponse;
+      try {
+        duplicateCheckResponse = await fetch(`${API_BASE_URL}/api/v1/users/check-phonenum?phoneNum=${phone}`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        
+        if (!duplicateCheckResponse.ok) {
+          throw new Error(`휴대폰 번호 중복 확인 실패: ${duplicateCheckResponse.status}`);
+        }
+      } catch (error) {
+        console.error("휴대폰 번호 중복 확인 중 오류:", error);
+        setErrorMessage("서버 연결에 문제가 있습니다. 네트워크 연결을 확인하세요.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // 응답 데이터 읽기 (Boolean 타입)
+      const isAvailable = await duplicateCheckResponse.json() as boolean;
+      
+      
+      // false이면 이미 사용 중인 번호
+      if (!isAvailable) {
+        setErrorMessage("이미 사용 중인 휴대폰 번호입니다.");
+        setIsLoading(false);
+        return;
+      }
+      
+      // 인증번호 요청 - isAvailable이 true일 때만 실행 (사용 가능한 번호)
+      try {
+        const smsResponse = await fetch(`${API_BASE_URL}/api/v1/sms/send?phone=${phone}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!smsResponse.ok) {
+          throw new Error(`인증번호 전송 실패: ${smsResponse.status}`);
+        }
+        
+        setCodeSent(true);
+        setSuccessMessage("인증번호가 전송되었습니다. 인증번호를 입력해주세요.");
+      } catch (error) {
+        console.error("인증번호 전송 API 호출 중 오류:", error);
+        setErrorMessage("인증번호 전송에 실패했습니다. 네트워크 연결을 확인하세요.");
+        return;
+      }
+    } catch (error) {
+      console.error("인증번호 전송 중 오류:", error);
+      setErrorMessage("인증번호 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyCode = async () => {
+    const { phone, verificationCode } = formData;
+
+    if (!verificationCode) {
+      setErrorMessage("인증번호를 입력해주세요.");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+    
+    try {
+      // API 기본 URL 설정
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+      
+      // 인증번호 확인 API 호출
+      const response = await fetch(`${API_BASE_URL}/api/v1/sms/verify?phone=${phone}&code=${verificationCode}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setErrorMessage("인증번호가 일치하지 않습니다.");
+        } else {
+          setErrorMessage(`인증 확인 실패: ${response.status}`);
+        }
+        setIsLoading(false);
+        return;
+      }
+      
+      // 인증 성공
+      setCodeVerified(true);
+      setValidations((prev) => ({ ...prev, phoneChecked: true }));
+      setSuccessMessage("휴대폰 번호 인증이 완료되었습니다.");
+    } catch (error) {
+      console.error("인증번호 확인 중 오류 발생:", error);
+      setErrorMessage("서버 연결에 문제가 있습니다. 네트워크 연결을 확인하세요.");
     } finally {
       setIsLoading(false);
     }
@@ -98,8 +227,8 @@ export default function Signup() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setErrorMessage("비밀번호는 8자 이상이어야 합니다.");
+    if (formData.password.length < 8 || formData.password.length > 15) {
+      setErrorMessage("비밀번호는 8자~15자 이어야 합니다.");
       return;
     }
 
@@ -114,7 +243,7 @@ export default function Signup() {
     }
     
     if (!validations.phoneChecked) {
-      setErrorMessage("휴대폰 번호 중복확인이 필요합니다.");
+      setErrorMessage("휴대폰 번호 인증이 필요합니다.");
       return;
     }
 
@@ -128,6 +257,9 @@ export default function Signup() {
     setSuccessMessage("회원가입 처리 중...");
 
     try {
+      // API 기본 URL 설정
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
+      
       // 백엔드 API 호출
       const requestData = {
         userName: formData.id,
@@ -136,14 +268,31 @@ export default function Signup() {
         phoneNum: formData.phone
       };
       
-      await post("/api/v1/users/userreg", requestData);
+      // post 유틸 대신 직접 fetch 호출
+      const response = await fetch(`${API_BASE_URL}/api/v1/users/userreg`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
       
-      setSuccessMessage("회원가입이 완료되었습니다!");
+      // 응답 상태 코드로 성공/실패 판단하기
+      if (!response.ok) {
+        // 오류 응답인 경우에만 응답 본문 읽기
+        const errorText = await response.text();
+        throw new Error(errorText || `회원가입 실패: ${response.status}`);
+      }
+      
+      // 성공시 응답 본문 읽지 않고 바로 처리
+      setSuccessMessage("회원가입이 성공적으로 완료되었습니다!");
+      
       // 성공 페이지로 이동
       router.push("/signup/success");
     } catch (error) {
       console.error("회원가입 중 오류 발생:", error);
-      setErrorMessage("회원가입 처리 중 오류가 발생했습니다.");
+      setErrorMessage(error instanceof Error ? error.message : "회원가입 처리 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -197,12 +346,12 @@ export default function Signup() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 닉네임 */}
           <div className="space-y-2">
-              <label
-                htmlFor="nickname"
+            <label
+              htmlFor="nickname"
               className="block text-base font-medium text-gray-700"
-              >
-                닉네임
-              </label>
+            >
+              닉네임
+            </label>
             <input
               id="nickname"
               name="nickname"
@@ -218,57 +367,104 @@ export default function Signup() {
 
           {/* 휴대폰 번호 */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
             <label
               htmlFor="phone"
-                className="block text-base font-medium text-gray-700"
+              className="block text-base font-medium text-gray-700"
             >
               휴대폰 번호
             </label>
+            <div className="flex space-x-2">
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                required
+                placeholder="휴대폰 번호를 입력하세요 (숫자만)"
+                value={formData.phone}
+                onChange={handleChange}
+                className={`flex-1 px-4 py-3 text-base text-black rounded-lg border ${
+                  validations.phoneChecked
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-300 bg-gray-50"
+                } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
+                disabled={isLoading || validations.phoneChecked}
+              />
               <button
                 type="button"
-                onClick={() => checkDuplicate("phone")}
-                className={`px-4 py-2 text-base ${
-                  validations.phoneChecked
+                onClick={sendVerificationCode}
+                className={`px-4 py-2 whitespace-nowrap text-base ${
+                  codeSent
                     ? "bg-green-500 text-white"
                     : "bg-[#9C50D4] text-white hover:bg-[#8a45bc]"
                 } rounded-lg transition-colors`}
-                disabled={isLoading || !formData.phone}
+                disabled={isLoading || !formData.phone || codeSent}
               >
-                {isLoading && formData.phone && !validations.phoneChecked
-                  ? "확인 중..."
-                  : validations.phoneChecked
-                  ? "확인 완료"
-                  : "중복확인"}
+                {isLoading ? "처리 중..." : codeSent ? "전송됨" : "인증번호 받기"}
               </button>
             </div>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              required
-              placeholder="휴대폰 번호를 입력하세요"
-              value={formData.phone}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 text-base text-black rounded-lg border ${
-                validations.phoneChecked
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-300 bg-gray-50"
-              } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
-              disabled={isLoading}
-            />
           </div>
+
+          {/* 인증번호 입력 필드 (코드 전송 후 표시) */}
+          {codeSent && !validations.phoneChecked && (
+            <div className="space-y-2">
+              <label
+                htmlFor="verificationCode"
+                className="block text-base font-medium text-gray-700"
+              >
+                인증번호
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  id="verificationCode"
+                  name="verificationCode"
+                  type="text"
+                  placeholder="인증번호 6자리를 입력하세요"
+                  value={formData.verificationCode}
+                  onChange={handleChange}
+                  className={`flex-1 px-4 py-3 text-base text-black rounded-lg border ${
+                    codeVerified
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-300 bg-gray-50"
+                  } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
+                  disabled={isLoading || codeVerified}
+                />
+                <button
+                  type="button"
+                  onClick={verifyCode}
+                  className="px-4 py-2 whitespace-nowrap text-base bg-[#9C50D4] text-white hover:bg-[#8a45bc] rounded-lg transition-colors"
+                  disabled={isLoading || !formData.verificationCode || codeVerified}
+                >
+                  {isLoading ? "확인 중..." : "확인"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 아이디 */}
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label htmlFor="id" className="block text-base font-medium text-gray-700">
-                아이디
-              </label>
+            <label htmlFor="id" className="block text-base font-medium text-gray-700">
+              아이디
+            </label>
+            <div className="flex space-x-2">
+              <input
+                id="id"
+                name="id"
+                type="text"
+                required
+                placeholder="아이디를 입력하세요"
+                value={formData.id}
+                onChange={handleChange}
+                className={`flex-1 px-4 py-3 text-base text-black rounded-lg border ${
+                  validations.idChecked
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-300 bg-gray-50"
+                } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
+                disabled={isLoading}
+              />
               <button
                 type="button"
-                onClick={() => checkDuplicate("id")}
-                className={`px-4 py-2 text-base ${
+                onClick={checkIdDuplicate}
+                className={`px-4 py-2 whitespace-nowrap text-base ${
                   validations.idChecked
                     ? "bg-green-500 text-white"
                     : "bg-[#9C50D4] text-white hover:bg-[#8a45bc]"
@@ -282,21 +478,6 @@ export default function Signup() {
                   : "중복확인"}
               </button>
             </div>
-            <input
-              id="id"
-              name="id"
-              type="text"
-              required
-              placeholder="아이디를 입력하세요"
-              value={formData.id}
-              onChange={handleChange}
-              className={`w-full px-4 py-3 text-base text-black rounded-lg border ${
-                validations.idChecked
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-300 bg-gray-50"
-              } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
-              disabled={isLoading}
-            />
           </div>
 
           {/* 비밀번호 */}
@@ -318,7 +499,7 @@ export default function Signup() {
               className="w-full px-4 py-3 text-base text-black rounded-lg border border-gray-300 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={isLoading}
             />
-            <p className="text-sm text-gray-500">비밀번호는 8자 이상이어야 합니다.</p>
+            <p className="text-sm text-gray-500">비밀번호는 8자~15자 이어야 합니다.</p>
           </div>
 
           {/* 비밀번호 확인 */}
@@ -360,15 +541,15 @@ export default function Signup() {
             </label>
           </div>
 
-            <button
-              type="submit"
+          <button
+            type="submit"
             className={`w-full py-3 px-4 rounded-xl text-white text-lg font-bold ${
               isFormValid() ? "bg-[#9C50D4] hover:bg-[#8a45bc]" : "bg-gray-400 cursor-not-allowed"
             } transition-colors mt-6`}
             disabled={!isFormValid() || isLoading}
           >
             {isLoading ? "처리 중..." : "회원가입"}
-            </button>
+          </button>
         </form>
 
         <div className="text-center mt-6">
@@ -378,7 +559,7 @@ export default function Signup() {
               로그인
             </Link>
           </p>
-          </div>
+        </div>
       </div>
     </div>
   );
