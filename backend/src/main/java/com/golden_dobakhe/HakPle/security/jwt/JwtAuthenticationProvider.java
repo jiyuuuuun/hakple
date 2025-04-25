@@ -42,6 +42,7 @@ public class JwtAuthenticationProvider {
     public String genNewAccessToken(String refreshToken) {
         Claims claims;
         try {
+            //여기서 리프래시 토큰을 파싱과 동시에 유효성을 검증한다
             claims = jwtTokenizer.parseRefreshToken(refreshToken);
         } catch (Exception e) {
             log.warn("🔐 토큰 파싱 실패: {}", e.getMessage());
