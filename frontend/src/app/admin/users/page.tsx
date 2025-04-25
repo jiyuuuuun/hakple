@@ -25,6 +25,18 @@ interface ChangeUserStateRequestDto {
   state: string
 }
 
+// 페이지네이션을 위한 응답 인터페이스 추가
+interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
 export default function AdminUsersPage() {
   const { loginMember } = useGlobalLoginMember()
   const router = useRouter()
@@ -38,6 +50,12 @@ export default function AdminUsersPage() {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [newState, setNewState] = useState<string>('')
   const [error, setError] = useState<string>('')
+  
+  // 페이지네이션 관련 상태 추가
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalElements, setTotalElements] = useState(0)
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -68,13 +86,13 @@ export default function AdminUsersPage() {
     }
 
     checkAdmin()
-  }, [loginMember, router])
+  }, [loginMember, router, currentPage, pageSize])
 
   const fetchUsers = async () => {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch('http://localhost:8090/api/v1/admin/users', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/users?page=${currentPage}&size=${pageSize}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -86,9 +104,11 @@ export default function AdminUsersPage() {
         throw new Error('회원 목록을 불러오는데 실패했습니다')
       }
 
-      const data = await response.json()
-      setUsers(data)
-      sortUsers(data, sortField, sortDirection)
+      const data: PageResponse<User> = await response.json()
+      setUsers(data.content)
+      setTotalPages(data.totalPages)
+      setTotalElements(data.totalElements)
+      sortUsers(data.content, sortField, sortDirection)
     } catch (error) {
       console.error('회원 목록 조회 에러:', error)
       setError('회원 목록을 불러오는데 실패했습니다')
@@ -222,6 +242,18 @@ export default function AdminUsersPage() {
     { value: 'PENDING', label: '대기중' }
   ]
 
+  // 페이지 변경 처리 함수 추가
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // 페이지 크기 변경 처리 함수 추가
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = parseInt(e.target.value)
+    setPageSize(newSize)
+    setCurrentPage(1) // 페이지 크기 변경 시 첫 페이지로 이동
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -256,13 +288,23 @@ export default function AdminUsersPage() {
                 <select
                   value={filterState}
                   onChange={(e) => setFilterState(e.target.value)}
-                  className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
                 >
-                  {stateOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+                  {stateOptions.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
+                </select>
+              </div>
+              {/* 페이지 크기 선택 옵션 추가 */}
+              <div>
+                <select
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
+                >
+                  <option value={10}>10개씩</option>
+                  <option value={20}>20개씩</option>
+                  <option value={50}>50개씩</option>
                 </select>
               </div>
             </div>
@@ -393,6 +435,89 @@ export default function AdminUsersPage() {
               </table>
             </div>
           )}
+
+          {/* 테이블 내용 아래에 페이지네이션 UI 추가 */}
+          {/* 표 내용 표시 후 */}
+          {/* 페이지네이션 UI */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <nav className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded-md ${
+                    currentPage === 1
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  이전
+                </button>
+                
+                <div className="flex space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      // 현재 페이지 주변의 페이지만 표시
+                      return (
+                        page === 1 ||
+                        page === totalPages ||
+                        Math.abs(page - currentPage) <= 2
+                      );
+                    })
+                    .map((page, index, array) => {
+                      // 페이지 번호 사이에 간격이 있는 경우 ... 표시
+                      if (index > 0 && array[index - 1] !== page - 1) {
+                        return (
+                          <div key={`ellipsis-${page}`} className="flex items-center">
+                            <span className="px-1">...</span>
+                            <button
+                              onClick={() => handlePageChange(page)}
+                              className={`px-3 py-1 rounded-md ${
+                                currentPage === page
+                                  ? 'bg-[#8C4FF2] text-white'
+                                  : 'text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-1 rounded-md ${
+                            currentPage === page
+                              ? 'bg-[#8C4FF2] text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded-md ${
+                    currentPage === totalPages
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  다음
+                </button>
+              </nav>
+            </div>
+          )}
+          
+          {/* 페이지 정보 표시 */}
+          <div className="text-sm text-gray-500 text-center mt-4">
+            전체 {totalElements}개 항목 중 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalElements)}개 표시
+          </div>
         </div>
       </div>
     </div>

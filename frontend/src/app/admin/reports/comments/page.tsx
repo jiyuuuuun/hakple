@@ -165,7 +165,7 @@ export default function ReportedCommentsPage() {
 
     setComments(filtered);
   };
-
+  
   // 검색어 변경 핸들러
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -247,7 +247,7 @@ export default function ReportedCommentsPage() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               placeholder="검색어를 입력하세요"
               className="w-full px-4 py-2 border-y border-r border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -416,6 +416,13 @@ export default function ReportedCommentsPage() {
               </li>
             </ul>
           </nav>
+        </div>
+      )}
+      
+      {/* 페이지 정보 표시 */}
+      {comments.length > 0 && (
+        <div className="text-sm text-gray-500 text-center mt-4">
+          전체 {totalPages * PAGE_SIZE}개 항목 중 {(currentPage) * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalPages * PAGE_SIZE)}개 표시
         </div>
       )}
     </div>

@@ -409,6 +409,13 @@ export default function ReportedPostsPage() {
           </nav>
         </div>
       )}
+      
+      {/* 페이지 정보 표시 */}
+      {posts.length > 0 && (
+        <div className="text-sm text-gray-500 text-center mt-4">
+          전체 {totalPages * PAGE_SIZE}개 항목 중 {(currentPage) * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalPages * PAGE_SIZE)}개 표시
+        </div>
+      )}
     </div>
   );
 } 

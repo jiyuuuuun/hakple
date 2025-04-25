@@ -101,13 +101,37 @@ export default function AdminPage() {
 
       if (!response.ok) {
         console.error('아카데미 목록 조회 실패:', response.status);
+        setAcademies([]);
         return;
       }
 
-      const data = await response.json();
-      setAcademies(data);
+      // 응답 데이터 처리
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(responseText);
+        console.log('파싱된 아카데미 데이터:', data);
+        
+        // 페이지네이션 응답 형태인지 확인
+        if (data && Array.isArray(data.content)) {
+          // 페이지네이션 응답인 경우 content 배열 사용
+          setAcademies(data.content);
+        } else if (Array.isArray(data)) {
+          // 배열인 경우 그대로 사용
+          setAcademies(data);
+        } else {
+          // 그 외의 경우 빈 배열로 설정
+          console.error('유효한 아카데미 데이터 형식이 아닙니다:', data);
+          setAcademies([]);
+        }
+      } catch (error) {
+        console.error('아카데미 데이터 파싱 오류:', error);
+        setAcademies([]);
+      }
     } catch (error) {
       console.error('아카데미 목록 조회 중 오류:', error);
+      setAcademies([]);
     }
   };
 
@@ -223,7 +247,7 @@ export default function AdminPage() {
                 className="flex-1 px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#8C4FF2] text-sm"
               >
                 <option value="">아카데미 선택</option>
-                {academies.map((academy) => (
+                {Array.isArray(academies) && academies.map((academy) => (
                   <option key={academy.academyCode} value={academy.academyCode}>
                     {academy.academyName}
                   </option>
