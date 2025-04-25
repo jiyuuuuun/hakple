@@ -86,10 +86,6 @@
     /* 각 날짜 칸의 높이를 더 넉넉하게 */
 }
 
-/* 플러스 표시 숨기기 */
-.fc-daygrid-day-events {
-    display: none !important;
-}
 
 /* 날짜 셀에 hover 효과 추가 */
 .fc .fc-daygrid-day-frame:hover::after {

@@ -17,7 +17,7 @@ export async function handleLike({
 
     setIsLiking(true);
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/like`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/likes`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -26,6 +26,8 @@ export async function handleLike({
         });
 
         if (!response.ok) {
+            console.log('좋아요 응답 상태코드:', response.status);
+
             throw new Error('좋아요 처리 실패');
         }
 

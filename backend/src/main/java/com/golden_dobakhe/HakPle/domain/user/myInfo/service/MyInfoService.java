@@ -28,12 +28,14 @@ public class MyInfoService {
         User user = userRepository.findByUserName(userName)
                 .orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
 
-        // academyId 값을 MyInfoResponseDto의 academyCode 필드에 매핑
         String academyCode = user.getAcademyId();
+        String academyName = null;
 
-        Academy academy = academyRepository.findByAcademyCode(academyCode).orElse(null);
-        if (academy == null) {
-            throw new RuntimeException("Academy not found");
+        if (academyCode != null && !academyCode.trim().isEmpty()) {
+            Academy academy = academyRepository.findByAcademyCode(academyCode).orElse(null);
+            if (academy != null) {
+                academyName = academy.getAcademyName();
+            }
         }
 
         String profileImageUrl = null;
@@ -48,7 +50,7 @@ public class MyInfoService {
                 .creationTime(user.getCreationTime())
                 .academyCode(academyCode)
                 .profileImageUrl(profileImageUrl)
-                .academyName(academy.getAcademyName())
+                .academyName(academyName)
                 .build();
     }
 

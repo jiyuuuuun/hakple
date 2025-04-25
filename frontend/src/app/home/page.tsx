@@ -223,16 +223,18 @@ export default function HomePage() {
     }
 
     useEffect(() => {
-        if (!isLogin) {
-            router.push('/login')
-            return
-        }
+   //     if (!isLogin) {
+   //         router.push('/login')
+   //         return
+   //     }
 
         fetchUserInfoAndStats()
         fetchLatestPosts()
         fetchEvents()
         fetchPopularPosts()
         fetchPopularTags() // 인기 태그 가져오기 추가
+        fetchNoticeBoards() // 공지사항 가져오기 추가
+
 
         // 페이지 포커스 이벤트 핸들러
         const handleFocus = () => {
@@ -488,13 +490,13 @@ export default function HomePage() {
 
     // 좋아요 처리 함수
     const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
-        event.preventDefault() // Link 컴포넌트의 기본 동작 방지
+        event.preventDefault(); // Link 컴포넌트의 기본 동작 방지
 
-        if (likingPosts.has(post.id)) return // 이미 처리 중인 경우 중복 요청 방지
+        if (likingPosts.has(post.id)) return; // 이미 처리 중인 경우 중복 요청 방지
 
-        const isLiked = post.isLiked || false
+        const isLiked = post.isLiked || false;
 
-        setLikingPosts((prev) => new Set([...prev, post.id]))
+        setLikingPosts(prev => new Set([...prev, post.id]));
 
         try {
             await handleLike({
@@ -524,6 +526,30 @@ export default function HomePage() {
             })
         }
     }
+
+    const [noticePosts, setNoticePosts] = useState<Post[]>([])
+
+    const fetchNoticeBoards = async () => {
+        try {
+            const storedAcademyCode = localStorage.getItem('academyCode')
+            const response = await fetchApi(`/api/v1/posts/notice?page=1&sizes=3&sortType=등록일순&type=notice&academyCode=${storedAcademyCode}`, {
+                credentials: 'include',
+            })
+
+            if (!response.ok) {
+                console.error('공지사항 로딩 실패:', response.status)
+                setNoticePosts([])
+                return
+            }
+
+            const data = await response.json()
+            setNoticePosts(data.content || [])
+        } catch (err) {
+            console.error('공지사항 로딩 중 오류:', err)
+            setNoticePosts([])
+        }
+    }
+
 
     // 로그인하지 않은 경우 로딩 화면 대신 로그인 페이지로 리다이렉트
     if (!isLogin) {
@@ -579,175 +605,159 @@ export default function HomePage() {
                             <div className="space-y-3">
                                 {popularPosts.length > 0
                                     ? popularPosts.map((post, index) => (
-                                          <Link key={post.id} href={`/post/${post.id}`}>
-                                              <div className="group p-3 rounded-md hover:bg-purple-50 transition-colors">
-                                                  <div className="flex items-center gap-2 mb-1">
-                                                      <span
-                                                          className={`font-bold ${
-                                                              index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'
-                                                          }`}
-                                                      >
-                                                          {index + 1}
-                                                      </span>
-                                                      <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
-                                                          {post.title}
-                                                      </h3>
-                                                  </div>
-                                                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                      <div className="flex items-center gap-1">
-                                                          <svg
-                                                              xmlns="http://www.w3.org/2000/svg"
-                                                              className="h-4 w-4"
-                                                              fill="none"
-                                                              viewBox="0 0 24 24"
-                                                              stroke="currentColor"
-                                                          >
-                                                              <path
-                                                                  strokeLinecap="round"
-                                                                  strokeLinejoin="round"
-                                                                  strokeWidth={2}
-                                                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                                              />
-                                                          </svg>
-                                                          {post.likeCount}
-                                                      </div>
-                                                      <span className="text-gray-300">•</span>
-                                                      <div className="flex items-center gap-1">
-                                                          <svg
-                                                              xmlns="http://www.w3.org/2000/svg"
-                                                              className="h-4 w-4"
-                                                              fill="none"
-                                                              viewBox="0 0 24 24"
-                                                              stroke="currentColor"
-                                                          >
-                                                              <path
-                                                                  strokeLinecap="round"
-                                                                  strokeLinejoin="round"
-                                                                  strokeWidth={2}
-                                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                              />
-                                                              <path
-                                                                  strokeLinecap="round"
-                                                                  strokeLinejoin="round"
-                                                                  strokeWidth={2}
-                                                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                              />
-                                                          </svg>
-                                                          {post.viewCount}
-                                                      </div>
-                                                  </div>
-                                              </div>
-                                          </Link>
-                                      ))
+                                        <Link key={post.id} href={`/post/${post.id}`}>
+                                            <div className="group p-3 rounded-md hover:bg-purple-50 transition-colors">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span
+                                                        className={`font-bold ${index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'
+                                                            }`}
+                                                    >
+                                                        {index + 1}
+                                                    </span>
+                                                    <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
+                                                        {post.title}
+                                                    </h3>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                    <div className="flex items-center gap-1">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-4 w-4"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                            />
+                                                        </svg>
+                                                        {post.likeCount}
+                                                    </div>
+                                                    <span className="text-gray-300">•</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-4 w-4"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                            />
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                            />
+                                                        </svg>
+                                                        {post.viewCount}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))
                                     : // 인기글이 없을 때 1-5위 자리 표시
-                                      Array.from({ length: 5 }, (_, index) => (
-                                          <div key={index} className="p-3 rounded-md bg-gray-50">
-                                              <div className="flex items-center gap-2 mb-1">
-                                                  <span
-                                                      className={`font-bold ${
-                                                          index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'
-                                                      }`}
-                                                  >
-                                                      {index + 1}
-                                                  </span>
-                                                  <div className="flex-1">
-                                                      <div className="h-5 bg-gray-200 rounded w-full animate-pulse"></div>
-                                                  </div>
-                                              </div>
-                                              <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                  <div className="flex items-center gap-1">
-                                                      <svg
-                                                          xmlns="http://www.w3.org/2000/svg"
-                                                          className="h-4 w-4"
-                                                          fill="none"
-                                                          viewBox="0 0 24 24"
-                                                          stroke="currentColor"
-                                                      >
-                                                          <path
-                                                              strokeLinecap="round"
-                                                              strokeLinejoin="round"
-                                                              strokeWidth={2}
-                                                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                                          />
-                                                      </svg>
-                                                      -
-                                                  </div>
-                                                  <span className="text-gray-300">•</span>
-                                                  <div className="flex items-center gap-1">
-                                                      <svg
-                                                          xmlns="http://www.w3.org/2000/svg"
-                                                          className="h-4 w-4"
-                                                          fill="none"
-                                                          viewBox="0 0 24 24"
-                                                          stroke="currentColor"
-                                                      >
-                                                          <path
-                                                              strokeLinecap="round"
-                                                              strokeLinejoin="round"
-                                                              strokeWidth={2}
-                                                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                          />
-                                                          <path
-                                                              strokeLinecap="round"
-                                                              strokeLinejoin="round"
-                                                              strokeWidth={2}
-                                                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                          />
-                                                      </svg>
-                                                      -
-                                                  </div>
-                                              </div>
-                                          </div>
-                                      ))}
+                                    Array.from({ length: 5 }, (_, index) => (
+                                        <div key={index} className="p-3 rounded-md bg-gray-50">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span
+                                                    className={`font-bold ${index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'
+                                                        }`}
+                                                >
+                                                    {index + 1}
+                                                </span>
+                                                <div className="flex-1">
+                                                    <div className="h-5 bg-gray-200 rounded w-full animate-pulse"></div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                <div className="flex items-center gap-1">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-4 w-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                        />
+                                                    </svg>
+                                                    -
+                                                </div>
+                                                <span className="text-gray-300">•</span>
+                                                <div className="flex items-center gap-1">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-4 w-4"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                        />
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                        />
+                                                    </svg>
+                                                    -
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                             </div>
                         </div>
 
                         {/* 공지사항 섹션 */}
-                        <div className="bg-white rounded-lg shadow p-4 mb-6">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-4">공지사항</h2>
-                            <div className="space-y-3">
-                                <Link href="/post/notice1" className="block">
-                                    <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#980ffa] text-white rounded">
-                                                필독
-                                            </span>
-                                            <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
-                                                학플 커뮤니티 이용규칙 안내 및 게시글 작성 가이드
-                                            </h3>
-                                        </div>
-                                        <span className="text-sm text-gray-500">2024.04.22</span>
-                                    </div>
-                                </Link>
-                                <Link href="/post/notice2" className="block">
-                                    <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">
-                                                공지
-                                            </span>
-                                            <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
-                                                4월 서비스 업데이트 및 시스템 점검 안내 (4/25)
-                                            </h3>
-                                        </div>
-                                        <span className="text-sm text-gray-500">2024.04.20</span>
-                                    </div>
-                                </Link>
-                                <Link href="/post/notice3" className="block">
-                                    <div className="group p-3 rounded-md hover:bg-[#f8f9fa] transition-colors">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-1 text-xs bg-[#6c757d] text-white rounded">
-                                                공지
-                                            </span>
-                                            <h3 className="font-medium text-gray-900 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
-                                                커뮤니티 신규 기능 추가 - 일정 관리와 학원별 게시판
-                                            </h3>
-                                        </div>
-                                        <span className="text-sm text-gray-500">2024.04.15</span>
-                                    </div>
-                                </Link>
+                        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold text-gray-800">공지사항</h2>
                             </div>
+
+                            {noticePosts.length > 0 ? (
+                                <ul className="space-y-3">
+                                    {noticePosts.map((notice) => (
+                                        <li key={notice.id}>
+                                            <Link
+                                                href={`/post/${notice.id}?size=5`}
+                                                className="group block p-4 bg-gray-50 rounded-lg hover:bg-[#f3eaff] transition-colors"
+                                            >
+                                                <div className="flex justify-between items-center">
+                                                    <h3 className="font-medium text-gray-800 group-hover:text-[#9C50D4] truncate">
+                                                        {notice.title}
+                                                    </h3>
+                                                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                                                        {new Date(notice.creationTime).toLocaleDateString('ko-KR')}
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-gray-400 text-sm">📭 등록된 공지사항이 없습니다.</p>
+                            )}
                         </div>
                     </aside>
+
 
                     {/* 메인 피드 영역 */}
                     <div className="flex-1">
@@ -844,7 +854,7 @@ export default function HomePage() {
                                         </Link>
 
                                         {/* 해시태그 */}
-                                        {post.tags && post.tags.length > 0 && (
+                                        {/* {post.tags && post.tags.length > 0 && (
                                             <div className="flex gap-2 mb-4 flex-wrap">
                                                 {post.tags.map((tag, idx) => (
                                                     <span
@@ -855,22 +865,20 @@ export default function HomePage() {
                                                     </span>
                                                 ))}
                                             </div>
-                                        )}
+                                        )} */}
 
                                         {/* 좋아요, 댓글, 조회수 카운트 */}
                                         <div className="flex items-center gap-6 text-gray-500">
                                             <button
                                                 onClick={(e) => handleLikeClick(post, e)}
-                                                className={`flex items-center gap-2 group/like transition-all ${
-                                                    post.isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'
-                                                }`}
+                                                className={`flex items-center gap-2 group/like transition-all ${post.isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'
+                                                    }`}
                                                 disabled={likingPosts.has(post.id)}
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${
-                                                        likingPosts.has(post.id) ? 'animate-pulse' : ''
-                                                    }`}
+                                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${likingPosts.has(post.id) ? 'animate-pulse' : ''
+                                                        }`}
                                                     fill={post.isLiked ? 'currentColor' : 'none'}
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -1179,10 +1187,10 @@ export default function HomePage() {
                                             eventDate.getFullYear() === today.getFullYear()
                                         )
                                     }).length === 0 && (
-                                        <div className="text-center py-4 text-gray-500">
-                                            오늘 예정된 일정이 없습니다
-                                        </div>
-                                    )}
+                                            <div className="text-center py-4 text-gray-500">
+                                                오늘 예정된 일정이 없습니다
+                                            </div>
+                                        )}
                                 </div>
                             </div>
                         </div>
