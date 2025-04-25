@@ -1,15 +1,20 @@
 package com.golden_dobakhe.HakPle.domain.user.admin.service;
 
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.AcademyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 public class AcademyServiceTest {
 
@@ -29,7 +34,6 @@ public class AcademyServiceTest {
         // given
         AcademyRequestDto requestDto = new AcademyRequestDto();
         requestDto.setName("한빛학원");
-        requestDto.setAddress("서울특별시 강남구");
         requestDto.setPhone("010-1234-5678");
 
         // when - academyCode 중복 없음 가정
