@@ -50,7 +50,9 @@ export const LoginMemberContext = createContext<{
     setNoLoginMember: () => { },
     isLoginMemberPending: true,
     isLogin: false,
+
     setIsLogin: () => { },
+
     logout: () => { },
     logoutAndHome: () => { },
     checkAdminAndRedirect: async () => false,
@@ -116,7 +118,9 @@ export function useLoginMember() {
 
         console.log('생성된 User 객체:', user)
         _setLoginMember(user)
+
         const isValidLogin = !!user.userName || !!user.nickname // <- 사용자 확인 가능한 핵심 필드
+
         setIsLogin(true); // ✅ 로그인 상태 설정
         setLoginMemberPending(false)
         console.groupEnd()

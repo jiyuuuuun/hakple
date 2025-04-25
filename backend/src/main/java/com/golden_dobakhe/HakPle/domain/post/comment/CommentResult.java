@@ -15,7 +15,9 @@ public enum CommentResult {
     NOT_LIKED_YET("아직 좋아요 누르지 않았음"),
     ALREADY_LIKED("이미 좋아요 누름"),
     ALREADY_REPORT("이미 신고함"),
+    TOO_LONG("댓글이 너무 깁니다"),
     CANNOT_REPORT_OWN_COMMENT("자신의 댓글은 신고하지 못합니다");
+
 
     @Getter
     private final String description;

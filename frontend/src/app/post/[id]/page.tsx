@@ -272,7 +272,7 @@ export default function PostDetailPage() {
         fetchPostDetail();
 
         // 언마운트 시 이벤트 리스너 제거
-        return () => {};
+        return () => { };
     }, [postId, isLogin, router, academyCode, params.id]);
 
     // 게시글 좋아요 기능
@@ -1053,10 +1053,10 @@ export default function PostDetailPage() {
                             <div>
                                 <span className="font-semibold text-gray-800 block">{post.nickname}</span>
                                 <span className="text-sm text-gray-500">
-                  {post.modificationTime && post.modificationTime.trim()
-                      ? `${formatTime(post.modificationTime)} (수정됨)`
-                      : formatTime(post.creationTime)}
-                </span>
+                                    {post.modificationTime && post.modificationTime.trim()
+                                        ? `${formatTime(post.modificationTime)} (수정됨)`
+                                        : formatTime(post.creationTime)}
+                                </span>
                             </div>
                         </div>
                         {isLogin && (
@@ -1094,12 +1094,12 @@ export default function PostDetailPage() {
                                             onClick={() => handleReport(post.id)}
                                             disabled={isReported || post?.isOwner}
                                         >
-                      <span className={`material-icons mr-3 ${isReported || post?.isOwner ? 'text-gray-400' : 'text-gray-600'}`}>
-                        flag
-                      </span>
+                                            <span className={`material-icons mr-3 ${isReported || post?.isOwner ? 'text-gray-400' : 'text-gray-600'}`}>
+                                                flag
+                                            </span>
                                             <span className={isReported || post?.isOwner ? 'text-gray-400' : 'text-gray-600'}>
-                        {isReported ? '신고 완료' : post?.isOwner ? '내 게시글' : '신고하기'}
-                      </span>
+                                                {isReported ? '신고 완료' : post?.isOwner ? '내 게시글' : '신고하기'}
+                                            </span>
                                         </button>
                                     </div>
                                 )}
@@ -1119,53 +1119,109 @@ export default function PostDetailPage() {
 
                     {/* 상호작용 버튼 영역 */}
                     <div className="flex flex-wrap items-center gap-6 py-4 border-t border-gray-100">
-                        {/* 조회수 */}
-                        <div className="flex items-center gap-2 text-gray-500">
-                            <span className="material-icons text-xl">visibility</span>
-                            <span className="text-sm">{post.viewCount}</span>
-                        </div>
-
-                        {/* 댓글 수 */}
-                        <div className="flex items-center gap-2 text-gray-500">
-                            <span className="material-icons text-xl">chat_bubble_outline</span>
-                            <span className="text-sm">{comments.length}</span>
-                        </div>
-
                         {/* 좋아요 버튼 */}
                         {isLogin ? (
                             <button
                                 onClick={handleLike}
                                 disabled={isLiking}
-                                className={`flex items-center gap-2 py-2 px-4 rounded-full transition-all ${isLiked
-                                    ? 'bg-pink-50 text-pink-500 hover:bg-pink-100'
-                                    : 'hover:bg-gray-100 text-gray-500'
-                                }`}
+                                className={`flex items-center gap-2 group/like transition-all ${isLiked
+                                    ? 'text-[#9C50D4]' // pink-500를 #9C50D4로 변경
+                                    : 'text-gray-500 hover:text-[#9C50D4]'
+                                    }`}
                             >
-                <span className={`material-icons ${isLiked ? 'animate-pulse-like' : ''}`}>
-                  {isLiked ? 'favorite' : 'favorite_border'}
-                </span>
-                                <span>{post.likeCount}</span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${isLiking ? 'animate-pulse' : ''}`}
+                                    fill={isLiked ? "currentColor" : "none"}
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={1.5}
+                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                    />
+                                </svg>
+                                <span className="text-base">{post.likeCount}</span>
                             </button>
                         ) : (
                             <Link
                                 href="/login"
-                                className="flex items-center gap-2 py-2 px-4 rounded-full text-gray-500 hover:bg-gray-100 transition-all"
+                                className="flex items-center gap-2 text-gray-500 hover:text-[#9C50D4] transition-all"
                             >
-                                <span className="material-icons">favorite_border</span>
-                                <span>{post.likeCount}</span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-7 w-7"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={1.5}
+                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                    />
+                                </svg>
+                                <span className="text-base">{post.likeCount}</span>
                             </Link>
                         )}
+
+                        {/* 댓글 수 */}
+                        <div className="flex items-center gap-2 text-gray-500 hover:text-[#9C50D4] transition-colors group">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-7 w-7 group-hover:scale-110 transition-transform"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M8 12h.01M12 12h.01M16 12h.01M12 21a9 9 0 1 0-9-9c0 1.488.36 2.89 1 4.127L3 21l4.873-1C9.11 20.64 10.512 21 12 21z"
+                                />
+                            </svg>
+                            <span className="text-base">{comments.length}</span>
+                        </div>
+
+                        {/* 조회수 */}
+                        <div className="flex items-center gap-2 text-gray-500 ml-auto">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-7 w-7"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                />
+                            </svg>
+                            <span className="text-base">{post.viewCount}</span>
+                        </div>
                     </div>
 
                     {/* 태그 목록 */}
-                    <div className="flex flex-wrap gap-2 mt-6">
+                    <div className="flex flex-wrap gap-3 mt-6">
                         {post.tags && post.tags.map((tag, index) => (
                             <span
                                 key={index}
-                                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-50 text-[#980ffa] hover:bg-purple-100 transition-colors cursor-pointer"
+                                className="inline-flex items-center px-4 py-2 rounded-full text-[15px] bg-purple-50 text-[#980ffa] hover:bg-purple-100 transition-colors cursor-pointer"
                             >
-                #{tag}
-              </span>
+                                #{tag}
+                            </span>
                         ))}
                     </div>
                 </div>
@@ -1177,27 +1233,28 @@ export default function PostDetailPage() {
                     {/* 댓글 입력 영역 */}
                     {isLogin ? (
                         <div className="mb-8">
-              <textarea
-                  placeholder="댓글을 입력하세요..."
-                  className="w-full p-4 border border-gray-200 rounded-[15px] focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent resize-none transition-shadow hover:shadow-sm min-h-[120px]"
-                  value={commentInput}
-                  onChange={(e) => setCommentInput(e.target.value)}
-              />
+                            <textarea
+                                placeholder="댓글을 입력하세요..."
+                                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-[15px] focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent resize-none transition-all hover:bg-gray-100 min-h-[120px]"
+                                value={commentInput}
+                                onChange={(e) => setCommentInput(e.target.value)}
+                            />
                             <div className="flex justify-end mt-3">
                                 <button
                                     onClick={handleCommentSubmit}
-                                    className="px-6 py-2.5 rounded-[10px] text-white bg-[#980ffa] hover:bg-[#8400df] transition-all transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 shadow-md hover:shadow-lg"
+                                    className="px-6 py-2.5 bg-[#980ffa] text-white rounded-full hover:bg-[#7d0ccc] transition-colors flex items-center gap-2"
                                 >
+                                    <span className="material-icons text-xl">send</span>
                                     댓글 작성
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-gray-50 rounded-[15px] p-6 text-center mb-8">
-                            <p className="text-gray-600 mb-4">댓글을 작성하려면 로그인이 필요합니다</p>
+                        <div className="bg-gray-50 p-6 rounded-[15px] text-center mb-8">
+                            <p className="text-gray-600 mb-4">댓글을 작성하려면 로그인이 필요합니다.</p>
                             <Link
                                 href="/login"
-                                className="inline-flex items-center px-6 py-2.5 rounded-[10px] text-white bg-[#980ffa] hover:bg-[#8400df] transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
+                                className="inline-block px-6 py-2 bg-[#980ffa] text-white rounded-full hover:bg-[#7d0ccc] transition-colors"
                             >
                                 로그인하기
                             </Link>
@@ -1205,140 +1262,139 @@ export default function PostDetailPage() {
                     )}
 
                     {/* 댓글 목록 */}
-                    {comments.length > 0 ? (
-                        <div className="space-y-6">
-                            {comments.map(comment => (
-                                <div
-                                    key={comment.id}
-                                    className={`p-6 rounded-[15px] transition-all duration-300 ${editingCommentId === comment.id
-                                        ? 'bg-purple-50 border-2 border-[#980ffa]'
-                                        : 'border border-gray-100 hover:border-gray-200'
-                                    } ${lastEditedCommentId === comment.id
-                                        ? 'animate-highlight-fade'
-                                        : ''
+                    <div className="space-y-6">
+                        {comments.map((comment) => (
+                            <div
+                                key={comment.id}
+                                className={`bg-gray-50 rounded-[15px] p-6 transition-all ${lastEditedCommentId === comment.id ? 'ring-2 ring-[#980ffa]' : ''
                                     }`}
-                                >
-                                    {editingCommentId === comment.id ? (
-                                        // 댓글 수정 모드
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                                                    <span className="material-icons text-[#980ffa]">account_circle</span>
-                                                </div>
-                                                <div>
-                                                    <span className="font-medium text-gray-800">{comment.nickname}</span>
-                                                    <span className="text-sm text-purple-600 ml-2">댓글 수정 중...</span>
-                                                </div>
-                                            </div>
-                                            <textarea
-                                                ref={editCommentRef}
-                                                value={editCommentContent}
-                                                onChange={(e) => setEditCommentContent(e.target.value)}
-                                                className="w-full p-4 border border-gray-200 rounded-[10px] focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent resize-none min-h-[100px] mb-3"
-                                            />
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={cancelCommentEdit}
-                                                    className="px-4 py-2 rounded-[10px] text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-                                                >
-                                                    취소
-                                                </button>
-                                                <button
-                                                    onClick={submitCommentEdit}
-                                                    className="px-4 py-2 rounded-[10px] text-white bg-[#980ffa] hover:bg-[#8400df] transition-colors"
-                                                >
-                                                    수정완료
-                                                </button>
-                                            </div>
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <span className="material-icons text-[#980ffa]">account_circle</span>
                                         </div>
-                                    ) : (
-                                        // 일반 댓글 표시 모드
                                         <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                                                        <span className="material-icons text-[#980ffa]">account_circle</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-medium text-gray-800">{comment.nickname}</span>
-                                                        <span className="text-sm text-gray-500 ml-2">{formatTime(comment.creationTime)}</span>
-                                                    </div>
+                                            <h4 className="font-medium text-gray-900">{comment.nickname}</h4>
+                                            <span className="text-sm text-gray-500">{formatTime(comment.creationTime)}</span>
+                                        </div>
+                                    </div>
+                                    {/* 댓글 메뉴 버튼 */}
+                                    {isLogin && (
+                                        <div className="relative" ref={el => {
+                                            if (el) {
+                                                commentMenuRefs.current[comment.id] = el;
+                                            }
+                                        }}>
+                                            <button
+                                                className="p-2 rounded-full hover:bg-gray-200 transition-colors menu-button"
+                                                onClick={(e) => toggleCommentMenu(e, comment.id)}
+                                            >
+                                                <span className="material-icons text-gray-600">more_horiz</span>
+                                            </button>
+
+                                            {showCommentMenu === comment.id && (
+                                                <div className="absolute right-0 top-full mt-2 bg-white rounded-[15px] shadow-lg z-10 w-[160px] overflow-hidden border border-gray-100">
+                                                    {comment.isOwner && (
+                                                        <>
+                                                            <button
+                                                                className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
+                                                                onClick={() => startCommentEdit(comment.id, comment.content)}
+                                                            >
+                                                                <span className="material-icons text-blue-600 mr-3">edit</span>
+                                                                수정하기
+                                                            </button>
+                                                            <button
+                                                                className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
+                                                                onClick={() => handleCommentDelete(comment.id)}
+                                                            >
+                                                                <span className="material-icons text-red-600 mr-3">delete</span>
+                                                                삭제하기
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    <button
+                                                        className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item"
+                                                        onClick={() => handleCommentReport(comment.id)}
+                                                        disabled={comment.isReported || comment.isOwner}
+                                                    >
+                                                        <span className={`material-icons mr-3 ${comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-600'
+                                                            }`}>
+                                                            flag
+                                                        </span>
+                                                        <span className={comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-600'}>
+                                                            {comment.isReported ? '신고 완료' : comment.isOwner ? '내 댓글' : '신고하기'}
+                                                        </span>
+                                                    </button>
                                                 </div>
-
-                                                {isLogin && (
-                                                    <div className="relative" ref={(el) => { commentMenuRefs.current[comment.id] = el; }}>
-                                                        <button
-                                                            className="p-1.5 rounded-full hover:bg-gray-100 transition-colors menu-button"
-                                                            onClick={(e) => toggleCommentMenu(e, comment.id)}
-                                                        >
-                                                            <span className="material-icons text-gray-600">more_horiz</span>
-                                                        </button>
-
-                                                        {showCommentMenu === comment.id && (
-                                                            <div className="absolute right-0 top-full mt-1 bg-white rounded-[10px] shadow-lg z-10 w-[140px] overflow-hidden border border-gray-100">
-                                                                {comment.isOwner && (
-                                                                    <>
-                                                                        <button
-                                                                            className="flex items-center w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
-                                                                            onClick={() => startCommentEdit(comment.id, comment.content)}
-                                                                        >
-                                                                            <span className="material-icons text-blue-600 mr-2">edit</span>
-                                                                            수정
-                                                                        </button>
-                                                                        <button
-                                                                            className="flex items-center w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
-                                                                            onClick={() => handleCommentDelete(comment.id)}
-                                                                        >
-                                                                            <span className="material-icons text-red-600 mr-2">delete</span>
-                                                                            삭제
-                                                                        </button>
-                                                                    </>
-                                                                )}
-                                                                <button
-                                                                    className="flex items-center w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors menu-item"
-                                                                    onClick={() => handleCommentReport(comment.id)}
-                                                                    disabled={comment.isReported || comment.isOwner}
-                                                                >
-                                  <span className={`material-icons mr-2 ${comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-600'}`}>
-                                    flag
-                                  </span>
-                                                                    <span className={comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-600'}>
-                                    {comment.isReported ? '신고됨' : comment.isOwner ? '내 댓글' : '신고'}
-                                  </span>
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <p className="text-gray-800 mb-3 pl-[52px]">{comment.content}</p>
-
-                                            <div className="pl-[52px]">
-                                                <button
-                                                    onClick={() => handleCommentLike(comment.id)}
-                                                    disabled={commentLikingId === comment.id}
-                                                    className={`flex items-center gap-1.5 py-1 px-3 rounded-full text-sm transition-all ${Boolean(comment.isLiked)
-                                                        ? 'bg-pink-50 text-pink-500 hover:bg-pink-100'
-                                                        : 'text-gray-500 hover:bg-gray-100'
-                                                    }`}
-                                                >
-                          <span className="material-icons text-sm">
-                            {Boolean(comment.isLiked) ? 'favorite' : 'favorite_border'}
-                          </span>
-                                                    <span>{comment.likeCount}</span>
-                                                </button>
-                                            </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8 text-gray-500">
-                            {isLogin
-                                ? "아직 댓글이 없습니다. 첫 번째 댓글을 작성해보세요!"
-                                : "댓글을 보려면 로그인이 필요합니다."}
+
+                                {/* 댓글 내용 */}
+                                {editingCommentId === comment.id ? (
+                                    <div className="mt-2">
+                                        <textarea
+                                            ref={editCommentRef}
+                                            className="w-full p-4 bg-white border border-gray-200 rounded-[15px] focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent resize-none transition-all min-h-[100px]"
+                                            value={editCommentContent}
+                                            onChange={(e) => setEditCommentContent(e.target.value)}
+                                        />
+                                        <div className="flex justify-end gap-2 mt-3">
+                                            <button
+                                                onClick={cancelCommentEdit}
+                                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                            >
+                                                취소
+                                            </button>
+                                            <button
+                                                onClick={submitCommentEdit}
+                                                className="px-4 py-2 bg-[#980ffa] text-white rounded-full hover:bg-[#7d0ccc] transition-colors"
+                                            >
+                                                수정 완료
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <p className="text-gray-800 break-words">{comment.content}</p>
+                                        <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={() => handleCommentLike(comment.id)}
+                                                disabled={commentLikingId === comment.id}
+                                                className={`flex items-center gap-1.5 group transition-all ${comment.isLiked ? 'text-[#9C50D4]' : 'text-gray-500 hover:text-[#9C50D4]'
+                                                    }`}
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className={`h-5 w-5 group-hover:scale-110 transition-transform ${commentLikingId === comment.id ? 'animate-pulse' : ''
+                                                        }`}
+                                                    fill={comment.isLiked ? "currentColor" : "none"}
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                    />
+                                                </svg>
+                                                <span className="text-sm">{comment.likeCount || 0}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 댓글이 없을 때 */}
+                    {comments.length === 0 && (
+                        <div className="text-center py-8">
+                            <p className="text-gray-500">아직 댓글이 없습니다.</p>
+                            <p className="text-gray-500 mt-2">첫 댓글을 작성해보세요!</p>
                         </div>
                     )}
                 </div>
@@ -1353,8 +1409,8 @@ export default function PostDetailPage() {
                                 const searchParams = new URLSearchParams(window.location.search);
                                 const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
                                 // 공지사항 목록으로 이동 (academyCode와 type=notice 포함)
-                                const noticeUrl = currentAcademyCode 
-                                    ? `/post/notice?academyCode=${currentAcademyCode}&type=notice` 
+                                const noticeUrl = currentAcademyCode
+                                    ? `/post/notice?academyCode=${currentAcademyCode}&type=notice`
                                     : '/post/notice?type=notice';
                                 router.push(noticeUrl);
                             } else {

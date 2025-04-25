@@ -139,13 +139,23 @@ public class ApiV1PostController {
 
     @Operation(summary = "게시물 좋아요 토글", description = "게시물을 좋아요합니다.")
     @PostMapping("/{id}/likes")
-    public ResponseEntity<Void> toggleLike(
-            @PathVariable("id") Long id,
+    public ResponseEntity<?> toggleLike(
+            @PathVariable(name="id") Long id,
             @RequestParam(name = "academyCode", required = false) String academyCode
     ) {
+
+        log.info("❤️ 좋아요 요청: postId = {}", id);
         Long userId = getCurrentUserId();
-        boardService.toggleLike(id, userId, academyCode);
-        return ResponseEntity.ok().build();
+        log.info("👤 요청자 ID: {}", userId);
+
+        try{
+            boardService.toggleLike(id, userId, academyCode);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("🔥 좋아요 처리 실패", e);
+            return ResponseEntity.status(500).body(Map.of("message", "서버 내부 오류", "error", e.getMessage()));
+        }
+
     }
 
     @Operation(summary = "게시물 특정 태그로 이동합니다", description = "특정 ID의 게시물 태그로 이동합니다.")
@@ -292,13 +302,13 @@ public class ApiV1PostController {
     @GetMapping("/notice")
     @Operation(summary = "공지사항 목록 조회")
     public ResponseEntity<Page<BoardResponse>> getNoticeBoards(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "등록일순") String sortType,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String searchType,
-            @RequestParam(required = false) String type,
-            @RequestParam(required = false) String academyCode) {
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortType", defaultValue = "등록일순") String sortType,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "searchType", required = false) String searchType,
+            @RequestParam(name = "type", required = false) String type,
+            @RequestParam(name = "academyCode", required = false) String academyCode) {
 
         Long userId = getCurrentUserId();
 
