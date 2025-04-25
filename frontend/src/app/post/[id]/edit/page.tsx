@@ -280,34 +280,58 @@ const EditPostPage = () => {
                     throw new Error('게시글을 불러오는데 실패했습니다.')
                 }
 
-                const data = await response.json()
+                const data = await response.json();
+                // API 응답 데이터 전체 로깅
+                console.log('fetchPostData: API Response Data:', data);
 
-                setTitle(data.title)
-                setContent(data.content)
-                setTags(data.tags ? data.tags.map((tag: { name: string }) => tag.name) : []) // tags가 null일 수 있음
-                setBoardType(data.boardType) // 게시글 타입 설정
+                setTitle(data.title);
+                console.log('State after setTitle:', data.title);
 
-                // 초기 이미지 URL 설정
+                setContent(data.content);
+                console.log('State after setContent:', data.content);
+
+                setTags(
+                  Array.isArray(data.tags) // data.tags가 배열인지 먼저 확인
+                    ? data.tags
+                        // 각 요소가 문자열이고 비어있지 않은지 확인하여 필터링
+                        .filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '')
+                    : [] // 배열이 아니거나 없으면 빈 배열로 설정
+                );
+                console.log('State after setTags:',
+                  Array.isArray(data.tags)
+                    ? data.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '')
+                    : []
+                ); // Verify the result being set
+
+                setBoardType(data.boardType);
                 setInitialImageUrls(data.imageUrls || []);
 
                 // 작성자 본인 또는 관리자 여부 확인
                 const ownerUserName = data.userName;
                 console.log('--- Permission Check ---');
                 console.log('Login Member Info:', loginMember);
-                console.log('Logged In User Name:', loginMember?.userName, '(Type:', typeof loginMember?.userName, ')');
-                console.log('Post Owner Name from API:', ownerUserName, '(Type:', typeof ownerUserName, ')');
+
+                // Trim strings before comparison and log values right before comparison
+                const loggedInUserName = loginMember?.userName?.trim();
+                const postOwnerName = ownerUserName?.trim();
+                console.log(`Comparing: '${loggedInUserName}' (Length: ${loggedInUserName?.length}) with '${postOwnerName}' (Length: ${postOwnerName?.length})`);
+
+                console.log('Logged In User Name (Trimmed):', loggedInUserName, '(Type:', typeof loggedInUserName, ')');
+                console.log('Post Owner Name from API (Trimmed):', postOwnerName, '(Type:', typeof postOwnerName, ')');
                 console.log('Is Admin:', isAdmin);
                 
-                const hasPermission = loginMember && ownerUserName !== undefined && (loginMember.userName === ownerUserName || isAdmin);
+                // Compare trimmed userNames or check if admin
+                const hasPermission = loggedInUserName && postOwnerName !== undefined &&
+                                      (loggedInUserName === postOwnerName || isAdmin);
                 
-                console.log('Is Owner Check (loginMember.userName === ownerUserName):', loginMember?.userName === ownerUserName);
+                console.log('Is Owner Check (trimmed comparison):', loggedInUserName === postOwnerName);
                 console.log('Final Permission Condition (isOwner || isAdmin):', hasPermission);
                 
                 if (hasPermission) {
                   console.log('수정 권한 확인됨');
                 } else {
                   setError('게시글을 수정할 권한이 없습니다.');
-                  console.log('수정 권한 없음. User Name:', loginMember?.userName, 'Owner Name:', ownerUserName, 'Is Admin:', isAdmin);
+                  console.log('수정 권한 없음. User Name:', loggedInUserName, 'Owner Name:', postOwnerName, 'Is Admin:', isAdmin);
                 }
 
             } catch (err) {
@@ -318,8 +342,17 @@ const EditPostPage = () => {
             }
         }
 
-        fetchPostData();
-    }, [postId, isLogin, isAdmin, loginMember]) // isAdmin, loginMember 의존성 추가
+        // isLogin과 loginMember가 준비된 후에 fetchPostData 호출
+        if (isLogin && loginMember) {
+             fetchPostData();
+        } else {
+             console.log('fetchPostData effect: Waiting for login info...');
+             // 로그인 안 된 상태면 로그인 페이지로 리다이렉트하는 다른 useEffect가 처리
+             // 또는 로딩 상태 유지
+             // setIsLoading(false); // 여기서 로딩을 끝내면 안됨
+        }
+
+    }, [postId, isLogin, isAdmin, loginMember]) // 의존성 유지
 
     // 로그인 여부 확인 및 리다이렉트
     useEffect(() => {
@@ -469,8 +502,9 @@ const EditPostPage = () => {
         }
     }
 
-    return (
+    console.log("Rendering EditPostPage with tags state:", tags); // <<< 렌더링 직전 상태 확인 로그
 
+    return (
         <main className="bg-[#f9fafc] min-h-screen pb-8">
             <div className="max-w-[1140px] mx-auto px-4">
                 <div className="pt-14">
@@ -570,7 +604,6 @@ const EditPostPage = () => {
                     </div>
                 </div>
             </div>
-
         </main>
     )
 }

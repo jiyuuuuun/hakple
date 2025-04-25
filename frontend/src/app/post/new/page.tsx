@@ -125,7 +125,7 @@ const NewPostPage = () => {
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
                     });
-                    const isAdminResult = await res.json();
+                    const isAdminResult = await response.json();
                     setIsAdmin(isAdminResult === true);
                 } catch (e) {
                     console.error('권한 확인 중 오류:', e);
@@ -139,10 +139,8 @@ const NewPostPage = () => {
         if (!isLogin) {
             router.push('/login');
         }
-    }, [isLogin]);
     }, [isLogin, router]);
 
-    // 로그인되지 않은 경우 로딩 표시
     if (!isLogin) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -155,80 +153,35 @@ const NewPostPage = () => {
         );
     }
 
-    // 태그 변경 핸들러 - 서버로 전송하기 전에 중복 확인 추가
-    const handleTagsChange = (newTags: string[]) => {
-        // 중복 태그를 제거하여 설정 (서버에서 분리된 태그가 있을 경우 대비)
-        const uniqueTags = [...new Set(newTags)];
-        setTags(uniqueTags);
-    };
-
-    // 이미지 업로드 성공 시 호출될 콜백 함수 (하나의 tempId를 받아 리스트에 추가)
     const handleImageUploadSuccess = (tempId: string) => {
         setTempIdList(prevList => [...prevList, tempId]);
     };
 
-    // 에디터에서 이미지 삭제 시 호출될 콜백 함수 (tempId를 받아 리스트에서 제거)
     const handleImageDelete = (tempId: string) => {
         setTempIdList(prevList => prevList.filter(id => id !== tempId));
-        // 백엔드에 즉시 삭제 요청은 하지 않음 (글 저장 시 최종 처리)
     };
 
     const handleSubmit = async () => {
         if (!title.trim()) return setError('제목을 입력해주세요.');
         if (!content.trim()) return setError('내용을 입력해주세요.');
         if (boardType === 'notice' && !isAdmin) return setError('공지사항 작성 권한이 없습니다.');
-        if (isSubmitting) return; // 중복 제출 방지
-        setError(''); // 이전 오류 메시지 초기화
-        if (!title.trim()) {
-            setError('제목을 입력해주세요.');
-            return;
-        }
+        if (isSubmitting) return;
+        setError('');
 
-        if (!content.trim()) {
-            setError('내용을 입력해주세요.');
-            return;
-        }
-
-        // 공지사항 권한 확인
-        if (boardType === 'notice' && !isAdmin) {
-            setError('공지사항 작성 권한이 없습니다. 관리자만 작성할 수 있습니다.');
-            return;
-        }
+        setIsSubmitting(true);
 
         try {
-            setIsSubmitting(true);
-            setError('');
-            const finalTags = tags.filter(tag => tag.trim());
-
-            const postData = {
-            // 빈 태그만 필터링하고, 태그 형식을 그대로 유지
             const finalTags = boardType === 'notice' ? [] : tags.filter(tag => tag.trim() !== '');
-
-            // API 호출을 위한 데이터 구성
-            // academyCode가 있으면 사용, 없으면 undefined로 전송하여 서버에서 토큰의 사용자 정보 사용
-            const postData: {
-                title: string;
-                content: string;
-                tags: string[];
-                boardType: BoardType;
-                academyCode?: string;
-                tempIdList: string[];
-            } = {
+            const postData = {
                 title,
                 content,
                 tags: finalTags,
-                type: boardType,
-                ...(academyCode && { academyCode }),
+                tempIdList: tempIdList,
+                academyCode: academyCode,
                 boardType: boardType,
-                academyCode: academyCode || undefined,
-                tempIdList: tempIdList
             };
-
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
-
             console.log('요청 데이터:', postData);
 
-            // 게시글 생성 요청
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -236,56 +189,29 @@ const NewPostPage = () => {
                 credentials: 'include',
             });
 
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(errText);
+            if (!response.ok) {
+                let errorMsg = '게시글 등록에 실패했습니다.';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || `서버 응답 오류: ${response.status}`;
+                } catch {
+                    errorMsg = response.statusText || `서버 오류: ${response.status}`;
+                }
+                throw new Error(errorMsg);
             }
 
-            const data = await res.json();
-            if (uploadedTempIds.length && data.id) {
-                await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tempIds: uploadedTempIds, boardId: data.id }),
-                    credentials: 'include',
-                });
-            // 응답 데이터 확인
             const responseData = await response.json();
             console.log('서버 응답:', responseData);
 
-            // 이미지가 업로드되었고 게시글 ID가 있으면 이미지 연결 요청
-            if (tempIdList.length > 0 && responseData.id) {
-                try {
-                    const linkResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            tempIds: tempIdList,
-                            boardId: responseData.id,
-                            content: content,
-                            usedImageUrls: []
-                        }),
-                        credentials: 'include',
-                    });
-
-                    if (linkResponse.ok) {
-                        console.log('이미지 연결 성공:', await linkResponse.json());
-                    } else {
-                        console.error('이미지 연결 실패:', linkResponse.status);
-                    }
-                } catch (linkError) {
-                    console.error('이미지 연결 중 오류:', linkError);
-                    // 게시글은 생성되었으므로 전체 프로세스를 실패로 처리하지 않음
-                }
-            }
-
             const redirectUrl = boardType === 'notice'
                 ? `/post/notice?${academyCode ? `academyCode=${academyCode}&` : ''}type=notice`
-                : '/post';
+                : `/post/${responseData.id}`;
             router.push(redirectUrl);
-        } catch (e: any) {
+
+        } catch (e) {
             console.error(e);
-            setError(e.message || '게시글 등록에 실패했습니다.');
+            const error = e as Error;
+            setError(error.message || '게시글 등록에 실패했습니다.');
         } finally {
             setIsSubmitting(false);
         }
@@ -325,20 +251,20 @@ const NewPostPage = () => {
                         />
                     </div>
 
-                        {/* Tiptap 에디터 적용 */}
-                        <div className="w-full mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
-                            <div className="border border-gray-200 rounded-[15px] overflow-hidden transition-shadow hover:shadow-sm">
-                                <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
-                                    <TiptapEditor
-                                        content={content}
-                                        onChange={setContent}
-                                        onImageUploadSuccess={handleImageUploadSuccess}
-                                        onImageDelete={handleImageDelete}
-                                    />
-                                </div>
+                    {/* Tiptap 에디터 적용 */}
+                    <div className="w-full mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
+                        <div className="border border-gray-200 rounded-[15px] overflow-hidden transition-shadow hover:shadow-sm">
+                            <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
+                                <TiptapEditor
+                                    content={content}
+                                    onChange={setContent}
+                                    onImageUploadSuccess={handleImageUploadSuccess}
+                                    onImageDelete={handleImageDelete}
+                                />
                             </div>
                         </div>
+                    </div>
 
                     {/* 태그 */}
                     {boardType !== 'notice' && (

@@ -217,8 +217,8 @@ export default function NoticePage() {
       if (data && Array.isArray(data.content)) {
         setPosts(data.content.map((post: Post) => ({
           ...post,
-          hasImage: post.hasImage || false, // API에서 hasImage 필드가 없으면 false로 설정
-          commentCount: post.commentCount || 0 // API에서 commentCount 필드가 없으면 0으로 설정
+          hasImage: post.hasImage || false,
+          commentCount: post.commentCount || 0
         })));
         setTotalPages(data.totalPages || 1);
         setSearchCount(data.totalElements || 0);
@@ -237,56 +237,27 @@ export default function NoticePage() {
     }
   };
 
-  // 아카데미 정보 조회
-  // const fetchAcademyInfo = async () => {
-  //   if (!academyCode) return;
 
-  //   try {
-  //     const response = await fetchApi(`/api/v1/admin/academies/${academyCode}`, {
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Accept': 'application/json'
-  //       },
-  //       credentials: 'include'
-  //     });
 
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       setAcademyName(data.academyName || '학원 정보 없음');
-  //     } else {
-  //       setAcademyName('학원 정보 없음');
-  //     }
-  //   } catch (error) {
-  //     console.error('학원 정보를 불러오는데 실패했습니다:', error);
-  //     setAcademyName('학원 정보 없음');
-  //   }
-  // };
-
-  // 페이지 크기 변경 처리 함수
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setPageSize(e.target.value);
     setCurrentPage(1);
   };
 
-  // 정렬 방식 변경 처리 함수
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newSortType = e.target.value;
     console.log(`정렬 방식 변경: ${newSortType}`);
     setSortType(newSortType);
-    setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
-
-    // 정렬 변경 시 데이터 새로 불러오기
+    setCurrentPage(1);
     fetchNoticeBoards();
   };
 
-  // 검색 처리 함수
   const handleSearch = (keyword: string) => {
     setSearchKeyword(keyword);
     setCurrentPage(1);
     setSearchMode(true);
   };
 
-  // 필터 유형 변경 처리 함수
   const handleFilterChange = (type: string) => {
     if (type !== filterType) {
       console.log(`필터 유형 변경: ${filterType} -> ${type}`);
@@ -294,7 +265,6 @@ export default function NoticePage() {
     }
   };
 
-  // 상태 초기화 함수
   const resetAllFilters = () => {
     setSearchMode(false);
     setSearchKeyword('');
@@ -308,8 +278,7 @@ export default function NoticePage() {
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
-  
-    // 1분 미만
+
     if (diffMs < 60 * 1000) {
       return '방금 전';
     }
@@ -329,7 +298,6 @@ export default function NoticePage() {
     } else if (diffDays < 7) {
       return `${diffDays}일 전`;
     } else {
-      // 같은 해의 경우 월일만 표시, 다른 해의 경우 연월일 모두 표시
       const year = date.getFullYear();
       const currentYear = now.getFullYear();
   
@@ -341,17 +309,13 @@ export default function NoticePage() {
     }
   }
 
-  // 게시물에 수정 정보 추가 및 표시 함수
   function getFormattedTime(creationTime: string, modificationTime?: string): string {
     if (modificationTime) {
-      // 수정 시간이 있는 경우 "(수정)" 표시 추가
       return `${formatRelativeTime(modificationTime)} (수정)`;
     }
-    // 수정 시간이 없는 경우 생성 시간만 표시
     return formatRelativeTime(creationTime);
   }
 
-  // 로그인되지 않은 경우 로딩 화면 표시
   if (!isLogin) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">

@@ -8,3 +8,6 @@
 
 # react-image-crop 라이브러리
 /node_modules/react-image-crop/...
+
+# 데스크탑 파일
+.DS_Store
