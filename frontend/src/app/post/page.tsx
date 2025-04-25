@@ -20,7 +20,7 @@ interface Post {
   tags: string[];
   boardLikes?: number;
   boardComments?: number;
-  hasImage?: boolean;  // 이미지 첨부 여부
+  hasImage?: boolean;
   isLiked?: boolean;
 }
 
@@ -67,28 +67,22 @@ export default function PostPage() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
 
-  // 마운트 플래그
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // 로그인 여부 확인 및 리다이렉트
   useEffect(() => {
     if (!isLogin) {
       router.push('/login');
     }
   }, [isLogin, router]);
 
-  // 처음 로드 시 설정
   useEffect(() => {
     if (isMounted && isLogin && !academyAlertRef.current) {
-      // 해당 로직 제거: 백엔드가 토큰에서 userId로 academyCode를 직접 찾기 때문에 체크가 필요 없음
-      // 로그인 상태만 확인하고 항상 true로 설정
       console.log('게시판 - 사용자 로그인됨, ID:', loginMember?.userName);
     }
   }, [isLogin, isMounted, loginMember, academyAlertRef]);
 
-  // 학원 등록 알림 표시 함수
   const showAcademyAlert = () => {
     if (!academyAlertRef.current) {
       academyAlertRef.current = true;
@@ -98,14 +92,12 @@ export default function PostPage() {
     }
   };
 
-  // URL 쿼리 변경 시 상태 업데이트
   useEffect(() => {
     setSearchKeyword(searchParams.get('keyword') ?? '');
     setSortType(searchParams.get('sortType') ?? 'creationTime');
     setFilterType(searchParams.get('filterType') ?? 'tag');
     setCurrentPage(Number(searchParams.get('page') ?? 1));
     setPageSize(searchParams.get('size') ?? '10');
-    // type 쿼리 반영
     const t = searchParams.get('type');
     const newType = t === 'popular' ? 'popular' : 'free';
     if (prevType.current !== newType) {
@@ -115,23 +107,18 @@ export default function PostPage() {
     }
   }, [searchParams]);
 
-  // URL 쿼리 'type'에 따른 게시판 타입 (free|popular)
   const boardType = searchParams.get('type') === 'popular' ? 'popular' : 'free';
 
-  // 2. 게시물 데이터 가져오는 함수
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string) => {
     if (!isMounted || academyAlertRef.current) return;
 
     setLoading(true);
     try {
-      // URL의 `type` 쿼리 사용 (popular 또는 free)
       const typeParam = boardType;
       let url = `/api/v1/posts?page=${page}&size=${size}&type=${typeParam}`;
 
-      // 정렬 방식 추가
       url += `&sortType=${encodeURIComponent(sort)}`;
 
-      // 키워드 검색 시 filterType에 따라 tag 또는 keyword 파라미터 추가 후 항상 searchType 추가
       if (keyword && keyword.trim() !== '') {
         if (filterType === 'tag') {
           url += `&tag=${encodeURIComponent(keyword)}`;
@@ -185,7 +172,7 @@ export default function PostPage() {
           isLiked: likedPostIds.includes(post.id),
           commentCount: post.commentCount || (post.boardComments ? post.boardComments : 0),
           likeCount: post.likeCount || (post.boardLikes ? post.boardLikes : 0),
-          hasImage: post.hasImage || false // API에서 hasImage 필드가 없으면 false로 설정
+          hasImage: post.hasImage || false
         })));
         setTotalPages(postData.totalPages || 1);
         setSearchCount(postData.totalElements || 0);
@@ -205,9 +192,8 @@ export default function PostPage() {
     }
   };
 
-  // 12. 인기 태그 불러오기 함수
   const fetchPopularTags = async () => {
-    if (!isMounted || academyAlertShown) return; // 학원 등록 알림이 이미 표시된 경우 API 호출 중단
+    if (!isMounted || academyAlertShown) return;
 
     setTagsLoading(true);
     try {
@@ -215,7 +201,6 @@ export default function PostPage() {
 
       console.log('인기 태그 요청 URL:', url);
 
-      // fetchApi 사용
       const response = await fetchApi(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +214,6 @@ export default function PostPage() {
           const errorData = await response.json();
           const errorMessage = errorData.message || '인기 태그를 불러오는데 실패했습니다.';
 
-          // academyCode 관련 오류 확인
           if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
             errorMessage.includes('먼저 학원을 등록해주세요')) {
             showAcademyAlert();
@@ -249,13 +233,13 @@ export default function PostPage() {
         setPopularTags((data as {name:string; count:number}[]).map(tag => ({
           name: tag.name,
           count: tag.count,
-          isActive: selectedTag === tag.name // 선택된 태그 유지
+          isActive: selectedTag === tag.name
         })));
       } else if (data && Array.isArray(data.content)) {
         setPopularTags((data.content as {name:string; count:number}[]).map(tag => ({
           name: tag.name,
           count: tag.count,
-          isActive: selectedTag === tag.name // 선택된 태그 유지
+          isActive: selectedTag === tag.name
         })));
       } else {
         setPopularTags([]);
@@ -268,84 +252,64 @@ export default function PostPage() {
     }
   };
 
-  // 13. 의존성 변경 시 게시물 데이터 다시 불러오기
   useEffect(() => {
     if (!isMounted || academyAlertRef.current) return;
     fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined);
   }, [isMounted, searchParams, currentPage, pageSize, sortType, searchKeyword, selectedTag]);
 
-  // 14. 컴포넌트 마운트 시 인기 태그 불러오기
   useEffect(() => {
     if (isMounted) {
-      // academyAlertRef가 true인 경우 API 호출 방지
       if (!academyAlertRef.current) {
         fetchPopularTags();
       }
     }
   }, [isMounted, postType]);
 
-  // 15. 인기 태그 클릭 처리 함수
   const handleTagClick = (tagName: string) => {
-    // 15-1. 이미 선택된 태그를 다시 클릭하면 해제, 아니면 선택
     setSelectedTag(selectedTag === tagName ? null : tagName);
-    // 15-2. 태그 목록의 활성 상태 업데이트
     setPopularTags(prevTags =>
       prevTags.map(tag => ({
         ...tag,
         isActive: tag.name === tagName && selectedTag !== tagName
       }))
     );
-    // 15-3. 태그 변경 시 첫 페이지로 이동
     setCurrentPage(1);
   };
 
-  // 16. 페이지 크기 변경 처리 함수
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setPageSize(e.target.value);
     setCurrentPage(1);
   };
 
-  // 17. 정렬 방식 변경 처리 함수
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newSortType = e.target.value;
     console.log(`정렬 방식 변경: ${newSortType}`);
     setSortType(newSortType);
-    setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
+    setCurrentPage(1);
 
-    // 현재 검색 조건 유지하면서 새로운 정렬 방식으로 데이터 다시 불러오기
     fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
   };
 
-  // 18. 검색 처리 함수
   const handleSearch = (keyword: string) => {
-    // 18-1. 검색 시 선택된 태그 초기화
     setSelectedTag(null);
-    // 18-2. 태그의 활성 상태 초기화
     setPopularTags(prevTags =>
       prevTags.map(tag => ({
         ...tag,
         isActive: false
       }))
     );
-    // 18-3. 검색어 설정
     setSearchKeyword(keyword);
-    // 18-4. 첫 페이지로 이동
     setCurrentPage(1);
-    // 18-5. 검색 모드 활성화
     setSearchMode(true);
   };
 
-  // 19. 필터 유형 변경 처리 함수
   const handleFilterChange = (type: string) => {
-    // 필터 타입이 변경된 경우에만 상태 업데이트
     if (type !== filterType) {
       console.log(`필터 유형 변경: ${filterType} -> ${type}`);
       setFilterType(type);
-      // 여기서는 fetchPosts를 직접 호출하지 않아 불필요한 API 호출 방지
     }
   };
 
-  // 상태 초기화 함수 추가
   const resetAllFilters = () => {
     setSearchMode(false);
     setSearchKeyword('');
@@ -355,7 +319,6 @@ export default function PostPage() {
     setSelectedTag(null);
     setFilterType('tag');
 
-    // 태그 활성화 상태 초기화
     setPopularTags(prevTags =>
       prevTags.map(tag => ({
         ...tag,
@@ -363,14 +326,13 @@ export default function PostPage() {
       }))
     );
 
-    // 현재 minLikes 유지하면서 데이터 다시 불러오기
     fetchPosts(1, '10', 'creationTime', '', undefined);
   };
 
   const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
-    event.preventDefault(); // Link 컴포넌트의 기본 동작 방지
+    event.preventDefault();
 
-    if (likingPosts.has(post.id)) return; // 이미 처리 중인 경우 중복 요청 방지
+    if (likingPosts.has(post.id)) return;
 
     const isLiked = post.isLiked || false;
 
@@ -413,8 +375,6 @@ export default function PostPage() {
     }
   };
 
-  // 20. 컴포넌트 렌더링 시작
-  // 서버 사이드 렌더링 또는 초기 렌더링 중에는 최소한의 UI만 표시
   if (!isMounted) {
     return (
       <main className="bg-[#f9fafc] min-h-screen pb-8">
@@ -425,7 +385,6 @@ export default function PostPage() {
     );
   }
 
-  // 로그인되지 않은 경우 로딩 표시
   if (!isLogin) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -689,7 +648,6 @@ function Tag({ text, count, active = false, onClick }: { text: string; count: st
   );
 }
 
-// 필터 드롭다운
 function FilterDropdown({ value, onChange }: { value: string; onChange: (type: string) => void }) {
   return (
     <select
@@ -705,7 +663,6 @@ function FilterDropdown({ value, onChange }: { value: string; onChange: (type: s
   );
 }
 
-// 검색 입력 필드
 function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (keyword: string) => void }) {
   const [inputValue, setInputValue] = useState('');
 
@@ -737,7 +694,6 @@ function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (
   );
 }
 
-// 정렬 드롭다운
 function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) {
   return (
     <select
@@ -753,7 +709,6 @@ function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.
   );
 }
 
-// 페이지 버튼
 function PageButton({ text, active = false, disabled = false, onClick }: { text: string; active?: boolean; disabled?: boolean; onClick?: () => void }) {
   return (
     <button
@@ -774,7 +729,6 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
   );
 }
 
-// 게시물 아이템 컴포넌트 (카드형)
 function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
   id: number;
   title: string;
@@ -916,7 +870,6 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   );
 }
 
-// 리스트형 게시물 컴포넌트
 function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
   id: number;
   title: string;
@@ -1066,7 +1019,6 @@ function formatRelativeTime(dateString: string): string {
   } else if (diffDays < 7) {
     return `${diffDays}일 전`;
   } else {
-    // 같은 해의 경우 월일만 표시, 다른 해의 경우 연월일 모두 표시
     const year = date.getFullYear();
     const currentYear = now.getFullYear();
 
@@ -1078,17 +1030,13 @@ function formatRelativeTime(dateString: string): string {
   }
 }
 
-// 게시물에 수정 정보 추가 및 표시 함수
 function getFormattedTime(creationTime: string, modificationTime?: string): string {
   if (modificationTime) {
-    // 수정 시간이 있는 경우 "(수정)" 표시 추가
     return `${formatRelativeTime(modificationTime)} (수정)`;
   }
-  // 수정 시간이 없는 경우 생성 시간만 표시
   return formatRelativeTime(creationTime);
 }
 
-// 날짜 포맷팅 함수
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -1114,12 +1062,8 @@ function formatDate(dateString: string): string {
   }
 }
 
-// 게시글 내용 요약 함수
 function summarizeContent(content: string): string {
-  // HTML 태그 제거
   const textContent = content.replace(/<[^>]+>/g, '');
-  // 공백 정리
   const trimmedContent = textContent.replace(/\s+/g, ' ').trim();
-  // 100자로 제한하고 말줄임표 추가
   return trimmedContent.length > 100 ? `${trimmedContent.slice(0, 100)}...` : trimmedContent;
 }

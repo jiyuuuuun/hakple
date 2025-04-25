@@ -5,27 +5,16 @@ import dynamic from 'next/dynamic'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
-// TiptapEditor를 동적으로 불러오기 (SSR 비활성화)
 const TiptapEditor = dynamic(() => import('@/components/editor/TiptapEditor'), { ssr: false })
 
-// 게시글 타입 정의
 type BoardType = 'free' | 'notice';
 
-// --- 태그 입력 컴포넌트 ---
 interface TagInputProps {
     tags: string[]
     onTagsChange: (tags: string[]) => void
 }
 
-/**
- * IME(Input Method Editor)란?
- * - 한글, 중국어, 일본어 등과 같은 조합형 문자를 입력할 때 사용되는 입력 방식
- * - 예: 한글 '가'를 입력할 때 'ㄱ'+'ㅏ'를 조합하는 과정이 있음
- * - IME 입력 중에는 composition 이벤트가 발생하며, 조합이 끝나기 전에 Enter나 다른 키 이벤트가
- *   중간에 처리되면 원치 않는 동작이 발생할 수 있음 (마지막 글자만 별도 태그로 추가되는 문제)
- */
 
-// 문자열을 태그로 변환하는 헬퍼 함수 - 절대 분리하지 않음
 const sanitizeTag = (input: string): string => {
     // 1. 입력값 유효성 검사
     // 인풋이 없거나 공백인 경우 빈 문자열 반환
@@ -302,12 +291,23 @@ const EditPostPage = () => {
                 setInitialImageUrls(data.imageUrls || []);
 
                 // 작성자 본인 또는 관리자 여부 확인
-                if (loginMember && (loginMember.id === data.memberResponse.memberId || isAdmin)) {
-                  // 수정 권한 있음
+                const ownerUserName = data.userName;
+                console.log('--- Permission Check ---');
+                console.log('Login Member Info:', loginMember);
+                console.log('Logged In User Name:', loginMember?.userName, '(Type:', typeof loginMember?.userName, ')');
+                console.log('Post Owner Name from API:', ownerUserName, '(Type:', typeof ownerUserName, ')');
+                console.log('Is Admin:', isAdmin);
+                
+                const hasPermission = loginMember && ownerUserName !== undefined && (loginMember.userName === ownerUserName || isAdmin);
+                
+                console.log('Is Owner Check (loginMember.userName === ownerUserName):', loginMember?.userName === ownerUserName);
+                console.log('Final Permission Condition (isOwner || isAdmin):', hasPermission);
+                
+                if (hasPermission) {
+                  console.log('수정 권한 확인됨');
                 } else {
                   setError('게시글을 수정할 권한이 없습니다.');
-                  // 필요시 리다이렉트 또는 UI 비활성화 처리
-                  // router.push('/post');
+                  console.log('수정 권한 없음. User Name:', loginMember?.userName, 'Owner Name:', ownerUserName, 'Is Admin:', isAdmin);
                 }
 
             } catch (err) {

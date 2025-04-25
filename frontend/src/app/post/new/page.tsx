@@ -114,7 +114,6 @@ const NewPostPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
-    // 임시 이미지 ID 목록 저장을 위한 상태 (이름 변경: uploadedTempIds -> tempIdList)
     const [tempIdList, setTempIdList] = useState<string[]>([]);
 
     useEffect(() => {
