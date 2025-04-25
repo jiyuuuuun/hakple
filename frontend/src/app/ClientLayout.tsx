@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import MobileBottomNav from '@/components/MobileBottomNav'
 import { useRouter } from "next/navigation";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +20,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         setIsLogin
     } = useLoginMember()
 
-    //전역 Store등록, context api기술을 썼다고 함
+    const router = useRouter()
+
     const loginMemberContextValue = {
         loginMember,
         setLoginMember,
@@ -31,8 +33,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         logoutAndHome,
         checkAdminAndRedirect
     }
-
-    const router = useRouter()
 
     const checkLoginStatus = async () => {
         try {
@@ -47,7 +47,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 const data = await response.json()
                 console.log('로그인 상태 성공', data)
 
-                // 로그인된 경우 추가 정보 조회
                 const userInfoResponse = await fetch('http://localhost:8090/api/v1/myInfos', {
                     credentials: 'include',
                 })
@@ -68,27 +67,21 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         }
     }
 
-
-    //[]최초 요청시 api를 보낸다, 요청시에도 저게 돌아간다고 한다
     useEffect(() => {
         console.log('ClientLayout - 로그인 상태 확인 시작')
 
-        // 현재 페이지 경로 확인
         const currentPath = window.location.pathname
+
 
         // 로그인이 필요없는 페이지 목록
         const publicPages = ['/login', '/signup', '/', '/about', '/signup/success']
 
-        // 로그인 검증을 우회할 특별 페이지들
         const specialPages = ['/login', '/admin']
-
-        // 현재 페이지가 로그인이 필요없는 페이지인지 확인
         const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
-
-        // 현재 페이지가 특별 페이지인지 확인
         const isSpecialPage = specialPages.some((page) => currentPath.startsWith(page))
 
         console.log('페이지 정보 - 현재 경로:', currentPath, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
+
 
         // 로그인 상태 체크 API 호출
         fetch(`http://localhost:8090/api/v1/auth/me`, {
@@ -131,26 +124,37 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 }
             })
             checkLoginStatus()
+
             .finally(() => {
-                console.log('로그인 상태 확인 완료, 현재 로그인 상태:', isLogin, '현재 페이지:', currentPath, '공개 페이지 여부:', isPublicPage)
+                console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
+
     }, []) // 초기 로딩 시에만 실행
+
+
+    // ✅ 로그인 상태가 변경된 후 (렌더 기준) 로그 출력
+    useEffect(() => {
+        console.log('✅ 렌더 기준 로그인 상태 변경됨');
+        console.log('🔐 isLogin:', isLogin);
+        console.log('👤 loginMember:', loginMember);
+    }, [isLogin, loginMember]);
 
     if (isLoginMemberPending) {
         return (
-          <div className="flex-1 flex justify-center items-center text-muted-foreground">
-            로그인중...
-          </div>
-        );
-      }
+            <div className="flex justify-center items-center h-screen">
+                로그인 중...
+            </div>
+        )
+    }
 
     return (
-        //나중에 내부적으로 접근이 가능하게 된다, 그리고 value를 통하여 전역적으로 접근이 가능하게 된다
         <LoginMemberContext.Provider value={loginMemberContextValue}>
             <div className="flex flex-col min-h-screen">
                 <Header />
                 <div className="flex-grow">{children}</div>
                 <Footer />
+                {/* ✅ 모바일 하단 탭 추가 */}
+                <MobileBottomNav />
             </div>
         </LoginMemberContext.Provider>
     )

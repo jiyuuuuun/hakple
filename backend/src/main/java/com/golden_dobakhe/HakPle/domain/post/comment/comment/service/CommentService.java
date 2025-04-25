@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Map;
@@ -31,12 +32,16 @@ import java.util.Set;
 
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.entity.CommentLike;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional // 모든 public 메서드가 트랜잭션 범위 안에서 실행
 @RequiredArgsConstructor
 @Slf4j
 public class CommentService {
+
+    private static final int MAX_COMMENT_BYTE_LENGTH = 10000;
+
     public final CommentRepository commentRepository;
     public final BoardRepository boardRepository;
     public final UserRepository userRepository;
@@ -125,10 +130,17 @@ public class CommentService {
        if(user==null){ 
            throw  new CommentException(CommentResult.USER_NOT_FOUND);
        }
-       if(commentRequestDto.getContent() == null || commentRequestDto.getContent().trim().isEmpty()) {
-           
-           throw  new CommentException(CommentResult.EMPTY);
-       }
+        String content = commentRequestDto.getContent();
+
+        if (!StringUtils.hasText(content)) {
+            throw CommentException.invalidRequest("댓글 내용은 비어 있을 수 없습니다.");
+        }
+
+        int byteLength = content.getBytes(StandardCharsets.UTF_8).length;
+
+        if (byteLength > MAX_COMMENT_BYTE_LENGTH) {
+            throw CommentException.invalidRequest("댓글은 최대 " + MAX_COMMENT_BYTE_LENGTH + "바이트까지만 입력 가능합니다. 현재: " + byteLength + "바이트");
+        }
 
         Comment comment= Comment.builder()
                .board(board)

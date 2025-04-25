@@ -1,0 +1,10 @@
+# 주요 프로젝트 파일
+/package.json
+/package-lock.json
+
+# React 관련 라이브러리
+/node_modules/react/...
+/node_modules/**
+
+# react-image-crop 라이브러리
+/node_modules/react-image-crop/...
