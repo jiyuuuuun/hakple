@@ -72,16 +72,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
         const currentPath = window.location.pathname
 
-
         // 로그인이 필요없는 페이지 목록
         const publicPages = ['/login', '/signup', '/', '/about', '/signup/success']
-
         const specialPages = ['/login', '/admin']
         const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
         const isSpecialPage = specialPages.some((page) => currentPath.startsWith(page))
 
         console.log('페이지 정보 - 현재 경로:', currentPath, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
-
 
         // 로그인 상태 체크 API 호출
         fetch(`http://localhost:8090/api/v1/auth/me`, {
@@ -107,7 +104,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 setIsLogin(true)
 
                 // 로그인 페이지에 있을 경우 홈으로 리다이렉트
-                if (currentPath === '/login' && !isSpecialPage) {
+                if (currentPath === '/login') {
                     console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
                     router.replace("/")
                 }
@@ -120,11 +117,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 if (!isPublicPage && !isSpecialPage) {
                     console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
-               //     router.replace("/login")
+                    router.replace("/login")
                 }
             })
-            checkLoginStatus()
-
             .finally(() => {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
