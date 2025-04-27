@@ -475,8 +475,8 @@ export default function PostPage() {
         </div>
 
         {/* 인기 태그 */}
-        {!searchMode && (
-          <div className="bg-white rounded-lg shadow p-4">
+        {!searchMode && postType !== 'popular' && (
+          <div className="bg-white rounded-lg shadow p-4 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-gray-800">인기 태그</h2>
             <div className="flex flex-wrap gap-2">
               {tagsLoading ? (

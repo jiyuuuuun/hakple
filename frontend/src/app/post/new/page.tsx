@@ -247,7 +247,7 @@ const NewPostPage = () => {
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="제목을 입력해주세요"
-                            className="w-full border border-gray-200 rounded-[15px] py-4 px-5 text-base focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent transition-shadow hover:shadow-sm"
+                            className="w-full border border-gray-200 rounded-[15px] py-4 px-5 text-base focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent transition-shadow hover:shadow-sm bg-gray-50"
                         />
                     </div>
 
