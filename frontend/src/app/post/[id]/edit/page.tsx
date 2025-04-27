@@ -40,6 +40,8 @@ const sanitizeTag = (input: string): string => {
 }
 
 const TagInput: React.FC<TagInputProps> = ({ tags, onTagsChange }) => {
+    console.log("TagInput received props - tags:", tags); // <<< 받은 prop 확인 로그
+
     // 상태 관리
     const [inputValue, setInputValue] = useState('') // 입력 필드 값
     const [isComposing, setIsComposing] = useState(false) // IME 입력 상태 (조합 중인지 여부)
@@ -222,8 +224,8 @@ const EditPostPage = () => {
     const [error, setError] = useState('')
     const [isAdmin, setIsAdmin] = useState(false)
     const [adminCheckComplete, setAdminCheckComplete] = useState(false)
-    // 임시 이미지 ID 목록 저장을 위한 상태 추가
-    const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([])
+    const [tempIdList, setTempIdList] = useState<string[]>([]) // 새로 업로드된 임시 이미지 ID 목록
+    const [initialImageUrls, setInitialImageUrls] = useState<string[]>([]) // 초기에 로드된 이미지 URL 목록
 
     // 관리자 여부 확인
     useEffect(() => {
@@ -237,7 +239,7 @@ const EditPostPage = () => {
                             'Content-Type': 'application/json'
                         }
                     });
-
+                    
                     if (response.ok) {
                         const isAdminResult = await response.json();
                         setIsAdmin(isAdminResult === true);
@@ -251,7 +253,7 @@ const EditPostPage = () => {
                 setAdminCheckComplete(true);
             }
         };
-
+        
         checkAdminPermission();
     }, [isLogin, loginMember]);
 
@@ -268,10 +270,23 @@ const EditPostPage = () => {
     // 게시글 데이터 불러오기
     useEffect(() => {
         const fetchPostData = async () => {
+            // 가드 로직 추가: isLogin이 false이거나 loginMember가 없으면 함수 종료
+            // loginMember 객체 자체를 확인하는 것이 더 안전할 수 있음
+            if (!isLogin || !loginMember) { 
+                console.log('fetchPostData: Not logged in or loginMember not available yet.');
+                // setIsLoading(false); // 로딩 상태를 여기서 해제하면 안됨
+                // setError('로그인 정보가 유효하지 않습니다.'); // 로그인 페이지로 리다이렉트될 것이므로 불필요
+                return; // 여기서 중단
+            }
+            // 로그인 정보 로깅 추가
+            console.log('fetchPostData: Starting fetch, Login Member:', loginMember);
+
+            setIsLoading(true);
+            setError('');
+
             try {
-                setIsLoading(true)
                 const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
-                    credentials: 'include', // 쿠키 인증 사용
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
                     }
@@ -281,29 +296,79 @@ const EditPostPage = () => {
                     throw new Error('게시글을 불러오는데 실패했습니다.')
                 }
 
-                const postData = await response.json()
+                const data = await response.json();
+                // API 응답 데이터 전체 로깅
+                console.log('fetchPostData: API Response Data:', data);
 
-                // 데이터 설정
-                setTitle(postData.title || '')
-                setContent(postData.content || '')
-                setTags(postData.tags || [])
-                const type = postData.type || postData.boardType;
-                const boardTypeValue = type === 'notice' ? 'notice' : 'free';
-                setBoardType(boardTypeValue) // 게시글 타입 설정 추가
+                setTitle(data.title);
+                console.log('State after setTitle:', data.title);
 
-                // 권한 체크는 별도의 useEffect에서 처리
+                setContent(data.content);
+                console.log('State after setContent:', data.content);
+
+                setTags(
+                  Array.isArray(data.tags) // data.tags가 배열인지 먼저 확인
+                    ? data.tags
+                        // 각 요소가 문자열이고 비어있지 않은지 확인하여 필터링
+                        .filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '') 
+                    : [] // 배열이 아니거나 없으면 빈 배열로 설정
+                );
+                console.log('State after setTags:', 
+                  Array.isArray(data.tags) 
+                    ? data.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '') 
+                    : []
+                ); // Verify the result being set
+
+                setBoardType(data.boardType);
+                setInitialImageUrls(data.imageUrls || []);
+
+                // 작성자 본인 또는 관리자 여부 확인
+                const ownerUserName = data.userName;
+                console.log('--- Permission Check ---');
+                console.log('Login Member Info:', loginMember);
+                
+                // Trim strings before comparison and log values right before comparison
+                const loggedInUserName = loginMember?.userName?.trim();
+                const postOwnerName = ownerUserName?.trim();
+                console.log(`Comparing: '${loggedInUserName}' (Length: ${loggedInUserName?.length}) with '${postOwnerName}' (Length: ${postOwnerName?.length})`);
+
+                console.log('Logged In User Name (Trimmed):', loggedInUserName, '(Type:', typeof loggedInUserName, ')'); 
+                console.log('Post Owner Name from API (Trimmed):', postOwnerName, '(Type:', typeof postOwnerName, ')');
+                console.log('Is Admin:', isAdmin);
+                
+                // Compare trimmed userNames or check if admin
+                const hasPermission = loggedInUserName && postOwnerName !== undefined && 
+                                      (loggedInUserName === postOwnerName || isAdmin);
+                
+                console.log('Is Owner Check (trimmed comparison):', loggedInUserName === postOwnerName);
+                console.log('Final Permission Condition (isOwner || isAdmin):', hasPermission);
+                
+                if (hasPermission) {
+                  console.log('수정 권한 확인됨');
+                } else {
+                  setError('게시글을 수정할 권한이 없습니다.');
+                  console.log('수정 권한 없음. User Name:', loggedInUserName, 'Owner Name:', postOwnerName, 'Is Admin:', isAdmin);
+                }
+
             } catch (err) {
-                console.error('게시글 데이터 로딩 중 오류:', err)
-                setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.')
+                console.error('게시글 로딩 실패:', err)
+                setError(err instanceof Error ? err.message : '게시글을 불러오는 데 실패했습니다.')
             } finally {
                 setIsLoading(false)
             }
         }
-
-        if (postId) {
-            fetchPostData()
+        
+        // isLogin과 loginMember가 준비된 후에 fetchPostData 호출
+        if (isLogin && loginMember) {
+             fetchPostData();
+        } else {
+             console.log('fetchPostData effect: Waiting for login info...');
+             // 로그인 안 된 상태면 로그인 페이지로 리다이렉트하는 다른 useEffect가 처리
+             // 또는 로딩 상태 유지
+             // setIsLoading(false); // 여기서 로딩을 끝내면 안됨
         }
-    }, [postId])
+
+    }, [postId, isLogin, isAdmin, loginMember]) // 의존성 유지
 
     // 로그인 여부 확인 및 리다이렉트
     useEffect(() => {
@@ -332,16 +397,31 @@ const EditPostPage = () => {
         setTags(uniqueTags)
     }
 
-    // 이미지 업로드 완료 시 tempId 저장 핸들러
-    const handleImageUpload = (tempIds: string[]) => {
-        setUploadedTempIds(prev => {
-            // 중복 제거하여 새로운 tempId만 추가
-            const newIds = tempIds.filter(id => !prev.includes(id));
-            return [...prev, ...newIds];
-        });
+    // 이미지 업로드 성공 시 호출될 콜백 함수 (하나의 tempId를 받아 리스트에 추가)
+    const handleImageUploadSuccess = (tempId: string) => {
+      setTempIdList(prevList => [...prevList, tempId]);
+    };
+
+    // 에디터에서 이미지 삭제 시 호출될 콜백 함수 (tempId를 받아 리스트에서 제거)
+    const handleImageDelete = (tempId: string) => {
+      setTempIdList(prevList => prevList.filter(id => id !== tempId));
+      // 백엔드에 즉시 삭제 요청은 하지 않음 (글 저장 시 최종 처리)
+    };
+
+    // HTML 문자열에서 이미지 URL 추출하는 헬퍼 함수
+    const extractImageUrlsFromHtml = (html: string): string[] => {
+      const urls: string[] = [];
+      const imgRegex = /<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/g;
+      let match;
+      while ((match = imgRegex.exec(html)) !== null) {
+        urls.push(match[1]);
+      }
+      return urls;
     };
 
     const handleSubmit = async () => {
+        if (isSubmitting) return // 중복 제출 방지
+
         if (!title.trim()) {
             setError('제목을 입력해주세요.')
             return
@@ -362,25 +442,36 @@ const EditPostPage = () => {
             setIsSubmitting(true)
             setError('')
 
-            // 빈 태그만 필터링하고, 태그 형식을 그대로 유지
-            const finalTags = boardType === 'notice' ? [] : tags.filter((tag) => tag.trim() !== '')
+            // 1. 최종 에디터 내용에서 모든 이미지 URL 추출
+            const currentImageUrls = extractImageUrlsFromHtml(content);
+
+            // 2. 추출된 URL 중 initialImageUrls에 포함된 URL만 필터링 (이것이 usedImageUrls)
+            const finalUsedImageUrls = currentImageUrls.filter(url => initialImageUrls.includes(url));
+
+            // 3. 공지사항이 아니면 태그 정리
+            const finalTags = boardType === 'notice' ? [] : tags.filter((tag) => tag.trim() !== '');
 
             // API 호출을 위한 데이터 구성
-            const postData = {
+            const postData: {
+                title: string
+                content: string
+                tags: string[]
+                // type, academyCode는 수정 시 보내지 않을 수 있음 (백엔드 정책 확인)
+                tempIdList: string[]; // 새로 추가된 이미지들의 임시 ID
+                usedImageUrls: string[]; // 기존 이미지 중 유지된 URL
+            } = {
                 title,
                 content,
                 tags: finalTags,
-                type: boardType,
-                academyCode: academyCode // academyCode 추가
+                tempIdList: tempIdList,
+                usedImageUrls: finalUsedImageUrls
             }
 
-            const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`;
-            // URL에 academyCode 추가
-            const url = academyCode ? `${apiUrl}?academyCode=${academyCode}` : apiUrl;
+            console.log('수정 요청 데이터:', postData)
 
             // 게시글 수정 요청
-            const response = await fetch(url, {
-                method: 'PUT', // 수정이므로 PUT 메서드 사용
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -402,36 +493,6 @@ const EditPostPage = () => {
                     errorMsg = `서버 오류: ${response.status}`
                 }
                 throw new Error(errorMsg)
-            }
-
-            // 응답 데이터 확인
-            const responseData = await response.json();
-            console.log('서버 응답:', responseData);
-
-            // 이미지가 업로드되었고 게시글 ID가 있으면 이미지 연결 요청
-            if (uploadedTempIds.length > 0) {
-                try {
-                    const linkResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            tempIds: uploadedTempIds,
-                            boardId: parseInt(postId)
-                        }),
-                        credentials: 'include',
-                    });
-
-                    if (linkResponse.ok) {
-                        console.log('이미지 연결 성공:', await linkResponse.json());
-                    } else {
-                        console.error('이미지 연결 실패:', linkResponse.status);
-                    }
-                } catch (linkError) {
-                    console.error('이미지 연결 중 오류:', linkError);
-                    // 게시글은 수정되었으므로 전체 프로세스를 실패로 처리하지 않음
-                }
             }
 
             // 성공 시 게시글 상세 페이지로 돌아가거나 목록으로 이동
@@ -457,8 +518,9 @@ const EditPostPage = () => {
         }
     }
 
-    return (
+    console.log("Rendering EditPostPage with tags state:", tags); // <<< 렌더링 직전 상태 확인 로그
 
+    return (
         <main className="bg-[#f9fafc] min-h-screen pb-8">
             <div className="max-w-[1140px] mx-auto px-4">
                 <div className="pt-14">
@@ -481,29 +543,29 @@ const EditPostPage = () => {
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder="제목을 입력해주세요"
-                                className="w-full bg-[#fcfaff] border-2 border-gray-100 rounded-[15px] py-4 px-5 text-base 
+                                className="w-full bg-[#fcfaff] border-2 border-gray-100 rounded-[15px] py-4 px-5 text-base
                                             transition-all duration-300 ease-in-out
-                                            focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent 
-                                            group-hover:border-[#980ffa]/30 group-hover:shadow-md 
+                                            focus:outline-none focus:ring-2 focus:ring-[#980ffa] focus:border-transparent
+                                            group-hover:border-[#980ffa]/30 group-hover:shadow-md
                                             placeholder:text-gray-400"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#980ffa]/5 to-transparent opacity-0 
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#980ffa]/5 to-transparent opacity-0
                                             group-hover:opacity-100 rounded-[15px] pointer-events-none transition-opacity duration-300"/>
                         </div>
                     </div>
 
-                    {/* Tiptap 에디터 적용 */}
+                                {/* Tiptap 에디터 적용 */}
                     <div className="w-full mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
                         <div className="border-2 border-gray-100 rounded-[15px] overflow-hidden transition-all duration-300
                                         hover:border-[#980ffa]/30 hover:shadow-md group">
                             <div className="min-h-[400px] sm:min-h-[500px] md:min-h-[600px]">
-                                <TiptapEditor
-                                    content={content}
-                                    onChange={setContent}
-                                    boardId={parseInt(postId)}
-                                    onImageUpload={handleImageUpload}
-                                />
+                            <TiptapEditor
+                                            content={content}
+                                            onChange={setContent}
+                                            onImageUploadSuccess={handleImageUploadSuccess}
+                                            onImageDelete={handleImageDelete}
+                            />
                             </div>
                         </div>
                     </div>
@@ -558,7 +620,6 @@ const EditPostPage = () => {
                     </div>
                 </div>
             </div>
-
         </main>
     )
 }

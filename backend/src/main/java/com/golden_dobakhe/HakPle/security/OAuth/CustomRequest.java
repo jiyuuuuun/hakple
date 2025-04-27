@@ -76,12 +76,6 @@ public class CustomRequest {
                 .httpOnly(true)
                 .maxAge(maxAge/1000) // 밀리초 → 초 변환
                 .build();
-//                .path("/")
-//                .domain("localhost")
-//                .sameSite("Strict")
-//                .httpOnly(true)
-//                .maxAge(maxAge)
-//                .build();
         resp.addHeader("Set-Cookie", cookie.toString());
     }
 

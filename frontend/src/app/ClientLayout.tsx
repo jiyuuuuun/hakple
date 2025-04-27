@@ -135,11 +135,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 if (!isPublicPage && !isSpecialPage) {
                     console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
-               //     router.replace("/login")
+                    router.replace("/login")
                 }
             })
-            checkLoginStatus()
-
             .finally(() => {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })

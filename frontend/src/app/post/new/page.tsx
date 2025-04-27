@@ -114,18 +114,18 @@ const NewPostPage = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [isAdmin, setIsAdmin] = useState(false);
-    const [uploadedTempIds, setUploadedTempIds] = useState<string[]>([]);
+    const [tempIdList, setTempIdList] = useState<string[]>([]);
 
     useEffect(() => {
         const checkAdmin = async () => {
             if (isLogin && loginMember) {
                 try {
-                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
                         method: 'GET',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
                     });
-                    const isAdminResult = await res.json();
+                    const isAdminResult = await response.json();
                     setIsAdmin(isAdminResult === true);
                 } catch (e) {
                     console.error('권한 확인 중 오류:', e);
@@ -139,55 +139,79 @@ const NewPostPage = () => {
         if (!isLogin) {
             router.push('/login');
         }
-    }, [isLogin]);
+    }, [isLogin, router]);
+
+    if (!isLogin) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+                <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                    <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
+                    <p className="text-gray-600 mb-6">게시글을 작성하려면 로그인이 필요합니다.</p>
+                    <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
+                </div>
+            </div>
+        );
+    }
+
+    const handleImageUploadSuccess = (tempId: string) => {
+        setTempIdList(prevList => [...prevList, tempId]);
+    };
+
+    const handleImageDelete = (tempId: string) => {
+        setTempIdList(prevList => prevList.filter(id => id !== tempId));
+    };
 
     const handleSubmit = async () => {
         if (!title.trim()) return setError('제목을 입력해주세요.');
         if (!content.trim()) return setError('내용을 입력해주세요.');
         if (boardType === 'notice' && !isAdmin) return setError('공지사항 작성 권한이 없습니다.');
+        if (isSubmitting) return;
+        setError('');
+
+        setIsSubmitting(true);
 
         try {
-            setIsSubmitting(true);
-            setError('');
-            const finalTags = tags.filter(tag => tag.trim());
-
+            const finalTags = boardType === 'notice' ? [] : tags.filter(tag => tag.trim() !== '');
             const postData = {
                 title,
                 content,
                 tags: finalTags,
-                type: boardType,
-                ...(academyCode && { academyCode }),
+                tempIdList: tempIdList,
+                academyCode: academyCode,
+                boardType: boardType,
             };
+            console.log('요청 데이터:', postData);
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(postData),
                 credentials: 'include',
             });
 
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(errText);
+            if (!response.ok) {
+                let errorMsg = '게시글 등록에 실패했습니다.';
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || `서버 응답 오류: ${response.status}`;
+                } catch {
+                    errorMsg = response.statusText || `서버 오류: ${response.status}`;
+                }
+                throw new Error(errorMsg);
             }
 
-            const data = await res.json();
-            if (uploadedTempIds.length && data.id) {
-                await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/link-to-board`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tempIds: uploadedTempIds, boardId: data.id }),
-                    credentials: 'include',
-                });
-            }
+            const responseData = await response.json();
+            console.log('서버 응답:', responseData);
 
             const redirectUrl = boardType === 'notice'
                 ? `/post/notice?${academyCode ? `academyCode=${academyCode}&` : ''}type=notice`
-                : '/post';
+                : `/post/${responseData.id}`;
             router.push(redirectUrl);
-        } catch (e: any) {
+
+        } catch (e) {
             console.error(e);
-            setError(e.message || '게시글 등록에 실패했습니다.');
+            const error = e as Error;
+            setError(error.message || '게시글 등록에 실패했습니다.');
         } finally {
             setIsSubmitting(false);
         }
@@ -227,7 +251,7 @@ const NewPostPage = () => {
                         />
                     </div>
 
-                    {/* 내용 입력 */}
+                    {/* Tiptap 에디터 적용 */}
                     <div className="w-full mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
                         <div className="border border-gray-200 rounded-[15px] overflow-hidden transition-shadow hover:shadow-sm">
@@ -235,7 +259,8 @@ const NewPostPage = () => {
                                 <TiptapEditor
                                     content={content}
                                     onChange={setContent}
-                                    onImageUpload={(ids) => setUploadedTempIds(prev => [...prev, ...ids])}
+                                    onImageUploadSuccess={handleImageUploadSuccess}
+                                    onImageDelete={handleImageDelete}
                                 />
                             </div>
                         </div>
@@ -295,3 +320,6 @@ const NewPostPage = () => {
 };
 
 export default NewPostPage;
+
+
+

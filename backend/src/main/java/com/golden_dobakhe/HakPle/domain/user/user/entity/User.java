@@ -20,6 +20,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Entity
+@Table(name = "user")
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder

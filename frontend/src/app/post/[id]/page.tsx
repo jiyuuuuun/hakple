@@ -58,20 +58,15 @@ export default function PostDetailPage() {
     const [isReporting, setIsReporting] = useState(false);
     const isMounted = useRef(false);
 
-    // 드롭다운 메뉴 상태 관리
     const [showPostMenu, setShowPostMenu] = useState(false);
     const [showCommentMenu, setShowCommentMenu] = useState<number | null>(null);
-    // 외부 클릭 감지를 위한 ref
     const postMenuRef = useRef<HTMLDivElement>(null);
     const commentMenuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
     const [commentLikingId, setCommentLikingId] = useState<number | null>(null);
-    // 댓글 수정 입력창 참조
     const editCommentRef = useRef<HTMLTextAreaElement>(null);
 
-    // 외부 클릭 감지 - 메뉴와 수정 모드 닫기
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            // 메뉴 버튼 클릭은 무시
             const target = event.target as Element;
             if (target.closest('.menu-button') || target.closest('.menu-item')) {
                 return;
@@ -81,7 +76,6 @@ export default function PostDetailPage() {
                 setShowPostMenu(false);
             }
 
-            // 활성화된 댓글 메뉴가 있을 때만 체크
             if (showCommentMenu !== null) {
                 const activeRef = commentMenuRefs.current[showCommentMenu];
                 if (activeRef && !activeRef.contains(event.target as Node)) {
@@ -96,28 +90,19 @@ export default function PostDetailPage() {
         };
     }, [showCommentMenu]);
 
-    // 편집 중인 댓글 ID가 변경될 때마다 콘솔에 기록
     useEffect(() => {
         console.log('편집 중인 댓글 ID 변경:', editingCommentId);
         console.log('편집 중인 댓글 내용:', editCommentContent);
     }, [editingCommentId, editCommentContent]);
 
-    //
-    // 게시글 관련 기능
-    //
-
-    // 게시글 상세 정보 로드
     useEffect(() => {
         const fetchPostDetail = async () => {
             if (!postId) return;
-
-            // 마운트 체크 (React 18 StrictMode 대응)
             if (isMounted.current) {
                 return;
             }
             isMounted.current = true;
 
-            // 세션 스토리지에서 이미 조회했는지 확인
             const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '{}');
             const postKey = `post_${postId}`;
             const hasViewed = viewedPosts[postKey];
@@ -125,14 +110,10 @@ export default function PostDetailPage() {
             setLoading(true);
             setError(null);
             try {
-                // URL 파라미터에서 academyCode 가져오기
                 const searchParams = new URLSearchParams(window.location.search);
                 const currentAcademyCode = academyCode || searchParams.get('academyCode');
 
-                // 게시글 데이터 로드 API 호출 (쿠키 기반 인증 사용)
-                console.log('게시글 상세 정보 요청 시작, 인증 상태:', isLogin ? '로그인됨' : '로그인안됨');
 
-                // 이미 조회한 경우 postView=false로 설정
                 let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}?postView=${!hasViewed}`;
                 if (currentAcademyCode) {
                     url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
@@ -142,10 +123,9 @@ export default function PostDetailPage() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    credentials: 'include', // 쿠키 인증 사용
+                    credentials: 'include',
                 });
 
-                // 조회 기록 저장
                 if (!hasViewed) {
                     viewedPosts[postKey] = true;
                     sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
@@ -154,9 +134,7 @@ export default function PostDetailPage() {
                 if (!response.ok) {
                     let errorMsg = '게시글을 불러오는데 실패했습니다.';
 
-                    // 401 오류(인증 실패)인 경우 특별 처리
                     if (response.status === 401) {
-                        console.log('인증이 필요한 리소스에 접근 시도했습니다.');
                         errorMsg = '인증이 필요한 기능입니다.';
                     } else {
                         try {
@@ -181,24 +159,20 @@ export default function PostDetailPage() {
 
                 const postData = await response.json();
 
-                // academyCode가 응답에 없으면 현재 URL의 academyCode 추가
                 if (currentAcademyCode && !postData.academyCode) {
                     postData.academyCode = currentAcademyCode;
                 }
 
-                setPost(postData); // 게시글 데이터 먼저 설정하여 UI가 렌더링되도록 함
+                setPost(postData);
 
-                // 로그인 상태일 때만 추가 데이터 조회
                 if (isLogin) {
-                    // 비동기로 처리하고 await 하지 않음 - UI 블로킹 방지
                     Promise.all([
-                        // 좋아요 상태 확인
                         fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}/like-status`, {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            credentials: 'include', // 쿠키 인증 사용
+                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const likeData = await res.json();
@@ -212,13 +186,12 @@ export default function PostDetailPage() {
                             setIsLiked(false);
                         }),
 
-                        // 신고 상태 확인
                         fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/report-status`, {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            credentials: 'include', // 쿠키 인증 사용
+                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const reportData = await res.json();
@@ -232,13 +205,12 @@ export default function PostDetailPage() {
                             setIsReported(false);
                         }),
 
-                        // 게시글 작성자 여부 확인
                         fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/is-owner`, {
                             method: 'GET',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
-                            credentials: 'include', // 쿠키 인증 사용
+                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const ownerData = await res.json();
@@ -253,7 +225,6 @@ export default function PostDetailPage() {
                             setPost(prev => prev ? { ...prev, isOwner: false } : null);
                         }),
 
-                        // 댓글 목록 조회
                         fetchComments(postData.id).then(commentsData => {
                             setComments(commentsData);
                         })
@@ -271,15 +242,12 @@ export default function PostDetailPage() {
 
         fetchPostDetail();
 
-        // 언마운트 시 이벤트 리스너 제거
         return () => { };
     }, [postId, isLogin, router, academyCode, params.id]);
 
-    // 게시글 좋아요 기능
     const handleLike = async () => {
         if (!post || isLiking) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
@@ -287,11 +255,9 @@ export default function PostDetailPage() {
 
         setIsLiking(true);
         try {
-            // URL 파라미터에서 academyCode 가져오기
             const searchParams = new URLSearchParams(window.location.search);
             const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
 
-            // URL 구성 (academyCode 포함)
             let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/likes`;
             if (currentAcademyCode) {
                 url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
@@ -299,7 +265,6 @@ export default function PostDetailPage() {
 
             console.log('좋아요 API 요청 URL:', url);
 
-            // 백엔드의 토글 API 호출 - 이미 좋아요 했으면 취소, 안했으면 좋아요 추가
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -312,18 +277,16 @@ export default function PostDetailPage() {
                 throw new Error('좋아요 처리에 실패했습니다.');
             }
 
-            // 좋아요 상태 토글
             const newLikedState = !isLiked;
             setIsLiked(newLikedState);
 
-            // 좋아요 수 업데이트 (좋아요 추가/취소에 따라 +1/-1)
             setPost(prev => {
                 if (!prev) return null;
                 return {
                     ...prev,
                     likeCount: newLikedState
                         ? prev.likeCount + 1
-                        : Math.max(0, prev.likeCount - 1) // 음수 방지
+                        : Math.max(0, prev.likeCount - 1)
                 };
             });
 
@@ -334,44 +297,36 @@ export default function PostDetailPage() {
         }
     };
 
-    // 게시글 메뉴 토글
     const togglePostMenu = (e: React.MouseEvent) => {
         e.stopPropagation();
         setShowPostMenu(!showPostMenu);
         setShowCommentMenu(null);
     };
 
-    // 게시글 수정 페이지로 이동
     const handleEdit = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
         if (!post) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
         }
 
-        // 작성자 여부 확인
         if (!post.isOwner) {
             alert('자신의 게시글만 수정할 수 있습니다.');
             return;
         }
 
-        // 메뉴 닫기
         setShowPostMenu(false);
 
-        // 게시물 타입 확인 - type 또는 boardType 필드에서 공지사항 여부 확인
         const isNotice = post.type === 'notice' || post.boardType === 'notice';
         console.log('게시물 타입 정보:', { type: post.type, boardType: post.boardType, isNotice });
 
-        // URL 파라미터에서 academyCode 가져오기
         const searchParams = new URLSearchParams(window.location.search);
         const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
 
-        // 콘솔에 academyCode 정보 출력 (디버깅용)
         console.log('수정 사용할 아카데미 코드:', {
             postAcademyCode: post.academyCode,
             urlAcademyCode: academyCode,
@@ -379,30 +334,25 @@ export default function PostDetailPage() {
             finalAcademyCode: currentAcademyCode
         });
 
-        // 아카데미 코드 추가
         let editUrl = `/post/${post.id}/edit${isNotice ? '?type=notice' : ''}`;
         if (currentAcademyCode) {
             editUrl += `${isNotice ? '&' : '?'}academyCode=${currentAcademyCode}`;
         }
 
-        // 약간의 지연 후 라우팅 실행
         setTimeout(() => {
             console.log('게시글 수정 페이지로 이동:', editUrl);
             router.push(editUrl);
         }, 100);
     };
 
-    // 게시글 삭제 기능
     const handleDelete = async () => {
         if (!post || !confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
         }
 
-        // 작성자 여부 확인
         if (!post.isOwner) {
             alert('자신의 게시글만 삭제할 수 있습니다.');
             return;
@@ -411,7 +361,7 @@ export default function PostDetailPage() {
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}`, {
                 method: 'DELETE',
-                credentials: 'include', // 쿠키 인증 사용
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -420,7 +370,6 @@ export default function PostDetailPage() {
 
             alert('게시글이 삭제되었습니다.');
 
-            // 삭제 후 이동 - 공지사항이면 공지사항 목록으로, 아니면 일반 게시판으로
             if (isNoticePost(post)) {
                 const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
                 const noticeUrl = currentAcademyCode ? `/post/notice?academyCode=${currentAcademyCode}&type=notice` : '/post/notice?type=notice';
@@ -434,17 +383,14 @@ export default function PostDetailPage() {
         }
     };
 
-    // 게시글 신고 기능
     const handleReport = async (id: number) => {
         if (!post || isReported || isReporting) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
         }
 
-        // 자신의 게시글인지 확인
         if (post.isOwner) {
             alert('자신의 게시글은 신고할 수 없습니다.');
             setShowPostMenu(false);
@@ -453,17 +399,14 @@ export default function PostDetailPage() {
 
         setIsReporting(true);
         try {
-            // URL 파라미터에서 academyCode 가져오기
             const searchParams = new URLSearchParams(window.location.search);
             const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
 
-            // URL 구성 (academyCode 포함)
             let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${id}/report`;
             if (currentAcademyCode) {
                 url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
             }
 
-            // 백엔드 게시글 신고 API 호출
             console.log('게시글 신고 요청:', id);
 
             const response = await fetch(url, {
@@ -471,7 +414,7 @@ export default function PostDetailPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include', // 쿠키 인증 사용
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -479,7 +422,6 @@ export default function PostDetailPage() {
                 throw new Error(`게시글 신고 실패: ${errorText}`);
             }
 
-            // 신고 성공 시 상태 업데이트
             setIsReported(true);
 
             alert(`게시글을 신고했습니다.`);
@@ -493,14 +435,9 @@ export default function PostDetailPage() {
         }
     };
 
-    //
-    // 댓글 관련 기능
-    //
 
-    // 댓글 목록 불러오기
     const fetchComments = async (postId: number) => {
         try {
-            // 로그인 체크
             if (!isLogin) {
                 console.log('로그인이 필요한 기능입니다.');
                 return [];
@@ -509,22 +446,19 @@ export default function PostDetailPage() {
             console.log(`댓글 목록 조회 API 호출: 게시글 ID ${postId}`);
 
             try {
-                // URL 파라미터에서 academyCode 가져오기
                 const searchParams = new URLSearchParams(window.location.search);
                 const currentAcademyCode = post?.academyCode || academyCode || searchParams.get('academyCode');
 
-                // URL 구성 (academyCode 포함)
                 let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/by-post/${postId}`;
                 if (currentAcademyCode) {
                     url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
                 }
 
-                // 백엔드 API에서 좋아요 상태를 포함한 댓글 목록 조회
                 const commentsResponse = await fetch(url, {
-                    credentials: 'include', // 쿠키 인증 사용
+                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache' // 캐시 방지
+                        'Cache-Control': 'no-cache'
                     },
                 });
 
@@ -533,7 +467,6 @@ export default function PostDetailPage() {
                     return [];
                 }
 
-                // 응답이 텍스트 형식일 경우 처리
                 const commentsText = await commentsResponse.text();
 
                 if (!commentsText.trim()) {
@@ -557,15 +490,12 @@ export default function PostDetailPage() {
                     return [];
                 }
 
-                // 댓글이 없으면 빈 배열 반환
                 if (!commentsData || commentsData.length === 0) {
                     return [];
                 }
 
-                // 각 댓글의 신고 상태와 본인 작성 여부 확인 (병렬 처리)
                 const commentStatusPromises = commentsData.map(async (comment: Comment) => {
                     try {
-                        // 1. 신고 상태 확인
                         const reportStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/status`, {
                             credentials: 'include',
                             headers: {
@@ -580,7 +510,6 @@ export default function PostDetailPage() {
                             comment.isReported = false;
                         }
 
-                        // 2. 본인 작성 여부 확인
                         const ownerStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/is-owner`, {
                             credentials: 'include',
                             headers: {
@@ -603,7 +532,6 @@ export default function PostDetailPage() {
                     return comment;
                 });
 
-                // 모든 댓글의 상태를 기다림
                 const commentsWithStatus = await Promise.all(commentStatusPromises);
 
                 console.log('댓글 목록과 상태 로드 완료:', commentsWithStatus);
@@ -619,18 +547,15 @@ export default function PostDetailPage() {
         }
     };
 
-    // 댓글 등록
     const handleCommentSubmit = async () => {
         if (!commentInput.trim() || !post) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
         }
 
         try {
-            // 백엔드에서 이미 사용자 ID를 7로 하드코딩하고 있으므로 commenterId는 전송하지 않음
             const commentData = {
                 boardId: post.id,
                 content: commentInput
@@ -643,18 +568,15 @@ export default function PostDetailPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include', // 쿠키 인증 사용
+                credentials: 'include',
                 body: JSON.stringify(commentData)
             });
 
-            // 응답이 텍스트 형식이므로 text()로 읽습니다
             const responseText = await response.text();
 
             if (response.ok) {
                 console.log('댓글 등록 성공:', responseText);
-                // 댓글 입력창 초기화
                 setCommentInput('');
-                // 댓글 목록 새로고침
                 const updatedComments = await fetchComments(post.id);
                 setComments(updatedComments);
             } else {
@@ -667,44 +589,35 @@ export default function PostDetailPage() {
         }
     };
 
-    // 댓글 메뉴 토글
     const toggleCommentMenu = (e: React.MouseEvent, commentId: number) => {
         e.stopPropagation();
-        // 같은 메뉴를 클릭하면 토글, 다른 메뉴를 클릭하면 그 메뉴를 엶
         setShowCommentMenu(showCommentMenu === commentId ? null : commentId);
         setShowPostMenu(false);
     };
 
-    // 댓글 수정 버튼 클릭 이벤트 핸들러 수정
     const startCommentEdit = (commentId: number, content: string) => {
         console.log('댓글 수정 시작:', commentId, content);
 
-        // 댓글 찾기
         const comment = comments.find(c => c.id === commentId);
         if (!comment) return;
 
-        // 작성자 여부 확인
         if (!comment.isOwner) {
             alert('자신의 댓글만 수정할 수 있습니다.');
             setShowCommentMenu(null);
             return;
         }
 
-        // 이미 수정 중인 댓글이 있고 내용이 변경된 경우, 변경 사항 저장 여부 확인
         if (editingCommentId !== null && editCommentContent !== '' && editingCommentId !== commentId) {
             if (!confirm('다른 댓글 수정 중입니다. 변경 사항을 저장하지 않고 계속하시겠습니까?')) {
                 return;
             }
         }
 
-        // 메뉴 닫기
         setShowCommentMenu(null);
 
-        // 댓글 수정 상태 설정
         setEditingCommentId(commentId);
         setEditCommentContent(content);
 
-        // 다음 렌더링 후 입력창에 포커스
         setTimeout(() => {
             if (editCommentRef.current) {
                 editCommentRef.current.focus();
@@ -712,9 +625,7 @@ export default function PostDetailPage() {
         }, 100);
     };
 
-    // 댓글 수정 취소
     const cancelCommentEdit = () => {
-        // 내용이 변경된 경우에만 확인
         if (editingCommentId !== null) {
             const originalComment = comments.find(c => c.id === editingCommentId);
             if (originalComment && editCommentContent !== originalComment.content) {
@@ -729,18 +640,15 @@ export default function PostDetailPage() {
         setEditCommentContent('');
     };
 
-    // 댓글 수정 제출
     const submitCommentEdit = async () => {
         if (!editingCommentId || !editCommentContent.trim() || !post) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
         }
 
         try {
-            // 백엔드 API 요구사항에 맞춰 수정
             const commentData = {
                 commenterId: editingCommentId,
                 content: editCommentContent.trim()
@@ -748,7 +656,6 @@ export default function PostDetailPage() {
 
             console.log('댓글 수정 요청 데이터:', commentData, 'commenterId:', editingCommentId);
 
-            // 백엔드가 POST 메서드만 지원
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/update`, {
                 method: 'POST',
                 headers: {
@@ -760,15 +667,11 @@ export default function PostDetailPage() {
 
             if (response.ok) {
                 console.log('댓글 수정 성공');
-                // 수정된 댓글 ID 저장 (하이라이트 효과용)
                 setLastEditedCommentId(editingCommentId);
-                // 수정 모드 종료
                 setEditingCommentId(null);
                 setEditCommentContent('');
-                // 댓글 목록 새로고침
                 const updatedComments = await fetchComments(post.id);
                 setComments(updatedComments);
-                // 5초 후 하이라이트 효과 제거
                 setTimeout(() => {
                     setLastEditedCommentId(null);
                 }, 5000);
@@ -783,13 +686,10 @@ export default function PostDetailPage() {
         }
     };
 
-    // 댓글 삭제
     const handleCommentDelete = async (commentId: number) => {
-        // 댓글 찾기
         const comment = comments.find(c => c.id === commentId);
         if (!comment) return;
 
-        // 작성자 여부 확인
         if (!comment.isOwner) {
             alert('자신의 댓글만 삭제할 수 있습니다.');
             setShowCommentMenu(null);
@@ -798,7 +698,6 @@ export default function PostDetailPage() {
 
         if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
@@ -817,7 +716,6 @@ export default function PostDetailPage() {
 
             if (response.ok) {
                 console.log('댓글 삭제 성공');
-                // 댓글 목록 새로고침
                 const updatedComments = await fetchComments(post.id);
                 setComments(updatedComments);
                 setShowCommentMenu(null);
@@ -831,11 +729,9 @@ export default function PostDetailPage() {
         }
     };
 
-    // 댓글 좋아요
     const handleCommentLike = async (commentId: number) => {
         if (!post || commentLikingId === commentId) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
@@ -844,28 +740,25 @@ export default function PostDetailPage() {
         setCommentLikingId(commentId);
 
         try {
-            // 현재 좋아요 상태 확인
             const comment = comments.find(c => c.id === commentId);
             if (!comment) return;
 
             const isCurrentlyLiked = Boolean(comment.isLiked);
             console.log(`댓글 ID ${commentId}의 현재 좋아요 상태:`, isCurrentlyLiked);
 
-            // 좋아요 토글 UI 즉시 반영 (옵티미스틱 업데이트)
             const newLikedState = !isCurrentlyLiked;
             setComments(prev => prev.map(c =>
                 c.id === commentId
                     ? {
                         ...c,
                         likeCount: newLikedState
-                            ? c.likeCount + 1          // 좋아요 추가 시 +1
-                            : Math.max(0, c.likeCount - 1),  // 좋아요 취소 시 -1 (음수 방지)
-                        isLiked: newLikedState        // 좋아요 상태 토글
+                            ? c.likeCount + 1
+                            : Math.max(0, c.likeCount - 1),
+                        isLiked: newLikedState
                     }
                     : c
             ));
 
-            // 백엔드의 토글 API 호출 - 이미 좋아요 했으면 취소, 안했으면 좋아요 추가
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/likes/comments/${commentId}/toggle`, {
                 method: 'POST',
                 headers: {
@@ -875,22 +768,20 @@ export default function PostDetailPage() {
             });
 
             if (!response.ok) {
-                // API 호출 실패 시 원래 상태로 복원
                 setComments(prev => prev.map(c =>
                     c.id === commentId
                         ? {
                             ...c,
                             likeCount: isCurrentlyLiked
-                                ? c.likeCount + 1          // 원래 좋아요 상태 복원
+                                ? c.likeCount + 1
                                 : Math.max(0, c.likeCount - 1),
-                            isLiked: isCurrentlyLiked        // 원래 좋아요 상태 복원
+                            isLiked: isCurrentlyLiked
                         }
                         : c
                 ));
                 throw new Error('좋아요 처리에 실패했습니다.');
             }
 
-            // API 호출 성공 로그
             console.log(`댓글 좋아요 ${newLikedState ? '추가' : '취소'} 완료:`, commentId);
 
         } catch (err) {
@@ -901,28 +792,23 @@ export default function PostDetailPage() {
         }
     };
 
-    // 댓글 신고
     const handleCommentReport = async (commentId: number) => {
         if (!post) return;
 
-        // 로그인 여부 확인
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
         }
 
-        // 댓글 찾기
         const comment = comments.find(c => c.id === commentId);
         if (!comment) return;
 
-        // 자신의 댓글인지 확인
         if (comment.isOwner) {
             alert('자신의 댓글은 신고할 수 없습니다.');
             setShowCommentMenu(null);
             return;
         }
 
-        // 이미 신고한 댓글인지 확인
         if (comment.isReported) {
             alert('이미 신고한 댓글입니다.');
             setShowCommentMenu(null);
@@ -930,7 +816,6 @@ export default function PostDetailPage() {
         }
 
         try {
-            // 백엔드 댓글 신고 API 호출
             console.log('댓글 신고 요청:', commentId);
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${commentId}`, {
@@ -938,7 +823,7 @@ export default function PostDetailPage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include', // 쿠키 인증 사용
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -946,7 +831,6 @@ export default function PostDetailPage() {
                 throw new Error(`댓글 신고 실패: ${errorText}`);
             }
 
-            // 신고 성공 시 해당 댓글의 신고 상태 업데이트
             setComments(prev => prev.map(c =>
                 c.id === commentId
                     ? { ...c, isReported: true }
@@ -961,7 +845,6 @@ export default function PostDetailPage() {
         }
     };
 
-    // post가 공지사항인지 확인하는 함수
     const isNoticePost = useCallback((post: Post | null) => {
         return post?.type === 'notice' || post?.boardType === 'notice';
     }, []);
@@ -1019,13 +902,11 @@ export default function PostDetailPage() {
         );
     }
 
-    // HTML 컨텐츠를 안전하게 렌더링하기 위한 객체
     const createMarkup = () => {
         return { __html: post.content };
     };
 
     const formatTime = (timeString: string) => {
-        // 30분 전, 1시간 전 등으로 표시하거나 날짜 형식으로 표시
         const date = new Date(timeString);
         const now = new Date();
         const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
@@ -1403,18 +1284,14 @@ export default function PostDetailPage() {
                 <div className="flex justify-center mt-8">
                     <button
                         onClick={() => {
-                            // 공지사항인 경우와 일반 게시글인 경우 분기
                             if (isNoticePost(post)) {
-                                // URL 파라미터에서 academyCode 가져오기
                                 const searchParams = new URLSearchParams(window.location.search);
                                 const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
-                                // 공지사항 목록으로 이동 (academyCode와 type=notice 포함)
                                 const noticeUrl = currentAcademyCode
                                     ? `/post/notice?academyCode=${currentAcademyCode}&type=notice`
                                     : '/post/notice?type=notice';
                                 router.push(noticeUrl);
                             } else {
-                                // 일반 게시글 목록으로 이동
                                 router.push('/post');
                             }
                         }}
