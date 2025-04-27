@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { fetchApi } from '@/utils/api'
 
 /**
@@ -25,6 +25,8 @@ export default function Header() {
     const pathname = usePathname()
     // 라우터 가져오기
     const router = useRouter()
+    // 검색 파라미터 가져오기
+    const searchParams = useSearchParams()
 
     // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
@@ -230,13 +232,13 @@ export default function Header() {
                                     </Link>
                                     <Link
                                         href="/post"
-                                        className={`font-medium text-lg ${pathname === '/post' ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
+                                        className={`font-medium text-lg ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
                                     >
                                         자유게시판
                                     </Link>
                                     <Link
                                         href="/post?type=popular"
-                                        className={`font-medium text-lg ${pathname === '/post' && pathname.includes('type=popular') ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
+                                        className={`font-medium text-lg ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
                                     >
                                         인기글
                                     </Link>
@@ -307,8 +309,7 @@ export default function Header() {
 
                         {/* 로그인 상태 디버깅 표시 */}
                         <div className="hidden">
-                            로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'}, ID: {loginMember?.userName || 'None'},
-                            Token: {localStorage.getItem('accessToken') ? '있음' : '없음'}
+                            로그인 상태: {isLogin ? '로그인됨' : '로그인 안됨'}, ID: {loginMember?.userName || 'None'}
                         </div>
 
                         {/* 로그인 상태에 따른 버튼 표시 */}
@@ -394,31 +395,31 @@ export default function Header() {
                                 <>
                                     <Link
                                         href="/home"
-                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                        className={`font-medium text-base ${pathname === '/home' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
                                     >
                                         홈
                                     </Link>
                                     <Link
                                         href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-base ${pathname?.startsWith('/post/notice') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
                                     >
                                         공지사항
                                     </Link>
                                     <Link
                                         href="/post"
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-base ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
                                     >
                                         자유게시판
                                     </Link>
                                     <Link
                                         href="/post?type=popular"
-                                        className="font-medium text-lg text-gray-700 hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all"
+                                        className={`font-medium text-base ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
                                     >
                                         인기글
                                     </Link>
                                     <Link
-                                        href="/community"
-                                        className="font-medium text-base text-gray-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                        href="/calendar"
+                                        className={`font-medium text-base ${pathname === '/calendar' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
                                     >
                                         캘린더
                                     </Link>

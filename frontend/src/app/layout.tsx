@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { ClientLayout } from './ClientLayout'
 import Head from 'next/head'
+import { Inter } from 'next/font/google'
+import Script from 'next/script'
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -13,6 +15,8 @@ const geistMono = Geist_Mono({
     variable: '--font-geist-mono',
     subsets: ['latin'],
 })
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
     title: 'Hakple | 학습 플랫폼',
@@ -32,9 +36,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     rel="stylesheet"
                     href="https://fonts.googleapis.com/icon?family=Material+Icons"
                 />
+                <link rel="icon" href="/favicon.ico" />
+                <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet" />
             </head>
             <body className={`${geistSans.variable} ${geistMono.variable} font-sans flex flex-col min-h-screen`}>
-                <ClientLayout>{children}</ClientLayout>
+                <Script src="https://unpkg.com/material-icons@1.13.8/iconfont/material-icons.js"></Script>
+                <div className='min-h-screen'>
+                    <ClientLayout>{children}</ClientLayout>
+                </div>
             </body>
         </html>
     )
