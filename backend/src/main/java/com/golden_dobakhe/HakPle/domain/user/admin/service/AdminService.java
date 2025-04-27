@@ -54,7 +54,7 @@ public class AdminService {
         User admin = User.builder()
                 .userName(dto.getUserName())
                 .password(passwordEncoder.encode(dto.getPassword()))
-                .nickName(dto.getNickName())
+                .nickName("관리자")
                 .phoneNum(dto.getPhoneNumber())
                 .roles(new HashSet<>(Set.of(Role.ADMIN)))
                 .status(Status.ACTIVE)
