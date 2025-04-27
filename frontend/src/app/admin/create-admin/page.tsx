@@ -11,7 +11,7 @@ export default function CreateAdminPage() {
   
   // 폼 상태
   const [formData, setFormData] = useState({
-    nickName: '',
+    nickName: '관리자',
     phoneNumber: '',
     userName: '',
     password: ''
@@ -66,6 +66,10 @@ export default function CreateAdminPage() {
   // 입력 필드 변경 처리
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    
+    // nickName은 변경하지 않음
+    if (name === 'nickName') return;
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -85,12 +89,7 @@ export default function CreateAdminPage() {
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
     
-    // 닉네임 검사
-    if (!formData.nickName) {
-      newErrors.nickName = '닉네임은 필수 입력값입니다.';
-    } else if (!/^[가-힣a-zA-Z0-9._-]{2,20}$/.test(formData.nickName)) {
-      newErrors.nickName = '닉네임은 한글/영문/숫자와 특수기호(_, -, .)만 사용할 수 있으며 공백 없이 2~20자여야 합니다.';
-    }
+    // 닉네임 검사 - 이미 '관리자'로 고정되어 있으므로 검사 생략
     
     // 전화번호 검사
     if (!formData.phoneNumber) {
@@ -231,14 +230,14 @@ export default function CreateAdminPage() {
                 name="nickName"
                 value={formData.nickName}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-gray-100 ${
                   errors.nickName ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-[#8C4FF2]/20'
                 }`}
-                placeholder="한글/영문/숫자와 특수기호(_, -, .)만 사용 가능"
+                placeholder="관리자"
+                disabled
+                readOnly
               />
-              {errors.nickName && (
-                <p className="text-red-500 text-sm mt-1">{errors.nickName}</p>
-              )}
+              <p className="text-gray-500 text-sm mt-1">관리자 계정의 닉네임은 '관리자'로 고정됩니다.</p>
             </div>
 
             {/* 전화번호 */}
