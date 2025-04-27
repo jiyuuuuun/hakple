@@ -97,79 +97,82 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
         console.log('페이지 정보 - 현재 경로:', pathname, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
 
-        if (!isPublicPage) {
-        // 로그인 상태 체크 API 호출
-        fetch(`http://localhost:8090/api/v1/auth/me`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then((res) => {
-                console.log('로그인 상태 응답:', res.status)
-                if (!res.ok) {
+        const checkLoginStatus = () => {
+            // 로그인 상태 체크 API 호출
+            return fetch(`http://localhost:8090/api/v1/auth/me`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then((res) => {
+                    console.log('로그인 상태 응답:', res.status)
+                    if (!res.ok) {
+                        setNoLoginMember()
+                        setIsLogin(false)
+                        return Promise.reject(new Error('인증 필요'))
+                    }
+                    return res.json()
+                })
+                .then((data) => {
+                    // 로그인 성공
+                    console.log('로그인 상태 성공', data)
+                    setLoginMember(data)
+                    setIsLogin(true)
+                    return true
+                })
+                .catch((error) => {
+                    console.log('로그인 되어있지 않음', error)
                     setNoLoginMember()
                     setIsLogin(false)
-                    return Promise.reject(new Error('인증 필요'))
-                }
-                return res.json()
-            })
-            .then((data) => {
-                // 로그인 성공
-                console.log('로그인 상태 성공', data)
-                setLoginMember(data)
-                setIsLogin(true)
+                    return false
+                })
+        }
 
-                // 로그인 페이지에 있을 경우 홈으로 리다이렉트
-                if (pathname === '/login' && !isSpecialPage) {
-                    console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
-                    router.replace("/")
-                }
-            })
-            .catch((error) => {
-                console.log('로그인 되어있지 않음', error)
-                setNoLoginMember()
-                setIsLogin(false)
-
+        // 로그인 상태 확인 및 리다이렉트 처리
+        checkLoginStatus()
+            .then((isLoggedIn) => {
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
-                if (!isPublicPage && !isSpecialPage) {
+                if (!isPublicPage && !isSpecialPage && !isLoggedIn) {
                     console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
                     router.replace("/login")
+                }
+                
+                // 로그인 페이지에 있을 경우 홈으로 리다이렉트
+                if (pathname === '/login' && isLoggedIn) {
+                    console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
+                    router.replace("/home")
+                }
+
+                // 관리자인 경우 /myinfo 페이지 접근 제한
+                if (isLoggedIn && pathname?.startsWith('/myinfo')) {
+                    // 관리자 권한 확인
+                    fetch(`http://localhost:8090/api/v1/admin/check`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                    })
+                    .then(response => {
+                        if (!response.ok) return false
+                        return response.json()
+                    })
+                    .then(isAdmin => {
+                        if (isAdmin === true) {
+                            console.log('관리자의 /myinfo 페이지 접근 - 관리자 페이지로 리다이렉트')
+                            router.replace("/admin")
+                        }
+                    })
+                    .catch(error => {
+                        console.log('관리자 권한 확인 중 오류:', error)
+                    })
                 }
             })
             .finally(() => {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
-        } else {
-        // 💡 공개 페이지에서는 로그인 체크를 하되, 리다이렉트는 하지 않음
-        fetch(`http://localhost:8090/api/v1/auth/me`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then((res) => {
-                if (!res.ok) {
-                    setNoLoginMember()
-                    setIsLogin(false)
-                    return Promise.reject(new Error('인증 필요'))
-                }
-                return res.json()
-            })
-            .then((data) => {
-                // 로그인 성공
-                console.log('로그인 상태 성공 (공개 페이지)', data)
-                setLoginMember(data)
-                setIsLogin(true)
-            })
-            .catch((error) => {
-                console.log('로그인 되어있지 않음 (공개 페이지)', error)
-                setNoLoginMember()
-                setIsLogin(false)
-            })
-        }
 
     }, [pathname]) // pathname이 변경될 때마다 실행
 

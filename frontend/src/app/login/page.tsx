@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
@@ -10,7 +10,7 @@ const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao
 const redirectUrlAfterSocialLogin = 'http://localhost:3000'
 
 export default function LoginPage() {
-    const { setLoginMember, checkAdminAndRedirect } = useGlobalLoginMember()
+    const { setLoginMember, checkAdminAndRedirect, isLogin } = useGlobalLoginMember()
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
@@ -18,6 +18,13 @@ export default function LoginPage() {
     const [rememberMe, setRememberMe] = useState(false)
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
+
+    // 로그인 상태일 때 홈으로 리다이렉트
+    useEffect(() => {
+        if (isLogin) {
+            router.push('/home')
+        }
+    }, [isLogin, router])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -75,19 +82,17 @@ export default function LoginPage() {
             const isAdmin = await checkAdminAndRedirect()
             console.log('관리자 권한 확인 결과:', isAdmin)
 
-            // 약간의 지연 후 리다이렉트 (상태 업데이트를 위한 시간 확보)
-            setTimeout(() => {
-                // 관리자인 경우 관리자 페이지로, 일반 사용자인 경우 홈 페이지로 이동
-                if (isAdmin) {
-                    console.log('관리자로 로그인 - 관리자 페이지로 이동')
-                    router.push('/admin')
-                } else {
-                    console.log('일반 사용자로 로그인 - 홈 페이지로 이동')
-                    router.push('/home')
-                }
-                // 페이지 이동 후에도 로딩 상태 해제
-                setIsLoading(false)
-            }, 500)
+            // 직접 라우팅 처리
+            if (isAdmin) {
+                console.log('관리자로 로그인 - 관리자 페이지로 이동')
+                router.push('/admin')
+            } else {
+                console.log('일반 사용자로 로그인 - 홈 페이지로 이동')
+                router.push('/home')
+            }
+            
+            // 로딩 상태 해제
+            setIsLoading(false)
         } catch (error) {
             console.log('로그인 에러:', error)
             setError(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.')

@@ -3,9 +3,40 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import { useEffect, useState } from 'react'
 
 const MobileBottomNav = () => {
     const pathname = usePathname()
+    const { isLogin } = useGlobalLoginMember()
+    const [isAdmin, setIsAdmin] = useState(false)
+
+    // 관리자 권한 확인
+    useEffect(() => {
+        if (!isLogin) {
+            setIsAdmin(false)
+            return
+        }
+
+        fetch(`http://localhost:8090/api/v1/admin/check`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        })
+        .then(response => {
+            if (!response.ok) return false
+            return response.json()
+        })
+        .then(isAdminResult => {
+            setIsAdmin(isAdminResult === true)
+        })
+        .catch(error => {
+            console.log('관리자 권한 확인 중 오류:', error)
+            setIsAdmin(false)
+        })
+    }, [isLogin])
 
     return (
         <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 z-50 shadow-sm md:hidden">
@@ -28,12 +59,21 @@ const MobileBottomNav = () => {
                         일정
                     </Link>
                 </li>
-                <li>
-                    <Link href="/mypage" className={`flex flex-col items-center ${pathname.includes('/mypage') && 'text-[#9C50D4]'}`}>
-                        <span className="material-icons text-xl">person</span>
-                        마이페이지
-                    </Link>
-                </li>
+                {isAdmin ? (
+                    <li>
+                        <Link href="/admin" className={`flex flex-col items-center ${pathname.includes('/admin') ? 'text-red-600' : 'text-gray-600'}`}>
+                            <span className="material-icons text-xl">admin_panel_settings</span>
+                            관리자
+                        </Link>
+                    </li>
+                ) : (
+                    <li>
+                        <Link href="/myinfo" className={`flex flex-col items-center ${pathname.includes('/myinfo') && 'text-[#9C50D4]'}`}>
+                            <span className="material-icons text-xl">person</span>
+                            내정보
+                        </Link>
+                    </li>
+                )}
             </ul>
         </nav>
     )

@@ -30,6 +30,7 @@ type BackendUser = {
     creationTime?: string
     modificationTime?: string
     isAdmin?: boolean
+    accessToken?: string
     [key: string]: unknown // any 대신 unknown 사용
 }
 
@@ -91,6 +92,23 @@ export function useLoginMember() {
         console.group('LoginMember Store - setLoginMember')
         console.log('백엔드 응답 데이터:', member)
 
+        // 액세스 토큰이 있는 로그인 요청인 경우 처리
+        if (member.accessToken && member.id) {
+            console.log('로그인: accessToken 있음, userId:', member.id);
+            const user: User = {
+                id: member.id,
+                nickname: member.userName || '',
+                userName: member.userName || '',
+                creationTime: '',
+                modificationTime: '',
+            }
+            _setLoginMember(user)
+            setIsLogin(true)
+            setLoginMemberPending(false)
+            console.groupEnd()
+            return
+        }
+
         const nickname =
             typeof member.nickName === 'string'
                 ? member.nickName
@@ -122,6 +140,7 @@ export function useLoginMember() {
         }
 
         const user: User = {
+            id: member.id || member.memberId,
             nickname: nickname,
             userName: member.userName ?? '',
             phoneNum: member.phoneNum,
