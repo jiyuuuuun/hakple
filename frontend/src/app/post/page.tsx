@@ -402,24 +402,32 @@ export default function PostPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-4 py-6">
-        {/* 인기 게시판 / 자유 게시판 탭 UI */}
-        <div className="flex space-x-4 mb-6">
-          <button 
-            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              searchParams.get('type') === 'popular' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200'
-            }`}
-            onClick={() => router.push('/post?type=free')}
-          >
-            자유게시판
-          </button>
-          <button 
-            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              postType === 'popular' ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-            onClick={() => router.push('/post?type=popular')}
-          >
-            인기글
-          </button>
+        {/* 인기 게시판 / 자유 게시판 탭 UI 개선 */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white rounded-full shadow-md p-1.5 flex space-x-1">
+            <Link
+              href="/post?type=free"
+              className={`py-2.5 px-8 rounded-full transition-all duration-300 font-semibold text-base flex items-center gap-2 ${
+                postType === 'free' 
+                  ? 'bg-[#9C50D4] text-white shadow-lg transform scale-105' 
+                  : 'text-gray-600 hover:bg-purple-50'
+              }`}
+            >
+              <span className="material-icons text-[20px]">forum</span>
+              자유게시판
+            </Link>
+            <Link
+              href="/post?type=popular"
+              className={`py-2.5 px-8 rounded-full transition-all duration-300 font-semibold text-base flex items-center gap-2 ${
+                postType === 'popular' 
+                  ? 'bg-[#9C50D4] text-white shadow-lg transform scale-105' 
+                  : 'text-gray-600 hover:bg-purple-50'
+              }`}
+            >
+              <span className="material-icons text-[20px]">trending_up</span>
+              인기글
+            </Link>
+          </div>
         </div>
 
         {/* 타이틀 + 새 글쓰기 + 뷰모드 토글 */}

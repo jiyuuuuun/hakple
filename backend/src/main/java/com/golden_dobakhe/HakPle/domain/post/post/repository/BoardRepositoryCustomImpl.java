@@ -63,7 +63,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                     case "all":
                         return ALL;
                     default:
-                        log.warn("유효하지 않은 검색 유형: {}", value);
                         return null;
                 }
             }
@@ -82,7 +81,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                 if ("free".equalsIgnoreCase(value) || "notice".equalsIgnoreCase(value)) {
                     return valueOf(value.toUpperCase());
                 }
-                log.warn("유효하지 않은 게시글 유형: {}", value);
                 return null;
             }
         }
@@ -201,7 +199,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                             break;
                     }
                 } catch (IllegalArgumentException e) {
-                    log.warn("유효하지 않은 정렬 속성: {}. 기본값(작성일 내림차순)으로 대체합니다.", property);
                     orderSpecifiers.add(new OrderSpecifier<>(Order.DESC, board.creationTime));
                 }
             }

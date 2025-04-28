@@ -44,27 +44,20 @@ public class ApiV1AuthController {
     //me api
     @GetMapping("/me")
     public ResponseEntity<?> me(HttpServletRequest request) {
-        log.info("me API 호출");
         String cookie = customRequest.getCookieValue("accessToken");
         Claims claims = jwtTokenizer.parseAccessToken(cookie);
         
         Object userId = claims.get("userId");
-        
-        log.info("me API - JWT claims 내용: userId={}", userId);
+
 
         if (userId == null) {
-            log.warn("JWT에 userId가 없습니다!");
             throw new IllegalStateException("JWT에 userId가 없습니다!");
         }
 
         User user = authService.findById(((Number) userId).longValue())
             .orElseThrow(() -> {
-                log.warn("사용자를 찾을 수 없음: userId={}", userId);
                 return new IllegalStateException("사용자를 찾을 수 없습니다: " + userId);
             });
-            
-        log.info("me API - 사용자 정보: userId={}, userName={}, academyId={}", 
-            user.getId(), user.getUserName(), user.getAcademyId());
 
         // academyId 필드 추가
         MeDto meDto = new MeDto(
