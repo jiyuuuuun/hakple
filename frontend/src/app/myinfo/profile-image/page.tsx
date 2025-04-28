@@ -1,90 +1,52 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeftIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { useRouter } from 'next/navigation'
+import { ArrowLeftIcon, UserIcon, ArrowUpTrayIcon, XMarkIcon, CheckIcon, ArrowsPointingOutIcon } from '@heroicons/react/24/outline'
+import NextImage from 'next/image'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { fetchApi } from '@/utils/api'
-// 주의: 이 라이브러리 사용 전 'npm install react-image-crop' 명령어로 설치해야 합니다
-import ReactCrop from 'react-image-crop'
+import Cropper from 'react-easy-crop'
 import 'react-image-crop/dist/ReactCrop.css'
-import type { Crop, PercentCrop } from 'react-image-crop'
+
+interface Area {
+    x: number
+    y: number
+    width: number
+    height: number
+}
 
 export default function ProfileImagePage() {
     const router = useRouter()
-    const { isLogin, loginMember, setLoginMember } = useGlobalLoginMember()
-
+    const { loginMember, setLoginMember } = useGlobalLoginMember()
+    const [profileImageUrl, setProfileImageUrl] = useState<string | null>(loginMember?.profileImageUrl || null)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null)
-    const [uploading, setUploading] = useState(false)
+    const [imagePreview, setImagePreview] = useState<string | null>(null)
+    const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
+    const [isCropping, setIsCropping] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement | null>(null)
+    
+    // Easy Crop 상태
+    const [crop, setCrop] = useState({ x: 0, y: 0 })
+    const [zoom, setZoom] = useState(1)
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
 
-    // 이미지 편집 관련 상태
-    const [isCropMode, setIsCropMode] = useState(false)
-    const initialCrop: Crop = {
-        unit: '%',
-        width: 80,
-        height: 80,
-        x: 10,
-        y: 10,
-    }
-    const [crop, setCrop] = useState<Crop>(initialCrop)
-    const [completedCrop, setCompletedCrop] = useState<PercentCrop | null>(null)
-    const imgRef = useRef<HTMLImageElement | null>(null)
-    const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
-    // 원본 이미지 크기 정보 저장
-    const [imgSize, setImgSize] = useState({ width: 0, height: 0, naturalWidth: 0, naturalHeight: 0 })
-
-    const fileInputRef = useRef<HTMLInputElement>(null)
-
-    useEffect(() => {
-        if (!isLogin) {
-            router.push('/login')
-            return
-        }
-
-        // 현재 프로필 이미지 설정
-        setCurrentImageUrl(loginMember.profileImageUrl || null)
-
-        // 사용자 정보 가져오기
-        const fetchUserInfo = async () => {
-            try {
-                const response = await fetchApi('/api/v1/myInfos', {
-                    method: 'GET',
-                    credentials: 'include',
-                })
-
-                if (response.ok) {
-                    const data = await response.json()
-                    if (data.profileImageUrl) {
-                        setCurrentImageUrl(data.profileImageUrl)
-                    }
-                }
-            } catch (err) {
-                console.error('사용자 정보를 가져오는 중 오류 발생:', err)
-            }
-        }
-
-        fetchUserInfo()
-    }, [isLogin, loginMember, router])
-
-    // 파일 선택 핸들러
+    // 이미지 프리뷰 설정
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] || null
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0]
 
-        if (file) {
-            // 파일 크기 검사 (5MB 제한)
+            // 파일 크기 체크 (5MB 제한)
             if (file.size > 5 * 1024 * 1024) {
-                setError('파일 크기는 5MB 이하여야 합니다.')
+                setError('이미지 크기는 5MB 이하여야 합니다.')
                 return
             }
 
-            // 이미지 파일 타입 검사
-            if (!file.type.startsWith('image/')) {
+            // 이미지 파일 형식 체크
+            if (!file.type.match('image.*')) {
                 setError('이미지 파일만 업로드 가능합니다.')
                 return
             }
@@ -92,32 +54,148 @@ export default function ProfileImagePage() {
             setSelectedFile(file)
             setError(null)
 
-            // 이미지 미리보기 생성
             const reader = new FileReader()
-            reader.onloadend = () => {
-                setPreviewUrl(reader.result as string)
-                // 파일 선택 시 자동으로 편집 모드 활성화하고 초기 크롭 상태로 설정
-                setIsCropMode(true)
-                setCrop(initialCrop)
-                setCompletedCrop(null)
+            reader.onload = () => {
+                setImagePreview(reader.result as string)
+                setIsCropping(true)
+                setCrop({ x: 0, y: 0 })
+                setZoom(1)
+            }
+            reader.onerror = (error) => {
+                console.error('FileReader 오류:', error)
+                setError('이미지를 읽는 중 오류가 발생했습니다.')
             }
             reader.readAsDataURL(file)
         }
     }
 
-    // 파일 업로드 트리거
-    const handleSelectFile = () => {
-        fileInputRef.current?.click()
+    // 크롭 영역 완료 시 호출되는 콜백
+    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+        setCroppedAreaPixels(croppedAreaPixels)
+    }, [])
+    
+    // 크롭 이미지 생성 함수
+    const createCroppedImage = async () => {
+        if (!imagePreview || !croppedAreaPixels) {
+            console.error('이미지 또는 크롭 영역이 없습니다')
+            return null
+        }
+        
+        try {
+            const image = new Image()
+            image.src = imagePreview
+            
+            // 이미지 로드 대기
+            await new Promise((resolve) => {
+                if (image.complete) {
+                    resolve(true)
+                } else {
+                    image.onload = () => resolve(true)
+                }
+            })
+            
+            // 캔버스 생성
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            
+            if (!ctx) {
+                throw new Error('캔버스 컨텍스트를 가져올 수 없습니다')
+            }
+            
+            // 캔버스 크기 설정
+            canvas.width = croppedAreaPixels.width
+            canvas.height = croppedAreaPixels.height
+            
+            // 이미지 그리기
+            ctx.drawImage(
+                image,
+                croppedAreaPixels.x,
+                croppedAreaPixels.y,
+                croppedAreaPixels.width,
+                croppedAreaPixels.height,
+                0,
+                0,
+                croppedAreaPixels.width,
+                croppedAreaPixels.height
+            )
+            
+            // 캔버스를 blob으로 변환
+            return new Promise<Blob>((resolve, reject) => {
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob)
+                    } else {
+                        reject(new Error('Blob 변환 실패'))
+                    }
+                }, 'image/png', 1.0)
+            })
+        } catch (error) {
+            console.error('이미지 크롭 처리 중 오류:', error)
+            throw error
+        }
     }
-
-    // 이미지 업로드 처리
-    const handleUpload = async () => {
-        if (!selectedFile) {
-            setError('업로드할 이미지를 선택해주세요.')
+    
+    // 크롭 완료 및 다음 단계로 진행
+    const finishCrop = async () => {
+        if (!selectedFile || !imagePreview || !croppedAreaPixels) {
+            setError('이미지 또는 크롭 영역이 없습니다.')
             return
         }
 
-        setUploading(true)
+        try {
+            // 크롭된 이미지 생성
+            const croppedBlob = await createCroppedImage()
+            
+            if (!croppedBlob) {
+                throw new Error('크롭된 이미지를 생성할 수 없습니다')
+            }
+            
+            // 블롭에서 URL 생성
+            const croppedUrl = URL.createObjectURL(croppedBlob)
+            
+            // 새 File 객체 생성
+            const croppedFile = new File([croppedBlob], selectedFile.name || 'profile.png', {
+                type: 'image/png',
+                lastModified: Date.now()
+            })
+            
+            // 상태 업데이트
+            setImagePreview(croppedUrl)
+            setSelectedFile(croppedFile)
+            setIsCropping(false)
+            
+            console.log('크롭 완료:', {
+                크기: croppedBlob.size,
+                파일명: croppedFile.name
+            })
+            
+        } catch (error) {
+            console.error('크롭 처리 중 오류:', error)
+            setError('이미지 처리 중 오류가 발생했습니다.')
+        }
+    }
+    
+    // 크롭 취소
+    const cancelCrop = () => {
+        setIsCropping(false)
+        setSelectedFile(null)
+        setImagePreview(null)
+    }
+    
+    // 컴포넌트 마운트 시 최신 이미지 로드를 위해 상태 업데이트
+    useEffect(() => {
+        if (loginMember?.profileImageUrl) {
+            // URL에 캐시 방지용 타임스탬프 추가
+            setProfileImageUrl(loginMember.profileImageUrl);
+            console.log('로그인 멤버에서 프로필 이미지 URL 설정:', loginMember.profileImageUrl);
+        }
+    }, [loginMember]);
+
+    // 프로필 이미지 업로드
+    const uploadProfileImage = async () => {
+        if (!selectedFile) return
+        
+        setLoading(true)
         setError(null)
         setSuccess(null)
 
@@ -125,510 +203,419 @@ export default function ProfileImagePage() {
             const formData = new FormData()
             formData.append('multipartFile', selectedFile)
 
-            const response = await fetch('/api/v1/profile-images/upload', {
+            console.log('프로필 이미지 업로드 요청 시작')
+            
+            const response = await fetch('http://localhost:8090/api/v1/profile-images/upload', {
                 method: 'POST',
-                body: formData,
                 credentials: 'include',
+                body: formData
             })
 
             if (!response.ok) {
-                throw new Error('이미지 업로드에 실패했습니다.')
-            }
-
-            // 응답을 텍스트로 먼저 받아서 처리
-            const responseText = await response.text()
-            let filePath = ''
-
-            try {
-                // JSON 파싱 시도
-                if (responseText) {
-                    const data = JSON.parse(responseText)
-                    filePath = data.filePath || responseText
+                const errorText = await response.text().catch(() => '');
+                console.error('서버 응답 에러:', response.status, errorText);
+                
+                if (response.status === 401) {
+                    throw new Error('로그인이 필요하거나 인증이 만료되었습니다.');
+                } else if (response.status === 413) {
+                    throw new Error('이미지 크기가 너무 큽니다. 5MB 이하의 이미지를 업로드해주세요.');
+                } else if (response.status === 415) {
+                    throw new Error('지원하지 않는 이미지 형식입니다. JPG 또는 PNG 형식을 사용해주세요.');
                 } else {
-                    filePath = responseText
+                    throw new Error('프로필 이미지 업로드에 실패했습니다: ' + (errorText || response.statusText));
                 }
-            } catch (jsonError) {
-                // JSON이 아닌 경우 텍스트 자체를 URL로 사용
-                console.log('JSON 파싱 오류:', jsonError)
-                console.log('JSON이 아닌 응답:', responseText)
-                filePath = responseText
             }
+            
+            // 응답 타입 확인 후 처리
+            const contentType = response.headers.get('content-type');
+            console.log('응답 Content-Type:', contentType);
+            
+            let imageUrl = '';
+            
+            if (contentType && contentType.includes('application/json')) {
+                // JSON 응답인 경우
+                const data = await response.json();
+                console.log('JSON 응답 데이터:', data);
+                imageUrl = typeof data === 'string' ? data : (data.profileImageUrl || data.url || '');
+            } else {
+                // 텍스트 응답인 경우 - URL이 직접 반환될 수 있음
+                const textData = await response.text();
+                console.log('텍스트 응답 데이터:', textData);
+                imageUrl = textData.trim();
+            }
+            
+            console.log('원본 이미지 URL:', imageUrl);
+            
+            if (!imageUrl) {
+                throw new Error('서버에서 유효한 이미지 URL을 반환하지 않았습니다.');
+            }
+            
+            // 전역 상태 업데이트 전에 명시적으로 이미지 캐시 초기화
+            const freshImageUrl = imageUrl.includes('?') 
+                ? imageUrl 
+                : imageUrl;
 
-            // 전역 상태 업데이트
-            setLoginMember({
-                ...loginMember,
-                profileImageUrl: filePath,
-            })
-
-            // 현재 이미지 업데이트
-            setCurrentImageUrl(filePath)
-            setSelectedFile(null)
-            setPreviewUrl(null)
-            setSuccess('프로필 이미지가 성공적으로 업로드되었습니다.')
-
-            // 3초 후 성공 메시지 제거
+            // 글로벌 상태 업데이트
+            if (loginMember) {
+                const updatedUser = {
+                    ...loginMember,
+                    profileImageUrl: freshImageUrl
+                };
+                setLoginMember(updatedUser);
+                console.log('프로필 이미지 상태 업데이트 완료:', freshImageUrl);
+                
+                // 로컬 상태 업데이트
+                setProfileImageUrl(freshImageUrl);
+            }
+            
+            // 로컬 UI 상태 정리
+            setSuccess('프로필 이미지가 성공적으로 업로드되었습니다.');
+            setSelectedFile(null);
+            setImagePreview(null);
+            
+            // 3초 후 성공 메시지 숨기기 후 메인 프로필 페이지로 이동
             setTimeout(() => {
-                setSuccess(null)
-            }, 3000)
-        } catch (err) {
-            console.error('이미지 업로드 중 오류 발생:', err)
-            setError('이미지 업로드에 실패했습니다. 다시 시도해주세요.')
+                setSuccess(null);
+                router.push('/myinfo');
+            }, 3000);
+        } catch (error) {
+            console.error('프로필 이미지 업로드 에러:', error)
+            setError(error instanceof Error ? error.message : '프로필 이미지 업로드에 실패했습니다. 다시 시도해주세요.')
         } finally {
-            setUploading(false)
+            setLoading(false)
         }
     }
-
-    // 이미지 삭제 처리
-    const handleDelete = async () => {
-        if (!currentImageUrl) {
-            setError('삭제할 이미지가 없습니다.')
-            return
-        }
+    
+    // 프로필 이미지 삭제
+    const deleteProfileImage = async () => {
+        if (!profileImageUrl) return
 
         if (!confirm('프로필 이미지를 삭제하시겠습니까?')) {
             return
         }
 
-        setUploading(true)
+        setLoading(true)
         setError(null)
-        setSuccess(null)
 
         try {
-            const response = await fetch('/api/v1/profile-images/delete', {
+            const response = await fetchApi('/api/v1/profile-images/delete', {
                 method: 'DELETE',
                 credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             })
 
             if (!response.ok) {
-                throw new Error('이미지 삭제에 실패했습니다.')
+                const errorText = await response.text().catch(() => '');
+                console.error('서버 응답 에러:', response.status, errorText);
+                
+                if (response.status === 401) {
+                    throw new Error('로그인이 필요하거나 인증이 만료되었습니다.');
+                } else {
+                    throw new Error('프로필 이미지 삭제에 실패했습니다: ' + (errorText || response.statusText));
+                }
             }
-
-            // 응답 확인 (필요시 처리)
-            try {
-                await response.text()
-            } catch (error) {
-                console.log('응답 처리 중 오류:', error)
-            }
-
-            // 전역 상태 업데이트
-            setLoginMember({
-                ...loginMember,
-                profileImageUrl: '',
-            })
-
-            // 현재 이미지 상태 초기화
-            setCurrentImageUrl(null)
+            
+            // 응답 확인 (텍스트 메시지만 있을 수 있음)
+            const responseText = await response.text().catch(() => '프로필 이미지가 삭제되었습니다.');
+            console.log('삭제 응답:', responseText);
+            
+            setProfileImageUrl(null)
             setSuccess('프로필 이미지가 성공적으로 삭제되었습니다.')
 
-            // 3초 후 성공 메시지 제거
+            // 글로벌 상태 업데이트 - 유저 정보 복사 후 프로필 이미지 URL 제거
+            if (loginMember) {
+                const updatedUser = {
+                    ...loginMember,
+                    profileImageUrl: ''
+                };
+                setLoginMember(updatedUser);
+            }
+            
+            // 3초 후 성공 메시지 숨기기
             setTimeout(() => {
                 setSuccess(null)
             }, 3000)
-        } catch (err) {
-            console.error('이미지 삭제 중 오류 발생:', err)
-            setError('이미지 삭제에 실패했습니다. 다시 시도해주세요.')
+        } catch (error) {
+            console.error('프로필 이미지 삭제 에러:', error)
+            setError(error instanceof Error ? error.message : '프로필 이미지 삭제에 실패했습니다. 다시 시도해주세요.')
         } finally {
-            setUploading(false)
+            setLoading(false)
         }
     }
-
-    // 이미지 편집 완료 후 처리 함수
-    const handleCropComplete = (newCrop: Crop, percentCrop: PercentCrop) => {
-        setCompletedCrop(percentCrop)
-        // 크롭 완료 시 즉시 미리보기 그리기
-        if (imgRef.current && percentCrop.width && percentCrop.height) {
-            setCompletedCrop(percentCrop)
-        }
+    
+    const cancelUpload = () => {
+        setSelectedFile(null)
+        setImagePreview(null)
+        setError(null)
     }
 
-    // 이미지 로드 완료 시 호출되는 함수
-    const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-        const img = e.currentTarget
-        imgRef.current = img
-        // 이미지 로드 시 크기 정보 저장
-        setImgSize({
-            width: img.width,
-            height: img.height,
-            naturalWidth: img.naturalWidth,
-            naturalHeight: img.naturalHeight,
-        })
+    const triggerFileInput = () => {
+        fileInputRef.current?.click();
     }
 
-    // 크롭된 이미지를 캔버스에 그리는 함수
-    const drawCropImage = () => {
-        if (!completedCrop || !previewCanvasRef.current || !imgRef.current) {
-            return
-        }
-
-        const image = imgRef.current
-        const canvas = previewCanvasRef.current
-        const ctx = canvas.getContext('2d')
-
-        if (!ctx) {
-            return
-        }
-
-        // 캔버스 크기를 2배로 설정하여 선명도 향상 (Retina 디스플레이 대응)
-        const displaySize = 96 // 24*4 = 96 (w-24 h-24 클래스를 위한 적절한 픽셀값)
-        const canvasSize = displaySize * 2 // 고해상도를 위해 실제 캔버스는 2배 크기로
-
-        canvas.width = canvasSize
-        canvas.height = canvasSize
-
-        // 캔버스 스타일에서는 표시 크기 유지
-        canvas.style.width = `${displaySize}px`
-        canvas.style.height = `${displaySize}px`
-
-        // 캔버스 초기화
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-        // 이미지 렌더링 품질 설정
-        ctx.imageSmoothingEnabled = true
-        ctx.imageSmoothingQuality = 'high'
-
-        // 배경을 하얀색으로 채우기 (투명 배경 방지)
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, canvasSize, canvasSize)
-
-        // 패딩 추가 (테두리가 잘리지 않도록)
-        const padding = 4 * 2 // 2px 패딩 * 2배 크기
-
-        // 원형 클리핑 패스 생성 (패딩 고려)
-        ctx.save()
-        ctx.beginPath()
-        ctx.arc(canvasSize / 2, canvasSize / 2, (canvasSize - padding) / 2, 0, Math.PI * 2)
-        ctx.clip()
-
-        // 이미지의 실제 크기와 표시 크기 비율 계산
-        const scaleX = image.naturalWidth / image.width
-        const scaleY = image.naturalHeight / image.height
-
-        // 선택한 영역의 좌표와 크기 계산 (퍼센트 -> 픽셀)
-        const cropX = (completedCrop.x / 100) * image.width
-        const cropY = (completedCrop.y / 100) * image.height
-        const cropWidth = (completedCrop.width / 100) * image.width
-        const cropHeight = (completedCrop.height / 100) * image.height
-
-        // 원본 이미지에서의 실제 픽셀 위치 계산
-        const sourceX = cropX * scaleX
-        const sourceY = cropY * scaleY
-        const sourceWidth = cropWidth * scaleX
-        const sourceHeight = cropHeight * scaleY
-
-        // 캔버스에 맞게 크기 조정 (원형을 유지하면서)
-        const drawSize = canvasSize - padding
-
-        // 중앙 정렬을 위한 위치 계산
-        const dx = (canvasSize - drawSize) / 2
-        const dy = (canvasSize - drawSize) / 2
-
-        // 이미지 그리기
-        ctx.drawImage(
-            image,
-            sourceX,
-            sourceY,
-            sourceWidth,
-            sourceHeight, // 소스 이미지의 위치와 크기
-            dx,
-            dy,
-            drawSize,
-            drawSize, // 캔버스에 그릴 위치와 크기
-        )
-
-        ctx.restore()
-
-        // 원형 테두리 그리기 (클리핑 영역 외부에)
-        ctx.beginPath()
-        ctx.arc(canvasSize / 2, canvasSize / 2, (canvasSize - padding) / 2, 0, Math.PI * 2)
-        ctx.strokeStyle = '#ffffff'
-        ctx.lineWidth = 3 * 2 // 2px 테두리 * 2배 크기
-        ctx.stroke()
-    }
-
-    // useEffect로 크롭 이미지 그리기 - 의존성 배열 개선
+    // 컴포넌트 언마운트 시 생성된 모든 Object URL 정리
     useEffect(() => {
-        if (completedCrop && imgRef.current && previewCanvasRef.current) {
-            // requestAnimationFrame을 사용하여 렌더링 성능 최적화
-            requestAnimationFrame(() => {
-                drawCropImage()
-            })
+        // Object URL 정리 함수
+        return () => {
+            // imagePreview가 Object URL인 경우 해제
+            if (imagePreview && imagePreview.startsWith('blob:')) {
+                URL.revokeObjectURL(imagePreview);
+                console.log('Object URL 해제:', imagePreview);
+            }
+        };
+    }, [imagePreview]);
+
+    // 로그인 체크
+    useEffect(() => {
+        if (!loginMember) {
+            router.push('/login')
         }
-    }, [completedCrop, imgRef.current, crop])
+    }, [loginMember, router])
 
-    // 크롭된 이미지 최종 적용 함수
-    const applyCrop = () => {
-        if (!previewCanvasRef.current || !completedCrop || !imgRef.current) {
-            setError('이미지를 크롭할 수 없습니다. 다시 시도해주세요.')
-            return
-        }
-
-        try {
-            // 캔버스에 이미지 그리기
-            drawCropImage()
-
-            // 캔버스 이미지를 URL로 변환 - 최고 품질 설정
-            const croppedImageUrl = previewCanvasRef.current.toDataURL('image/png', 1.0)
-
-            // 캔버스의 이미지를 File 객체로 변환
-            previewCanvasRef.current.toBlob(
-                (blob) => {
-                    if (blob) {
-                        // 새 File 객체 생성
-                        const croppedFile = new File([blob], 'cropped-profile.png', { type: 'image/png' })
-
-                        // 상태 업데이트
-                        setSelectedFile(croppedFile)
-                        setPreviewUrl(croppedImageUrl)
-
-                        // 크롭 모드 종료
-                        setIsCropMode(false)
-
-                        console.log('이미지 크롭 완료:', {
-                            size: `${Math.round(blob.size / 1024)} KB`,
-                            type: blob.type,
-                            crop: completedCrop, // 디버깅을 위해 크롭 정보 기록
-                            imageSize: imgSize, // 디버깅을 위해 이미지 크기 정보 기록
-                        })
-                    } else {
-                        throw new Error('이미지 변환에 실패했습니다.')
-                    }
-                },
-                'image/png', // JPEG 대신 PNG 사용하여 품질 향상
-                1.0, // 최대 품질
-            )
-        } catch (err) {
-            console.error('이미지 크롭 중 오류:', err)
-            setError('이미지 크롭에 실패했습니다.')
-        }
-    }
-
-    // 크롭 취소 함수
-    const cancelCrop = () => {
-        setIsCropMode(false)
+    if (!loginMember) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9C50D4]"></div>
+            </div>
+        )
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4">
-            <main className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden mt-6">
-                {/* 헤더 섹션 */}
-                <div className="p-5 border-b border-gray-200">
-                    <div className="flex items-center">
-                        <Link href="/myinfo" className="mr-4">
-                            <ArrowLeftIcon className="h-5 w-5 text-gray-500" />
+        <div className="min-h-screen bg-gray-50 py-10 px-4">
+            <div className="max-w-2xl mx-auto">
+                {/* 뒤로가기 버튼 */}
+                <div className="mb-8">
+                    <Link 
+                        href="/myinfo" 
+                        className="inline-flex items-center text-gray-600 hover:text-[#9C50D4] transition-colors text-lg"
+                    >
+                        <ArrowLeftIcon className="h-6 w-6 mr-2" />
+                        <span>내 정보로 돌아가기</span>
                         </Link>
-                        <h1 className="text-xl font-semibold text-gray-800">프로필 이미지 변경</h1>
-                    </div>
                 </div>
 
-                <div className="p-6">
-                    {/* 에러 메시지 */}
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                    {/* 헤더 부분 */}
+                    <div className="bg-[#F7F3FD] px-8 py-6 border-b border-gray-100">
+                        <div className="flex items-center">
+                            <UserIcon className="h-9 w-9 text-[#9C50D4] mr-4" />
+                            <h1 className="text-2xl font-bold text-gray-800">프로필 이미지 관리</h1>
+                        </div>
+                        <p className="text-gray-600 mt-3 text-lg">
+                            나를 표현하는 프로필 이미지를 설정하세요.
+                        </p>
+                    </div>
+
+                    {/* 알림 메시지 */}
                     {error && (
-                        <div className="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded">
-                            <p>{error}</p>
+                        <div className="mx-8 mt-6 bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+                            <div className="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p className="text-base text-red-600">{error}</p>
+                            </div>
                         </div>
                     )}
 
-                    {/* 성공 메시지 */}
                     {success && (
-                        <div className="mb-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded">
-                            <p>{success}</p>
+                        <div className="mx-8 mt-6 bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                            <div className="flex items-center">
+                                <CheckIcon className="h-6 w-6 text-green-500 mr-3" />
+                                <p className="text-base text-green-600">{success}</p>
+                            </div>
                         </div>
                     )}
 
+                    <div className="p-8">
                     {/* 현재 프로필 이미지 */}
-                    <div className="mb-6">
-                        <h2 className="text-md font-medium text-gray-700 mb-3">현재 프로필 이미지</h2>
-                        <div className="flex flex-col items-center space-y-2">
-                            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 bg-gray-100 relative">
-                                {currentImageUrl ? (
-                                    <Image
-                                        src={currentImageUrl}
-                                        alt="현재 프로필 이미지"
-                                        width={128}
-                                        height={128}
-                                        className="object-cover w-full h-full"
-                                        onError={(e) => {
-                                            const target = e.target as HTMLImageElement
-                                            target.src = 'https://via.placeholder.com/112?text=사용자'
-                                        }}
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-purple-50 flex items-center justify-center">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="h-16 w-16 text-[#9C50D4]"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            strokeWidth={1.5}
-                                            stroke="currentColor"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                                            />
-                                        </svg>
+                        <div className="mb-8">
+                            <h3 className="text-lg font-medium text-gray-800 mb-4">현재 프로필 이미지</h3>
+                            <div className="flex flex-col sm:flex-row items-center bg-gray-50 p-6 rounded-xl">
+                                <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center mb-6 sm:mb-0 sm:mr-8">
+                                    {profileImageUrl ? (
+                                        <img 
+                                            src={`${profileImageUrl}?nocache=${Date.now()}`}
+                                            alt="프로필 이미지" 
+                                            width={144}
+                                            height={144}
+                                            style={{
+                                                objectFit: 'cover',
+                                                width: '100%',
+                                                height: '100%',
+                                                display: 'block'
+                                            }}
+                                            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                                                console.error('이미지 로드 오류:', profileImageUrl);
+                                                // 간단한 fallback 이미지
+                                                e.currentTarget.src = 'https://via.placeholder.com/144?text=User';
+                                                e.currentTarget.onerror = null; // 무한 루프 방지
+                                            }}
+                                        />
+                                    ) : (
+                                        <UserIcon className="h-20 w-20 text-gray-400" />
+                                    )}
+                                </div>
+                                <div className="text-center sm:text-left">
+                                    <p className="text-gray-600 mb-4">
+                                        {profileImageUrl 
+                                            ? '프로필 이미지가 설정되어 있습니다.' 
+                                            : '프로필 이미지가 설정되어 있지 않습니다.'}
+                                    </p>
+                                    {profileImageUrl && (
+                                        <div>
+                                            <button
+                                                onClick={deleteProfileImage}
+                                                disabled={loading}
+                                                className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                                            >
+                                                {loading ? '삭제 중...' : '이미지 삭제'}
+                                            </button>
                                     </div>
                                 )}
-                            </div>
-                            {currentImageUrl && (
-                                <p className="text-xs text-gray-500">이 이미지가 프로필에 사용됩니다</p>
-                            )}
+                                </div>
                         </div>
                     </div>
 
-                    {/* 이미지 삭제 버튼 - 현재 이미지가 있을 때만 표시 */}
-                    {currentImageUrl && (
-                        <div className="flex justify-center mb-6">
-                            <button
-                                onClick={handleDelete}
-                                disabled={uploading}
-                                className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg flex items-center hover:bg-gray-200 transition-colors"
-                            >
-                                <TrashIcon className="h-5 w-5 mr-1" />
-                                기본 이미지로 변경
-                            </button>
+                        {/* 이미지 업로드 영역 */}
+                        {!isCropping && !imagePreview && (
+                            <div className="mb-8">
+                                <h3 className="text-lg font-medium text-gray-800 mb-4">새 프로필 이미지 업로드</h3>
+                                <div 
+                                    className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[#9C50D4] transition-colors cursor-pointer"
+                                    onClick={triggerFileInput}
+                                >
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        className="hidden"
+                                        ref={fileInputRef}
+                                    />
+                                    <ArrowUpTrayIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                                    <p className="text-gray-600 mb-2">이미지를 끌어다 놓거나 클릭하여 업로드하세요</p>
+                                    <p className="text-sm text-gray-500">JPG, PNG 형식 지원 (최대 5MB)</p>
+                                </div>
                         </div>
                     )}
 
-                    <hr className="my-6" />
-
-                    {/* 새 이미지 업로드 섹션 */}
-                    <div>
-                        <h2 className="text-md font-medium text-gray-700 mb-3">새 프로필 이미지 업로드</h2>
-
-                        {/* 파일 업로드 입력 */}
+                        {/* 이미지 자르기 UI - Easy Crop 사용 */}
+                        {isCropping && imagePreview && (
+                            <div className="mb-8">
+                                <h3 className="text-lg font-medium text-gray-800 mb-4">이미지 크기 조정</h3>
+                                <div className="bg-gray-50 p-6 rounded-xl">
+                                    <div className="max-w-md mx-auto">
+                                        <div className="mb-6 text-center">
+                                            <p className="text-gray-600 mb-2">이미지를 드래그하고 확대/축소하여 원하는 부분을 선택하세요</p>
+                                            <div className="flex items-center justify-center gap-3 mt-3">
+                                                <span className="text-sm text-gray-500">축소</span>
                         <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            accept="image/*"
-                            className="hidden"
-                        />
-
-                        {/* 파일 선택 버튼 */}
-                        <div
-                            onClick={handleSelectFile}
-                            className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:border-purple-500 transition-colors mb-2"
-                        >
-                            <ArrowUpTrayIcon className="h-10 w-10 text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-500">클릭하여 이미지 파일 선택</p>
-                            <p className="text-xs text-gray-400 mt-1">최대 5MB, JPG, PNG 파일</p>
+                                                    type="range"
+                                                    value={zoom}
+                                                    min={1}
+                                                    max={3}
+                                                    step={0.1}
+                                                    aria-labelledby="Zoom"
+                                                    onChange={(e) => setZoom(Number(e.target.value))}
+                                                    className="w-52 accent-[#9C50D4]"
+                                                />
+                                                <span className="text-sm text-gray-500">확대</span>
                         </div>
-                        <div className="text-xs text-gray-500 mb-4 px-2">
-                            <p className="mb-1">• 정사각형 이미지를 사용하면 프로필에 가장 잘 맞습니다</p>
-                            <p className="mb-1">• 얼굴이나 상반신 이미지가 원형 프로필에 적합합니다</p>
-                            <p>• 업로드 후 이미지 중앙이 프로필 원형에 맞춰 표시됩니다</p>
                         </div>
 
-                        {/* 선택된 이미지 미리보기 */}
-                        {previewUrl && (
-                            <div className="mt-4 mb-6">
-                                <h3 className="text-sm font-medium text-gray-700 mb-2">이미지 미리보기</h3>
-                                <div className="flex flex-col items-center space-y-4">
-                                    {isCropMode ? (
-                                        <div className="mb-4">
-                                            <p className="text-xs text-gray-500 mb-2">
-                                                원형 영역에 맞게 이미지를 조정하세요
-                                            </p>
-                                            <div className="relative border border-gray-200 p-1 rounded">
-                                                <ReactCrop
+                                        {/* 크롭 영역 컨테이너 */}
+                                        <div className="relative h-64 w-full rounded-xl overflow-hidden border-4 border-white shadow-md">
+                                            <Cropper
+                                                image={imagePreview}
                                                     crop={crop}
-                                                    onChange={(c) => setCrop(c)}
-                                                    onComplete={handleCropComplete}
-                                                    circularCrop
+                                                zoom={zoom}
                                                     aspect={1}
-                                                    minWidth={50}
-                                                    keepSelection
-                                                >
-                                                    <img
-                                                        ref={imgRef}
-                                                        src={previewUrl || ''}
-                                                        alt="편집 중인 이미지"
-                                                        onLoad={onImageLoad}
-                                                        style={{
-                                                            maxHeight: '300px',
-                                                            maxWidth: '100%',
-                                                        }}
-                                                    />
-                                                </ReactCrop>
-
-                                                <div className="mt-4 flex justify-center">
-                                                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-purple-200 bg-white">
-                                                        <canvas ref={previewCanvasRef} className="w-full h-full" />
+                                                onCropChange={setCrop}
+                                                onCropComplete={onCropComplete}
+                                                onZoomChange={setZoom}
+                                                cropShape="round"
+                                                showGrid={false}
+                                            />
+                                        </div>
+                                        
+                                        <div className="flex justify-center space-x-4 mt-8">
+                                            <button
+                                                onClick={cancelCrop}
+                                                className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                                                type="button"
+                                            >
+                                                취소
+                                            </button>
+                                            <button
+                                                onClick={finishCrop}
+                                                className="px-5 py-2.5 bg-[#9C50D4] text-white rounded-lg hover:bg-[#8A45BC] transition-colors font-medium"
+                                                type="button"
+                                            >
+                                                이 크기로 설정
+                                            </button>
+                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-center space-x-3 mt-3">
+                        )}
+
+                        {/* 이미지 미리보기 및 업로드 버튼 */}
+                        {!isCropping && imagePreview && (
+                            <div className="mb-8">
+                                <h3 className="text-lg font-medium text-gray-800 mb-4">이미지 미리보기</h3>
+                                <div className="bg-gray-50 p-6 rounded-xl">
+                                    <div className="flex flex-col sm:flex-row items-center">
+                                        <div className="w-36 h-36 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center mb-6 sm:mb-0 sm:mr-8">
+                                            <img 
+                                                src={imagePreview} 
+                                                alt="프로필 이미지 미리보기" 
+                                                width={144}
+                                                height={144}
+                                                style={{
+                                                    objectFit: 'cover',
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    display: 'block'
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-600 mb-4">
+                                                이 이미지를 프로필 사진으로 사용하시겠습니까?
+                                            </p>
+                                            <div className="flex space-x-4">
                                                 <button
-                                                    type="button"
-                                                    onClick={cancelCrop}
-                                                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm"
+                                                    onClick={cancelUpload}
+                                                    className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                                                 >
                                                     취소
                                                 </button>
                                                 <button
-                                                    type="button"
-                                                    onClick={applyCrop}
-                                                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-sm"
+                                                    onClick={uploadProfileImage}
+                                                    disabled={loading}
+                                                    className="px-5 py-2.5 bg-[#9C50D4] text-white rounded-lg hover:bg-[#8A45BC] transition-colors font-medium flex items-center"
                                                 >
-                                                    적용하기
+                                                    {loading ? (
+                                                        <>
+                                                            <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            업로드 중...
+                                                        </>
+                                                    ) : '업로드'}
                                                 </button>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <>
-                                            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-100 bg-gray-100 relative">
-                                                <Image
-                                                    src={previewUrl}
-                                                    alt="이미지 미리보기"
-                                                    width={128}
-                                                    height={128}
-                                                    className="object-cover w-full h-full"
-                                                />
-                                            </div>
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsCropMode(true)}
-                                                    className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                                                >
-                                                    이미지 편집
-                                                </button>
-                                            </div>
-                                            <p className="text-xs text-gray-500">
-                                                업로드 후 이미지는 프로필 원형에 맞게 표시됩니다
-                                            </p>
-                                        </>
-                                    )}
                                 </div>
-                                <div className="text-center text-sm text-gray-500 mt-2">
-                                    {selectedFile?.name} (
-                                    {(selectedFile?.size || 0) / 1024 < 1000
-                                        ? `${Math.round((selectedFile?.size || 0) / 1024)} KB`
-                                        : `${((selectedFile?.size || 0) / (1024 * 1024)).toFixed(1)} MB`}
-                                    )
                                 </div>
-                            </div>
-                        )}
-
-                        {/* 업로드 버튼 */}
-                        {previewUrl && (
-                            <div className="flex justify-center">
-                                <button
-                                    onClick={handleUpload}
-                                    disabled={uploading || !selectedFile}
-                                    className={`px-6 py-2 bg-[#9C50D4] text-white rounded-lg hover:bg-[#8C4FF2] transition-colors ${
-                                        uploading || !selectedFile ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
-                                >
-                                    {uploading ? '업로드 중...' : '업로드하기'}
-                                </button>
                             </div>
                         )}
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     )
 }

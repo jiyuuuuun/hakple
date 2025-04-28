@@ -30,6 +30,7 @@ type BackendUser = {
     creationTime?: string
     modificationTime?: string
     isAdmin?: boolean
+    accessToken?: string
     [key: string]: unknown // any 대신 unknown 사용
 }
 
@@ -91,6 +92,23 @@ export function useLoginMember() {
         console.group('LoginMember Store - setLoginMember')
         console.log('백엔드 응답 데이터:', member)
 
+        // 액세스 토큰이 있는 로그인 요청인 경우 처리
+        if (member.accessToken && member.id) {
+            console.log('로그인: accessToken 있음, userId:', member.id);
+            const user: User = {
+                id: member.id,
+                nickname: member.userName || '',
+                userName: member.userName || '',
+                creationTime: '',
+                modificationTime: '',
+            }
+            _setLoginMember(user)
+            setIsLogin(true)
+            setLoginMemberPending(false)
+            console.groupEnd()
+            return
+        }
+
         const nickname =
             typeof member.nickName === 'string'
                 ? member.nickName
@@ -104,8 +122,25 @@ export function useLoginMember() {
                 : typeof member.academyId === 'string'
                     ? member.academyId
                     : ''
+                    
+        // 프로필 이미지 URL 처리 (트림 및 null/undefined 체크)
+        let profileImageUrl = '';
+        if (member.profileImageUrl) {
+            if (typeof member.profileImageUrl === 'string') {
+                profileImageUrl = member.profileImageUrl.trim();
+                
+                // 이미 URL에 쿼리 파라미터가 있는지 확인
+                if (!profileImageUrl.includes('?')) {
+                    // 캐시 문제를 방지하기 위해 타임스탬프를 URL에 추가하지 않음
+                    // 컴포넌트에서 이미지 로드 시 타임스탬프 추가
+                }
+                
+                console.log('프로필 이미지 URL 처리됨:', profileImageUrl);
+            }
+        }
 
         const user: User = {
+            id: member.id || member.memberId,
             nickname: nickname,
             userName: member.userName ?? '',
             phoneNum: member.phoneNum,
@@ -113,7 +148,7 @@ export function useLoginMember() {
             modificationTime: member.modificationTime || '',
             academyCode: academyCode,
             academyName: member.academyName || '',
-            profileImageUrl: member.profileImageUrl || '',
+            profileImageUrl: profileImageUrl,
         }
 
         console.log('생성된 User 객체:', user)
@@ -121,7 +156,7 @@ export function useLoginMember() {
 
         const isValidLogin = !!user.userName || !!user.nickname // <- 사용자 확인 가능한 핵심 필드
 
-        setIsLogin(true); // ✅ 로그인 상태 설정
+        setIsLogin(isValidLogin); // 유효한 사용자 정보가 있을 때만 로그인 상태로 설정
         setLoginMemberPending(false)
         console.groupEnd()
     }

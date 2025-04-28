@@ -1,71 +1,147 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-/*
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-*/
-
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #ffffff;
+    --foreground: #171717;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #f5f5f5;
-    --foreground: #333333;
-  }
+    :root {
+        --background: #f5f5f5;
+        --foreground: #333333;
+    }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 @layer base {
-  html, body {
-    @apply bg-[#f9fafb];
-  }
-  
-  /* 다크모드 스타일 */
-  .dark body {
-    @apply bg-slate-100;
-    color: #333333;
-  }
+    html,
+    body {
+        @apply bg-[#f9fafb];
+    }
+
+    /* 다크모드 스타일 */
+    .dark body {
+        @apply bg-slate-100;
+        color: #333333;
+    }
 }
 
 /* 다크모드에서 콘텐츠가 더 잘 보이도록 추가 스타일 */
 @media (prefers-color-scheme: dark) {
-  /* 배경 색상 */
-  body {
-    background-color: #f5f5f5 !important;
-  }
-  
-  /* 카드 및 콘텐츠 컨테이너 */
-  .bg-white {
-    background-color: #f1f1f1 !important;
-  }
-  
-  /* 텍스트 색상 */
-  .text-gray-900, h1, h2, h3, h4, h5, h6 {
-    color: #333333 !important;
-  }
-  
-  .text-gray-800, .font-bold, .font-semibold {
-    color: #444444 !important;
-  }
-  
-  .text-gray-700, .text-gray-600, p {
-    color: #555555 !important;
-  }
+    /* 배경 색상 */
+    body {
+        background-color: #f5f5f5 !important;
+    }
+
+    /* 카드 및 콘텐츠 컨테이너 */
+    .bg-white {
+        background-color: #f1f1f1 !important;
+    }
+
+    /* 텍스트 색상 */
+    .text-gray-900,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: #333333 !important;
+    }
+
+    .text-gray-800,
+    .font-bold,
+    .font-semibold {
+        color: #444444 !important;
+    }
+
+    .text-gray-700,
+    .text-gray-600,
+    p {
+        color: #555555 !important;
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+@keyframes wave {
+    0% {
+        transform: translateX(0) translateZ(0) scaleY(1);
+    }
+    50% {
+        transform: translateX(-25%) translateZ(0) scaleY(0.85);
+    }
+    100% {
+        transform: translateX(-50%) translateZ(0) scaleY(1);
+    }
+}
+
+@keyframes spin-slow {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.animate-wave {
+    animation: wave 15s -3s linear infinite;
+}
+
+.animate-spin-slow {
+    animation: spin-slow 15s linear infinite;
+}
+
+.animate-blink {
+    animation: blink 1s step-end infinite;
+}
+
+/* 추가 애니메이션이 필요한 경우 여기에 정의하세요 */
+
+/* 헤더와 푸터 숨기기 클래스 */
+body.hide-header-footer header,
+body.hide-header-footer footer,
+body.hide-header-footer nav.bottom-nav {
+  display: none !important;
 }

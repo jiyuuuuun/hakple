@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import Link from 'next/link'
+import { ArrowLeftIcon, UserIcon, CheckCircleIcon, CheckIcon, CameraIcon, KeyIcon } from '@heroicons/react/24/outline'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 // 휴대폰 번호 형식화 함수 (하이픈 추가)
 const formatPhoneNumber = (phoneNum: string): string => {
@@ -28,6 +31,11 @@ const formatPhoneNumber = (phoneNum: string): string => {
     }
 }
 
+// 백엔드 응답 타입 정의
+type ResponseDTO = {
+    message: string
+}
+
 export default function ProfileUpdatePage() {
     const router = useRouter()
     const { isLogin, loginMember } = useGlobalLoginMember()
@@ -40,9 +48,12 @@ export default function ProfileUpdatePage() {
     const [nicknameError, setNicknameError] = useState('')
     const [phoneError, setPhoneError] = useState('')
     const [isFormValid, setIsFormValid] = useState(false)
-    const [isNicknameChecked, setIsNicknameChecked] = useState(false)
     const [isPhoneChecked, setIsPhoneChecked] = useState(false)
     const [isKakaoUser, setIsKakaoUser] = useState(false)
+    const [formattedPhone, setFormattedPhone] = useState('')
+    const [originalNickname, setOriginalNickname] = useState('')
+    const [originalPhoneNumber, setOriginalPhoneNumber] = useState('')
+    const [loadingUser, setLoadingUser] = useState(true)
 
     // 로그인 체크
     useEffect(() => {
@@ -79,9 +90,16 @@ export default function ProfileUpdatePage() {
                 ) {
                     setIsKakaoUser(true)
                 }
+
+                // 원래 값은 중복 체크가 필요없음
+                setOriginalNickname(data.nickName)
+                setOriginalPhoneNumber(data.phoneNum)
+                setFormattedPhone(formatPhoneNumber(data.phoneNum))
             } catch (err) {
                 console.error('사용자 정보를 가져오는 중 오류 발생:', err)
                 setError('사용자 정보를 불러올 수 없습니다.')
+            } finally {
+                setLoadingUser(false)
             }
         }
 
@@ -97,7 +115,6 @@ export default function ProfileUpdatePage() {
             newPhoneNumber,
             nicknameError,
             phoneError,
-            isNicknameChecked,
             isPhoneChecked,
         })
 
@@ -109,7 +126,7 @@ export default function ProfileUpdatePage() {
 
         // 닉네임 입력한 경우
         if (nickname !== '') {
-            if (!isNicknameChecked || (nicknameError !== '' && !nicknameError.includes('사용 가능'))) {
+            if (nicknameError !== '' && !nicknameError.includes('사용 가능')) {
                 setIsFormValid(false)
                 return
             }
@@ -126,7 +143,7 @@ export default function ProfileUpdatePage() {
         // 모든 검사 통과
         setIsFormValid(true)
         console.log('폼 유효성 검사 통과 - 버튼 활성화됨')
-    }, [nickname, newPhoneNumber, nicknameError, phoneError, isNicknameChecked, isPhoneChecked])
+    }, [nickname, newPhoneNumber, nicknameError, phoneError, isPhoneChecked])
 
     // 닉네임 유효성 검사
     const validateNickname = (value: string): boolean => {
@@ -186,80 +203,9 @@ export default function ProfileUpdatePage() {
         return true
     }
 
-    // 닉네임 중복 확인
-    const checkNicknameDuplicate = async () => {
-        console.log('닉네임 중복확인 시작:', nickname)
-        if (!validateNickname(nickname)) {
-            return
-        }
-
-        setIsLoading(true)
-
-        try {
-            // 현재 닉네임과 다른지 확인
-            if (nickname.trim() === currentNickname.trim()) {
-                setNicknameError('현재 사용 중인 닉네임과 동일합니다.')
-                setIsNicknameChecked(false)
-                console.log('닉네임 검사 - 현재 값과 동일')
-                setIsLoading(false)
-                return
-            }
-
-            // 백엔드에 실제 중복 여부 확인 요청
-            // update API를 활용해 중복 확인만 수행
-            const response = await fetch('/api/v1/myInfos/update', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    nickName: nickname,
-                    // 중복 확인만 위한 요청임을 표시하는 필드 추가 (백엔드에서 무시됨)
-                    _checkOnly: true,
-                }),
-            })
-
-            if (response.ok) {
-                // 성공 시 사용 가능한 닉네임
-                setNicknameError('사용 가능한 닉네임입니다.')
-                setIsNicknameChecked(true)
-                console.log('닉네임 중복확인 완료 - 사용 가능')
-            } else {
-                // 에러 응답 분석
-                const errorText = await response.text()
-                console.log('닉네임 중복확인 실패 응답:', errorText)
-
-                // 백엔드 MyInfoErrorCode에 맞게 오류 메시지 처리
-                if (errorText.includes('닉네임을 이미 사용 중입니다') || errorText.includes('NICKNAME_DUPLICATE')) {
-                    setNicknameError('닉네임을 이미 사용 중입니다.')
-                    setIsNicknameChecked(false)
-                } else if (errorText.includes('닉네임은 한글/영문 2~20자') || errorText.includes('NICKNAME_INVALID')) {
-                    setNicknameError('닉네임은 한글/영문 2~20자, 공백 없이 특수 기호는 _, -, . 만 사용 가능합니다.')
-                    setIsNicknameChecked(false)
-                } else if (errorText.includes('기존과 동일합니다') || errorText.includes('SAME_AS_CURRENT')) {
-                    setNicknameError('현재 사용 중인 닉네임과 동일합니다.')
-                    setIsNicknameChecked(false)
-                } else if (errorText.includes('필수 작성 항목입니다') || errorText.includes('REQUIRED')) {
-                    setNicknameError('닉네임은 필수 입력 항목입니다.')
-                    setIsNicknameChecked(false)
-                } else {
-                    setNicknameError('중복 확인 중 오류가 발생했습니다: ' + errorText)
-                    setIsNicknameChecked(false)
-                }
-            }
-        } catch (err) {
-            console.error('닉네임 중복 확인 중 오류 발생:', err)
-            setNicknameError('중복 확인 중 오류가 발생했습니다.')
-            setIsNicknameChecked(false)
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
     // 휴대폰 번호 중복 확인
     const checkPhoneDuplicate = async () => {
-        console.log('전화번호 중복확인 시작:', newPhoneNumber)
+        console.log('휴대폰 중복확인 시작:', newPhoneNumber)
         if (!validatePhoneNumber(newPhoneNumber)) {
             return
         }
@@ -267,61 +213,40 @@ export default function ProfileUpdatePage() {
         setIsLoading(true)
 
         try {
-            // 하이픈 제거
-            const digitsOnly = newPhoneNumber.replace(/-/g, '')
-            const currentPhoneClean = phoneNumber.replace(/-/g, '')
-
-            // 현재 전화번호와 다른지 확인
-            if (digitsOnly === currentPhoneClean) {
-                setPhoneError('현재 사용 중인 전화번호와 동일합니다.')
-                setIsPhoneChecked(false)
-                console.log('전화번호 검사 - 현재 값과 동일')
+            // 현재 번호와 다른지 확인
+            if (newPhoneNumber.replace(/-/g, '') === originalPhoneNumber.replace(/-/g, '')) {
+                setPhoneError('현재 사용 중인, 번호와 동일합니다.')
+                setIsPhoneChecked(true)
+                console.log('휴대폰 번호 검사 - 현재 값과 동일')
                 setIsLoading(false)
                 return
             }
 
-            // 백엔드에 실제 중복 여부 확인 요청
-            // update API를 활용해 중복 확인만 수행
-            const response = await fetch('/api/v1/myInfos/update', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+            // 백엔드에 실제 API 요청
+            console.log('휴대폰 번호 중복 확인 API 요청:', newPhoneNumber)
+            const response = await fetch(`/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`, {
+                method: 'GET',
                 credentials: 'include',
-                body: JSON.stringify({
-                    phoneNum: digitsOnly,
-                    // 중복 확인만 위한 요청임을 표시하는 필드 추가 (백엔드에서 무시됨)
-                    _checkOnly: true,
-                }),
             })
 
+            // 응답 처리
             if (response.ok) {
-                // 성공 시 사용 가능한 번호
-                setPhoneError('사용 가능한 번호입니다.')
+                const available = await response.json()
+                if (available) {
+                    setPhoneError('사용 가능한 휴대폰 번호입니다.')
                 setIsPhoneChecked(true)
-                console.log('전화번호 중복확인 완료 - 사용 가능')
+                    console.log('휴대폰 번호 중복확인 완료 - 사용 가능')
+                } else {
+                    setPhoneError('이미 사용 중인 휴대폰 번호입니다.')
+                    setIsPhoneChecked(false)
+                    console.log('휴대폰 번호 중복확인 완료 - 사용 불가')
+                }
             } else {
                 // 에러 응답 분석
                 const errorText = await response.text()
-                console.log('전화번호 중복확인 실패 응답:', errorText)
-
-                // 백엔드 MyInfoErrorCode에 맞게 오류 메시지 처리
-                if (errorText.includes('전화번호를 이미 사용 중입니다') || errorText.includes('PHONENUM_DUPLICATE')) {
-                    setPhoneError('전화번호를 이미 사용 중입니다.')
+                console.log('휴대폰 번호 중복확인 실패 응답:', errorText)
+                setPhoneError('휴대폰 번호 중복 확인에 실패했습니다.')
                     setIsPhoneChecked(false)
-                } else if (errorText.includes('전화번호는 숫자만 포함') || errorText.includes('PHONENUM_INVALID')) {
-                    setPhoneError('전화번호는 숫자만 포함하며, 10~11자리여야 합니다.')
-                    setIsPhoneChecked(false)
-                } else if (errorText.includes('기존과 동일합니다') || errorText.includes('SAME_AS_CURRENT')) {
-                    setPhoneError('현재 사용 중인 전화번호와 동일합니다.')
-                    setIsPhoneChecked(false)
-                } else if (errorText.includes('필수 작성 항목입니다') || errorText.includes('REQUIRED')) {
-                    setPhoneError('전화번호는 필수 입력 항목입니다.')
-                    setIsPhoneChecked(false)
-                } else {
-                    setPhoneError('중복 확인 중 오류가 발생했습니다: ' + errorText)
-                    setIsPhoneChecked(false)
-                }
             }
         } catch (err) {
             console.error('휴대폰 번호 중복 확인 중 오류 발생:', err)
@@ -332,344 +257,342 @@ export default function ProfileUpdatePage() {
         }
     }
 
-    // 닉네임 변경 핸들러
+    // 닉네임 입력 핸들러
     const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        const value = e.target.value
-        setNickname(value)
-        setIsNicknameChecked(false)
+        const inputValue = e.target.value
+        setNickname(inputValue)
 
-        if (value) {
-            validateNickname(value)
-        } else {
-            setNicknameError('')
-        }
+        // 유효성 검사 수행
+        validateNickname(inputValue)
     }
 
-    // 전화번호 변경 핸들러
+    // 휴대폰 번호 입력 핸들러
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        // 카카오 사용자는 전화번호 변경 불가
-        if (isKakaoUser) return
-
         const inputValue = e.target.value
+        // 유저가 입력한 값을 그대로 저장 (하이픈 포함)
+        setNewPhoneNumber(inputValue)
 
-        // 입력값에서 숫자와 하이픈만 허용
-        const sanitizedValue = inputValue.replace(/[^\d-]/g, '')
-
-        setNewPhoneNumber(sanitizedValue)
+        // 입력 시 중복 확인 필요
         setIsPhoneChecked(false)
 
-        if (sanitizedValue) {
-            validatePhoneNumber(sanitizedValue)
+        // 유효성 검사 수행
+        validatePhoneNumber(inputValue)
+
+        // 입력값 형식화
+        if (inputValue) {
+            // 하이픈 제거 후 다시 포맷팅
+            const digitsOnly = inputValue.replace(/-/g, '')
+            setFormattedPhone(formatPhoneNumber(digitsOnly))
         } else {
-            setPhoneError('')
+            setFormattedPhone('')
         }
     }
 
     // 폼 제출 핸들러
     const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault()
-        console.log('폼 제출 시작', { nickname, newPhoneNumber, isFormValid })
-
-        // 변경사항이 없으면 리다이렉트
-        if (!nickname && !newPhoneNumber) {
-            console.log('변경사항 없음, 리다이렉트')
-            router.push('/myinfo')
-            return
-        }
-
-        // 닉네임이 변경되었다면 중복확인 여부 검사
-        if (nickname && !isNicknameChecked) {
-            console.log('닉네임 중복확인 필요')
-            setError('닉네임 중복확인이 필요합니다.')
-            return
-        }
-
-        // 휴대폰 번호가 변경되었다면 중복확인 여부 검사 (카카오 사용자는 체크하지 않음)
-        if (newPhoneNumber && !isPhoneChecked && !isKakaoUser) {
-            console.log('휴대폰 번호 중복확인 필요')
-            setError('휴대폰 번호 중복확인이 필요합니다.')
-            return
-        }
-
-        // 유효성 검사
-        let isValid = true
-
-        if (nickname) {
-            const nicknameValid = validateNickname(nickname)
-            console.log('닉네임 유효성 검사:', nicknameValid)
-            isValid = nicknameValid && isValid
-        }
-
-        if (newPhoneNumber) {
-            const phoneValid = validatePhoneNumber(newPhoneNumber)
-            console.log('휴대폰 번호 유효성 검사:', phoneValid)
-            isValid = phoneValid && isValid
-        }
-
-        if (!isValid) {
-            console.log('유효성 검사 실패')
-            return
-        }
-
-        console.log('모든 검사 통과, API 호출 시작')
         setIsLoading(true)
         setError('')
 
         try {
-            // 전화번호에서 하이픈 제거 (입력 형식과 상관없이 서버에는 숫자만 전송)
-            // 카카오 사용자는 전화번호 변경 불가
-            const phoneNumClean = !isKakaoUser && newPhoneNumber ? newPhoneNumber.replace(/-/g, '') : undefined
+            // 변경할 데이터 준비
+            const updateData: { nickName?: string; phoneNum?: string } = {}
 
-            const updateData = {
-                nickName: nickname || undefined,
-                phoneNum: phoneNumClean,
+            // 변경할 닉네임이 있는 경우
+            if (nickname && nickname !== currentNickname) {
+                updateData.nickName = nickname
             }
 
-            console.log('업데이트 데이터:', updateData)
+            // 변경할 휴대폰 번호가 있는 경우 (하이픈 제거)
+            if (newPhoneNumber && newPhoneNumber.replace(/-/g, '') !== phoneNumber) {
+                updateData.phoneNum = newPhoneNumber.replace(/-/g, '')
+            }
 
-            // API 호출
+            // 변경할 내용이 없는 경우
+            if (Object.keys(updateData).length === 0) {
+                toast.info('변경할 내용이 없습니다.')
+                setIsLoading(false)
+                return
+            }
+
+            console.log('프로필 업데이트 요청 데이터:', updateData)
+
+            // 백엔드에 업데이트 요청
             const response = await fetch('/api/v1/myInfos/update', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include', // 쿠키(JWT)를 포함하여 요청
+                credentials: 'include',
                 body: JSON.stringify(updateData),
             })
 
-            console.log('업데이트 응답 상태:', response.status)
+            console.log('프로필 업데이트 응답 상태:', response.status)
 
             if (!response.ok) {
-                let errorMessage = '정보 업데이트에 실패했습니다.'
-                try {
-                    const errorData = await response.text()
-                    console.error('업데이트 실패 응답:', errorData)
-
-                    // 백엔드 MyInfoErrorCode에 맞게 오류 메시지 처리
-                    if (errorData.includes('닉네임을 이미 사용 중입니다')) {
-                        errorMessage = '닉네임을 이미 사용 중입니다.'
-                    } else if (errorData.includes('전화번호를 이미 사용 중입니다')) {
-                        errorMessage = '전화번호를 이미 사용 중입니다.'
-                    } else if (errorData.includes('닉네임은 한글/영문 2~20자')) {
-                        errorMessage = '닉네임은 한글/영문 2~20자, 공백 없이 특수 기호는 _, -, . 만 사용 가능합니다.'
-                    } else if (errorData.includes('전화번호는 숫자만 포함')) {
-                        errorMessage = '전화번호는 숫자만 포함하며, 10~11자리여야 합니다.'
-                    } else if (errorData.includes('기존과 동일합니다')) {
-                        errorMessage = '변경할 내용이 기존과 동일합니다.'
-                    } else if (errorData.includes('필수 작성 항목입니다')) {
-                        errorMessage = '필수 작성 항목이 누락되었습니다.'
-                    } else if (errorData) {
-                        errorMessage = errorData
-                    }
-                } catch (parseError) {
-                    console.error('응답 파싱 오류:', parseError)
-                }
-
-                throw new Error(errorMessage)
+                const errorText = await response.text()
+                throw new Error(`프로필 업데이트 실패: ${errorText}`)
             }
 
-            // 성공 시 완료 메시지 표시
-            alert('정보가 성공적으로 수정되었습니다.')
-
-            // 성공 시 리다이렉트
-            router.push('/myinfo')
-        } catch (err: unknown) {
-            console.error('정보 업데이트 중 오류 발생:', err)
-            setError(err instanceof Error ? err.message : '정보 업데이트에 실패했습니다. 다시 시도해주세요.')
+            // 성공 시 처리
+            try {
+                // 응답 형식 확인 후 처리
+                const contentType = response.headers.get('content-type');
+                let result;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    // JSON 응답인 경우
+                    result = await response.json();
+                    console.log('프로필 업데이트 성공 (JSON):', result);
+                } else {
+                    // 텍스트 응답인 경우
+                    const textResponse = await response.text();
+                    console.log('프로필 업데이트 성공 (텍스트):', textResponse);
+                    result = { message: textResponse };
+                }
+                
+                // 성공 메시지 표시
+                toast.success('프로필 정보가 업데이트되었습니다');
+                
+                // 마이페이지로 이동
+                setTimeout(() => {
+                    router.push('/myinfo');
+                }, 1500);
+            } catch (parseError) {
+                console.error('응답 파싱 중 오류:', parseError);
+                // 파싱 오류가 발생해도 업데이트는 성공한 것으로 처리
+                toast.success('프로필 정보가 업데이트되었습니다');
+                
+                setTimeout(() => {
+                    router.push('/myinfo');
+                }, 1500);
+            }
+        } catch (err) {
+            console.error('프로필 업데이트 중 오류 발생:', err)
+            setError(err instanceof Error ? err.message : '프로필 업데이트 중 오류가 발생했습니다')
+            toast.error('프로필 업데이트에 실패했습니다')
         } finally {
             setIsLoading(false)
         }
     }
 
-    console.log('컴포넌트 렌더링 상태:', {
-        isFormValid,
-        isNicknameChecked,
-        isPhoneChecked,
-        nickname,
-        newPhoneNumber,
-    })
+    // 로딩 중 표시
+    if (loadingUser) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <span className="loading loading-spinner loading-lg text-primary"></span>
+            </div>
+        )
+    }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="max-w-screen-lg mx-auto pt-6 pb-10">
-                <div className="bg-white rounded-lg shadow-sm mx-4 md:mx-auto max-w-2xl mt-4">
-                    <div className="p-6">
-                        <h1 className="text-2xl font-bold mb-3 text-center">내 정보 수정</h1>
-                        <p className="text-sm text-gray-600 mb-8 text-center">프로필 정보를 수정하세요</p>
+        <div className="min-h-screen bg-gray-50 py-10 px-4">
+            <ToastContainer position="top-center" />
+            <div className="max-w-2xl mx-auto">
+                {/* 뒤로가기 버튼 */}
+                <div className="mb-8">
+                    <Link 
+                        href="/myinfo" 
+                        className="inline-flex items-center text-gray-600 hover:text-[#9C50D4] transition-colors text-lg"
+                    >
+                        <ArrowLeftIcon className="h-6 w-6 mr-2" />
+                        <span>내 정보로 돌아가기</span>
+                    </Link>
+                </div>
+                
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                    {/* 헤더 부분 */}
+                    <div className="bg-[#F7F3FD] px-8 py-6 border-b border-gray-100">
+                        <div className="flex items-center">
+                            <UserIcon className="h-9 w-9 text-[#9C50D4] mr-4" />
+                            <h1 className="text-2xl font-bold text-gray-800">프로필 정보 수정</h1>
+                        </div>
+                        <p className="text-gray-600 mt-3 text-lg">
+                            닉네임과 휴대폰 번호를 변경할 수 있습니다.
+                        </p>
+                    </div>
 
-                        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
+                    {/* 컨텐츠 부분 */}
+                    <div className="p-8">
+                        {/* 프로필 이미지 및 비밀번호 변경 링크 */}
+                        <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 p-6 rounded-xl">
+                            <div className="flex items-center mb-4 md:mb-0">
+                                <div className="flex-shrink-0 mr-6">
+                                    <CameraIcon className="h-10 w-10 text-[#9C50D4]" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-medium text-gray-800">프로필 이미지</h3>
+                                    <p className="text-gray-600 mt-1">프로필 이미지를 변경하거나 업로드합니다.</p>
+                                </div>
+                            </div>
+                            <Link
+                                href="/myinfo/profile-image"
+                                className="px-5 py-2.5 bg-white text-[#9C50D4] rounded-lg hover:bg-gray-50 transition-colors font-medium text-base md:text-lg flex items-center"
+                            >
+                                사진 변경
+                            </Link>
+                        </div>
+
+                        {/* 알림 메시지 */}
+                        {error && (
+                            <div className="mb-8 bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+                                <div className="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-base text-red-600">{error}</p>
+                                </div>
+                            </div>
+                        )}
 
                         <form onSubmit={handleSubmit}>
-                            <div className="space-y-10">
-                                {/* 프로필 이미지 섹션 */}
+                            <div className="space-y-8">
+                                {/* 닉네임 필드 */}
                                 <div>
-                                    <h3 className="text-lg font-medium text-gray-800 mb-4">프로필 이미지</h3>
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <div className="relative">
-                                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-100 bg-gray-50">
-                                                {loginMember?.profileImageUrl ? (
-                                                    <img
-                                                        src={loginMember.profileImageUrl}
-                                                        alt="프로필 이미지"
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            const target = e.target as HTMLImageElement
-                                                            target.src = 'https://via.placeholder.com/112?text=사용자'
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full bg-purple-50 flex items-center justify-center">
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-12 w-12 text-[#9C50D4]"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            strokeWidth={1.5}
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                                                            />
-                                                        </svg>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <Link
-                                            href="/myinfo/profile-image"
-                                            className="text-sm px-4 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-[#8C4FF2] transition-colors flex items-center gap-2"
-                                        >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="h-4 w-4"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                                                />
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                                                />
-                                            </svg>
-                                            프로필 이미지 변경
-                                        </Link>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label htmlFor="nickname" className="block text-lg font-medium text-gray-700">
+                                            닉네임
+                                        </label>
+                                        <span className="text-sm text-gray-500">
+                                            현재: {currentNickname}
+                                        </span>
                                     </div>
-                                </div>
-
-                                {/* 닉네임 입력 */}
-                                <div>
-                                    <h3 className="text-lg font-medium text-gray-800 mb-2">닉네임</h3>
-                                    <div className="text-sm text-gray-500 mb-2">현재 닉네임: {currentNickname}</div>
-                                    <div className="flex space-x-2">
+                                    <div className="relative">
                                         <input
                                             type="text"
                                             id="nickname"
-                                            placeholder="새 닉네임을 입력하세요"
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            name="nickname"
+                                            placeholder="변경할 닉네임 입력"
+                                            className={`w-full px-5 py-4 border text-lg ${
+                                                nicknameError && !nicknameError.includes('사용 가능')
+                                                    ? 'border-red-300 bg-red-50'
+                                                    : nicknameError && nicknameError.includes('사용 가능')
+                                                    ? 'border-green-300 bg-green-50'
+                                                    : 'border-gray-300 bg-gray-50'
+                                            } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors`}
                                             value={nickname}
                                             onChange={handleNicknameChange}
                                             disabled={isLoading}
                                         />
+                                        {nickname && nicknameError.includes('사용 가능') && (
+                                            <CheckCircleIcon className="absolute right-4 top-4 h-6 w-6 text-green-500" />
+                                        )}
+                                    </div>
+                                    {nicknameError && (
+                                        <p className={`mt-3 text-base flex items-center ${
+                                                nicknameError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                            {nicknameError.includes('사용 가능') ? (
+                                                <CheckIcon className="h-5 w-5 mr-2 text-green-500" />
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                            )}
+                                            {nicknameError}
+                                        </p>
+                                    )}
+                                    <p className="mt-2 text-sm text-gray-500">
+                                        2~20자의 영문, 한글, 숫자
+                                    </p>
+                                </div>
+
+                                {/* 휴대폰 번호 필드 */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label htmlFor="phone" className="block text-lg font-medium text-gray-700">
+                                            휴대폰 번호
+                                        </label>
+                                        <span className="text-sm text-gray-500">
+                                            현재: {phoneNumber ? formatPhoneNumber(phoneNumber) : '없음'}
+                                        </span>
+                                    </div>
+                                    <div className="flex space-x-3">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="tel"
+                                                id="phone"
+                                                placeholder="변경할 휴대폰 번호 입력"
+                                                className={`w-full px-5 py-4 border text-lg ${
+                                                    phoneError && !phoneError.includes('사용 가능')
+                                                        ? 'border-red-300 bg-red-50'
+                                                        : phoneError && phoneError.includes('사용 가능')
+                                                        ? 'border-green-300 bg-green-50'
+                                                        : 'border-gray-300 bg-gray-50'
+                                                } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors`}
+                                                value={newPhoneNumber}
+                                                onChange={handlePhoneChange}
+                                                disabled={isKakaoUser}
+                                                />
+                                            {newPhoneNumber && phoneError.includes('사용 가능') && (
+                                                <CheckCircleIcon className="absolute right-4 top-4 h-6 w-6 text-green-500" />
+                                            )}
+                                        </div>
                                         <button
                                             type="button"
-                                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-[#9C50D4] hover:text-white transition duration-200"
-                                            onClick={checkNicknameDuplicate}
-                                            disabled={isLoading}
+                                            onClick={checkPhoneDuplicate}
+                                            disabled={!newPhoneNumber || isLoading || isKakaoUser}
+                                            className="px-5 py-3 bg-[#F7F3FD] text-[#9C50D4] rounded-lg hover:bg-[#EFE6FC] transition-colors font-medium text-base whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             중복확인
                                         </button>
                                     </div>
-                                    {nicknameError && (
-                                        <div
-                                            className={`mt-2 text-sm ${
-                                                nicknameError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
-                                            }`}
-                                        >
-                                            {nicknameError}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* 휴대폰 번호 */}
-                                <div>
-                                    <h3 className="text-lg font-medium text-gray-800 mb-2">휴대폰 번호</h3>
-                                    <div className="text-sm text-gray-500 mb-2">
-                                        현재 휴대폰 번호: {phoneNumber ? formatPhoneNumber(phoneNumber) : '없음'}
-                                    </div>
-                                    {isKakaoUser ? (
-                                        <div className="mt-2 mb-4 p-3 bg-red-100 text-red-700 rounded-md">
-                                            카카오 소셜 로그인 사용자는 휴대폰 번호를 수정할 수 없습니다.
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="flex space-x-2">
-                                                <input
-                                                    type="tel"
-                                                    id="phone"
-                                                    placeholder="새 휴대폰 번호를 입력하세요"
-                                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                    value={newPhoneNumber}
-                                                    onChange={handlePhoneChange}
-                                                    disabled={isLoading || isKakaoUser}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-[#9C50D4] hover:text-white transition duration-200"
-                                                    onClick={checkPhoneDuplicate}
-                                                    disabled={isLoading || isKakaoUser}
-                                                >
-                                                    중복확인
-                                                </button>
-                                            </div>
-                                            {phoneError && (
-                                                <div
-                                                    className={`mt-2 text-sm ${
-                                                        phoneError.includes('사용 가능')
-                                                            ? 'text-green-600'
-                                                            : 'text-red-600'
-                                                    }`}
-                                                >
-                                                    {phoneError}
-                                                </div>
+                                    {phoneError && (
+                                        <p className={`mt-3 text-base flex items-center ${
+                                                phoneError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                            {phoneError.includes('사용 가능') ? (
+                                                <CheckIcon className="h-5 w-5 mr-2 text-green-500" />
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
                                             )}
-                                        </>
+                                            {phoneError}
+                                        </p>
                                     )}
+                                    {isKakaoUser && (
+                                        <p className="mt-3 text-sm text-amber-600 flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            카카오 계정은 휴대폰 번호를 변경할 수 없습니다.
+                                        </p>
+                                    )}
+                                    <p className="mt-2 text-sm text-gray-500">
+                                        예: 010-1234-5678 (하이픈 자동 추가)
+                                    </p>
                                 </div>
 
-                                {/* 하단 버튼 */}
-                                <div className="flex justify-end space-x-3 pt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => router.back()}
-                                        className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-                                        disabled={isLoading}
-                                    >
-                                        취소
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-6 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-purple-500 font-medium"
-                                        disabled={isLoading || !isFormValid}
-                                    >
-                                        {isLoading ? '저장 중...' : '변경사항 저장'}
-                                    </button>
+                                {/* 제출 버튼 */}
+                                <div className="pt-6">
+                                    <div className="flex justify-end space-x-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => router.back()}
+                                            className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 transition-colors text-lg"
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-6 py-3 bg-[#9C50D4] text-white rounded-lg hover:bg-[#8A45BC] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9C50D4] transition-colors font-medium flex items-center justify-center min-w-[100px] text-lg"
+                                            disabled={!isFormValid || isLoading}
+                                        >
+                                            {isLoading ? (
+                                                <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            ) : '저장하기'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     )
 }

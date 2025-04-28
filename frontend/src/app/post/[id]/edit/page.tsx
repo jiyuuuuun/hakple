@@ -345,6 +345,8 @@ const EditPostPage = () => {
                 
                 if (hasPermission) {
                   console.log('수정 권한 확인됨');
+                  // 권한이 있으면 에러 메시지를 초기화하여 에러 표시를 제거
+                  setError('');
                 } else {
                   setError('게시글을 수정할 권한이 없습니다.');
                   console.log('수정 권한 없음. User Name:', loggedInUserName, 'Owner Name:', postOwnerName, 'Is Admin:', isAdmin);
@@ -522,9 +524,11 @@ const EditPostPage = () => {
 
     return (
         <main className="bg-[#f9fafc] min-h-screen pb-8">
-            <div className="max-w-[1140px] mx-auto px-4">
-                <div className="pt-14">
-                    <h1 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">{boardType === 'notice' ? '공지사항 수정' : '게시글 수정'}</h1>
+            <div className="max-w-[1140px] mx-auto px-4 pt-14">
+                <div className="flex items-center justify-between mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">
+                        {boardType === 'notice' ? '공지사항 수정' : '게시글 수정'}
+                    </h1>
                     <button
                         onClick={() => router.back()}
                         className="flex items-center gap-2 text-gray-600 hover:text-[#980ffa] transition-colors"
@@ -554,7 +558,7 @@ const EditPostPage = () => {
                         </div>
                     </div>
 
-                                {/* Tiptap 에디터 적용 */}
+                    {/* Tiptap 에디터 적용 */}
                     <div className="w-full mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
                         <div className="border-2 border-gray-100 rounded-[15px] overflow-hidden transition-all duration-300
@@ -589,23 +593,14 @@ const EditPostPage = () => {
                     )}
 
                     {/* 버튼 영역 */}
-                    <div className="flex justify-between w-full border border-[#F9FAFB] rounded-[10px] p-2 sm:p-3">
-                        <button
-                            onClick={() =>
-                                typeParam === 'notice' ? router.push('/post/notice') : router.push('/post')
-                            }
-                            className="bg-[#980ffa] text-white py-[10px] px-[20px] rounded-[10px] text-[12px] border-none"
-                        >
-                            목록
-                        </button>
-
+                    <div className="flex justify-end mt-8">
                         <button
                             onClick={handleSubmit}
                             disabled={isSubmitting || (boardType === 'notice' && !isAdmin)}
-                            className={`py-[10px] px-[20px] rounded-[10px] text-[12px] border-none
+                            className={`bg-[#980ffa] text-white py-3 px-6 rounded-lg text-base font-medium flex items-center gap-2
                             ${boardType === 'notice' && !isAdmin
-                                    ? 'bg-gray-400 text-white cursor-not-allowed'
-                                    : 'bg-[#980ffa] text-white hover:bg-[#870edf] transition-all'
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'hover:bg-[#870edf] transition-all'
                                 }`}
                         >
                             {isSubmitting ? (
@@ -614,7 +609,10 @@ const EditPostPage = () => {
                                     <span>저장 중...</span>
                                 </div>
                             ) : (
-                                '수정하기'
+                                <>
+                                <span className="material-icons text-base">save</span>
+                                수정하기
+                                </>
                             )}
                         </button>
                     </div>

@@ -95,7 +95,7 @@ export default function ResetPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#FAF9FE] px-4 pt-0">
+        <div className="min-h-screen flex items-center justify-center bg-[#F5EEF8] px-4 pt-0">
             <div className="w-full max-w-[600px] bg-white rounded-3xl p-12 shadow-lg mt-[-200px]">
                 <div className="flex flex-col items-center mb-10 mt-[-10px]">
                     <Link href="/" className="cursor-pointer">

@@ -2,13 +2,11 @@ package com.golden_dobakhe.HakPle.domain.user.admin.controller;
 
 
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TotalBoardResponse;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.*;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +40,7 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 public class ApiV1AdminController {
 
     private final AdminService adminService;
+    private final UserRepository userRepository;
 
     @Operation(summary = "관리자 회원가입", description = "관리자 계정을 등록합니다.")
     @PostMapping("/register")
@@ -100,16 +99,24 @@ public class ApiV1AdminController {
     @Operation(summary = "학원 목록 조회 (유저 수 포함)", description = "모든 학원의 기본 정보와 소속 유저 수를 반환합니다.")
     @ApiResponse(responseCode = "200", description = "성공", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AcademyWithUserCountDto.class)))
     @GetMapping("/academies")
-    public ResponseEntity<List<AcademyWithUserCountDto>> getAcademiesWithUserCount() {
-        List<AcademyWithUserCountDto> result = adminService.getAcademyListWithUserCounts();
+    public ResponseEntity<Page<AcademyWithUserCountDto>> getAcademiesWithUserCount(
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name="size",defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        Page<AcademyWithUserCountDto> result = adminService.getAcademyListWithUserCounts(pageable);
         return ResponseEntity.ok(result);
     }
 
     @Operation(summary = "관리자 권한 유저 목록 조회", description = "권한이 ADMIN인 유저만 조회합니다.")
     @GetMapping("/admins")
-    public ResponseEntity<List<User>> getAdminUsers() {
-        List<User> adminUsers = adminService.getAdminUsers();
-        return ResponseEntity.ok(adminUsers);
+    public ResponseEntity<Page<AdminUserListDto>> getAdminUsers(
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name="size",defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        Page<AdminUserListDto> adminUserListDtos = adminService.getAdminUsers(pageable);
+        return ResponseEntity.ok(adminUserListDtos);
     }
 
     @GetMapping("/boards")
@@ -135,6 +142,21 @@ public class ApiV1AdminController {
     public ResponseEntity<Academy> getAcademyByCode(@PathVariable(name = "academyCode") String academyCode) {
         Academy academy = adminService.getAcademyByCode(academyCode);
         return ResponseEntity.ok(academy);
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<Page<UserListDto>> getUsers(
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name="size",defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page-1, size);
+        return ResponseEntity.ok(adminService.getUser(pageable));
+    }
+
+    @PostMapping("/user/status")
+    public ResponseEntity<?> changeUserStatus(@RequestBody ChangeUserStateRequestDto changeUserStateRequestDto){
+        adminService.changeUserStatus(changeUserStateRequestDto.getId(),changeUserStateRequestDto.getState());
+        return ResponseEntity.ok().build();
     }
 
 }

@@ -341,6 +341,13 @@ export default function AdminBoardsPage() {
           </nav>
         </div>
       )}
+      
+      {/* 페이지 정보 표시 */}
+      {boards.length > 0 && (
+        <div className="text-sm text-gray-500 text-center mt-4">
+          전체 {PAGE_SIZE * totalPages}개 항목 중 {(currentPage - 1) * PAGE_SIZE + 1} - {Math.min(currentPage * PAGE_SIZE, PAGE_SIZE * totalPages)}개 표시
+        </div>
+      )}
     </div>
   );
 } 

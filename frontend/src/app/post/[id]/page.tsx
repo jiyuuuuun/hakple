@@ -940,7 +940,7 @@ export default function PostDetailPage() {
                                 </span>
                             </div>
                         </div>
-                        {isLogin && (
+                        {isLogin && !isNoticePost(post) && (
                             <div className="relative" ref={postMenuRef}>
                                 <button
                                     className="p-2 rounded-full hover:bg-gray-100 transition-colors menu-button"

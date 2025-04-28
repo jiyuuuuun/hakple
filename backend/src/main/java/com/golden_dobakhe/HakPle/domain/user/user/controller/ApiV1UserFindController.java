@@ -28,10 +28,10 @@ public class ApiV1UserFindController {
     private final UserFindService userFindService;
 
     // 아이디 찾기
-    @Operation(summary = "아이디 찾기", description = "닉네임, 전화번호로 사용자의 아이디를 찾습니다.")
+    @Operation(summary = "아이디 찾기", description = "전화번호로 사용자의 아이디를 찾습니다.")
     @PostMapping("/find-username")
     public ResponseEntity<FindUsernameResponse> findUserName(@RequestBody @Valid FindUsernameRequest request) {
-        String userName = userFindService.findUserNameByPhoneNum(request.getNickName(), request.getPhoneNum());
+        String userName = userFindService.findUserNameByPhoneNum(request.getPhoneNum());
         FindUsernameResponse response = new FindUsernameResponse(userName);
         return ResponseEntity.ok(response);
     }

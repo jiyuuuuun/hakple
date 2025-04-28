@@ -55,3 +55,8 @@ package-lock.json
 yarn.lock
 
 uploads
+
+# QueryDSL generated files
+src/main/generated/
+
+

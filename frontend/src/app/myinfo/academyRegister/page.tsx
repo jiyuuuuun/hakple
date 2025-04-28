@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import Link from 'next/link'
+import { ArrowLeftIcon, AcademicCapIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
 // 백엔드 응답 타입 정의
 interface AcademyResponse {
@@ -105,54 +107,97 @@ export default function AcademyRegister() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <main className="max-w-screen-lg mx-auto pt-6 pb-10">
-                <div className="bg-white rounded-lg shadow-sm mx-4 md:mx-auto max-w-2xl mt-4">
-                    <div className="p-6">
-                        <h1 className="text-2xl font-bold mb-3 text-center">학원 등록</h1>
-                        <p className="text-sm text-gray-600 mb-8 text-center">학원 코드를 입력해 주세요</p>
+        <div className="min-h-screen bg-gray-50 py-10 px-4">
+            <div className="max-w-2xl mx-auto">
+                {/* 뒤로가기 버튼 */}
+                <div className="mb-8">
+                    <Link 
+                        href="/myinfo" 
+                        className="inline-flex items-center text-gray-600 hover:text-[#9C50D4] transition-colors text-lg"
+                    >
+                        <ArrowLeftIcon className="h-6 w-6 mr-2" />
+                        <span>내 정보로 돌아가기</span>
+                    </Link>
+                </div>
+                
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                    {/* 헤더 부분 */}
+                    <div className="bg-[#F7F3FD] px-8 py-6 border-b border-gray-100">
+                        <div className="flex items-center">
+                            <AcademicCapIcon className="h-9 w-9 text-[#9C50D4] mr-4" />
+                            <h1 className="text-2xl font-bold text-gray-800">학원 등록</h1>
+                        </div>
+                        <p className="text-gray-600 mt-3 text-lg">
+                            해당 학원에서 제공하는 코드를 입력하여 학원을 등록해 주세요.
+                        </p>
+                    </div>
 
+                    {/* 컨텐츠 부분 */}
+                    <div className="p-8">
                         <form onSubmit={handleSubmit}>
-                            <div className="space-y-10">
-                                {/* 학원 코드 입력 */}
+                            <div className="space-y-8">
                                 <div>
-                                    <h3 className="text-lg font-medium text-gray-800 mb-2">학원 코드</h3>
-                                    <div className="flex space-x-2">
+                                    <label 
+                                        htmlFor="academyCode" 
+                                        className="block text-lg font-medium text-gray-700 mb-3"
+                                    >
+                                        학원 코드
+                                    </label>
+                                    <div className="relative">
                                         <input
                                             type="text"
                                             id="academyCode"
-                                            placeholder="학원 코드를 입력해 주세요"
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            placeholder="예: ABC123"
+                                            className={`w-full px-5 py-4 text-lg border ${error ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors`}
                                             value={academyCode}
                                             onChange={(e) => setAcademyCode(e.target.value)}
                                             required
                                         />
+                                        {academyCode && !error && (
+                                            <CheckCircleIcon className="absolute right-4 top-4 h-6 w-6 text-green-500" />
+                                        )}
                                     </div>
-                                    {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                                    {error && (
+                                        <p className="mt-3 text-base text-red-600 flex items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                            {error}
+                                        </p>
+                                    )}
+                                    <p className="mt-3 text-sm text-gray-500">
+                                        학원 코드는 각 학원에서 개별적으로 발급됩니다. 코드를 모르시면 학원 관리자에게 문의해 주세요.
+                                    </p>
                                 </div>
 
-                                {/* 하단 버튼 */}
-                                <div className="flex justify-end space-x-3 pt-6">
+                                <div className="pt-6">
+                                    <div className="flex justify-end space-x-4">
                                     <button
                                         type="button"
                                         onClick={() => router.back()}
-                                        className="px-6 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                                            className="px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 transition-colors text-lg"
                                     >
                                         취소
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-6 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-purple-500 font-medium"
+                                            className="px-6 py-3 bg-[#9C50D4] text-white rounded-lg hover:bg-[#8A45BC] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#9C50D4] transition-colors font-medium flex items-center justify-center min-w-[100px] text-lg"
                                         disabled={isLoading}
                                     >
-                                        {isLoading ? '처리 중...' : '확인'}
+                                            {isLoading ? (
+                                                <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            ) : '등록하기'}
                                     </button>
+                                    </div>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     )
 }
