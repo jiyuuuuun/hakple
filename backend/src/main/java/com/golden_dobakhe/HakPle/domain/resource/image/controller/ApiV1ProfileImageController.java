@@ -27,7 +27,7 @@ public class ApiV1ProfileImageController {
             @RequestParam("multipartFile") MultipartFile multipartFile,
             Authentication authentication
     ) {
-        String userName = authentication.getName();
+        String userName = authentication.getName(); // JWT 필터에서 유저네임 꺼내옴
         return ResponseEntity.ok((profileImageService.uploadProfileImage(userName, multipartFile)));
     }
 
@@ -36,7 +36,7 @@ public class ApiV1ProfileImageController {
     public ResponseEntity<String> deleteProfileImage(
             Authentication authentication
     ) {
-        String userName = authentication.getName();
+        String userName = authentication.getName(); // JWT 필터에서 유저네임 꺼내옴
         profileImageService.deleteProfileImage(userName);
         return ResponseEntity.ok("프로필 이미지가 성공적으로 삭제되었습니다.");
     }

@@ -31,47 +31,37 @@ public class ProfileImageService {
 
     private final AmazonS3 amazonS3;
 
-    // 파일명을 난수화
-    public String createFileName(String originalFileName) {
-        String extension = extractFileExtension(originalFileName);
-        return UUID.randomUUID().toString().concat(extension);
+    // 파일명을 난수화하기 위해 UUID 를 활용하여 난수를 돌린다.
+    public String createFileName(String fileName) {
+        return UUID.randomUUID().toString().concat(getFileExtension(fileName));
     }
 
-    // 파일 확장자 추출 (e.g., ".png")
-    private String extractFileExtension(String fileName) {
+    //  "."의 존재 유무만 판단
+    private String getFileExtension(String fileName) {
         try {
-            int lastDotIndex = fileName.lastIndexOf(".");
-            if (lastDotIndex < 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "파일 확장자가 없는 파일입니다: " + fileName);
-            }
-            return fileName.substring(lastDotIndex); // "." 포함하여 반환
-        } catch (StringIndexOutOfBoundsException e) {
-            // 이 예외는 lastIndexOf 로직상 거의 발생하지 않지만, 혹시 모를 경우를 대비
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "파일 이름 분석 중 오류 발생: " + fileName);
-        }
-    }
+            //파일 형식 구하기
+            String ext = fileName.split("\\.")[1];
+//        String ext = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
 
-    // 확장자를 기반으로 Content-Type 결정
-    private String determineContentType(String extension) {
-        String ext = extension.startsWith(".") ? extension.substring(1).toLowerCase() : extension.toLowerCase();
-        switch (ext) {
-            case "jpeg":
-            case "jpg":
-                return "image/jpeg";
-            case "png":
-                return "image/png";
-            case "gif":
-                return "image/gif";
-            case "bmp":
-                return "image/bmp";
-            case "txt":
-                return "text/plain";
-            case "csv":
-                return "text/csv";
-            // 필요한 다른 타입 추가 가능
-            default:
-                // 기본값 또는 알 수 없는 타입 처리
-                return "application/octet-stream"; // S3 기본값과 동일하게 설정하거나, 예외 발생 가능
+            String contentType = "";
+            //content type을 지정해서 올려주지 않으면 자동으로 "application/octet-stream"으로 고정이 되서 링크 클릭시 웹에서 열리는게 아니라 자동 다운이 시작됨.
+            switch (ext) {
+                case "jpeg":
+                    contentType = "image/jpeg";
+                    break;
+                case "png":
+                    contentType = "image/png";
+                    break;
+                case "txt":
+                    contentType = "text/plain";
+                    break;
+                case "csv":
+                    contentType = "text/csv";
+                    break;
+            }
+            return contentType;
+        } catch (StringIndexOutOfBoundsException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "잘못된 형식의 파일" + fileName + ") 입니다.");
         }
     }
 
@@ -88,15 +78,11 @@ public class ProfileImageService {
             user.setProfileImage(null);
         }
 
-        String originalFilename = multipartFile.getOriginalFilename();
-        String fileExtension = extractFileExtension(originalFilename);
-        String contentType = determineContentType(fileExtension);
-        String fileName = createFileName(originalFilename);
+        String fileName = createFileName(multipartFile.getOriginalFilename());
 
         try {
             ObjectMetadata objectMetadata = new ObjectMetadata();
-            objectMetadata.setContentLength(multipartFile.getSize());
-            objectMetadata.setContentType(contentType);
+            objectMetadata.setContentType(fileName);
 
             //S3에 파일 업로드
             amazonS3.putObject(new PutObjectRequest(bucket, fileName, multipartFile.getInputStream(), objectMetadata)
@@ -109,17 +95,11 @@ public class ProfileImageService {
         String profileImageUrl = amazonS3.getUrl(bucket, fileName).toString();
         Image newImage = Image.builder()
                 .filePath(profileImageUrl)
-                .path(fileName)
-                .originalName(originalFilename)
-                .storedName(fileName)
-                .contentType(contentType)
-                .size(multipartFile.getSize())
-                .isDeleted(false)
                 .user(user)
                 .build();
-
         imageRepository.save(newImage);
         user.setProfileImage(newImage);
+        userRepository.save(user);
 
         return profileImageUrl;
     }

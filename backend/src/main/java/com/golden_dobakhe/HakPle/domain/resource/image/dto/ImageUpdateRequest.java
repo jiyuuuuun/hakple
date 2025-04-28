@@ -15,10 +15,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ImageUpdateRequest {
-    private List<String> tempIds; 
-    private Long boardId; 
-    private List<String> usedImageUrls; 
-    private String content; 
+    private List<String> tempIds; // 임시 이미지 식별자 목록
+    private Long boardId; // 연결할 게시글 ID
+    private List<String> usedImageUrls; // 글 수정 시 기존 이미지 URL 목록
+    private String content; // 게시글 HTML 콘텐츠
 
     public List<String> getTempIds() {
         return tempIds;

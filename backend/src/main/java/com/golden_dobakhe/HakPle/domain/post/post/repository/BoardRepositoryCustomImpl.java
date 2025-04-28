@@ -238,7 +238,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                     whereCondition.and(board.title.containsIgnoreCase(searchKeyword));
                     break;
                 case CONTENT:
-                    whereCondition.and(board.contentText.contains(searchKeyword));
+                    whereCondition.and(board.content.containsIgnoreCase(searchKeyword));
                     break;
                 case NICKNAME:
                     whereCondition.and(board.user.nickName.containsIgnoreCase(searchKeyword));
@@ -258,13 +258,12 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                     }
                     break;
                 case ALL:
-                    BooleanBuilder allCondition = new BooleanBuilder();
-                    allCondition.or(board.title.containsIgnoreCase(searchKeyword));
-                    allCondition.or(board.contentText.contains(searchKeyword));
-                    allCondition.or(board.user.nickName.containsIgnoreCase(searchKeyword));
-
+                    BooleanBuilder searchBuilder = new BooleanBuilder();
+                    searchBuilder.or(board.title.containsIgnoreCase(searchKeyword));
+                    searchBuilder.or(board.content.containsIgnoreCase(searchKeyword));
+                    searchBuilder.or(board.user.nickName.containsIgnoreCase(searchKeyword));
                     if (boardType != BoardType.NOTICE) {
-                        allCondition.or(
+                        searchBuilder.or(
                                 JPAExpressions.selectOne()
                                         .from(tagMapping)
                                         .join(tagMapping.hashtag, hashtag)
@@ -275,7 +274,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                                         .exists()
                         );
                     }
-                    whereCondition.and(allCondition);
+                    whereCondition.and(searchBuilder);
                     break;
             }
         }

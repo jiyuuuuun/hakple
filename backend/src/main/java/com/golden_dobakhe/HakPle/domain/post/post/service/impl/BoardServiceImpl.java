@@ -25,10 +25,6 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
-import com.golden_dobakhe.HakPle.domain.notification.entity.NotificationType;
-import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService;
-import jakarta.persistence.EntityNotFoundException;
-import java.util.Optional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -54,8 +50,6 @@ import java.util.HashSet;
 import java.util.Set;
 import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
 import java.util.Map;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
 
 @Service
 @Transactional
@@ -73,7 +67,6 @@ public class BoardServiceImpl implements BoardService {
     private final ImageRepository imageRepository;
     private final CommentRepository commentRepository;
     private final FileService fileService;
-    private final NotificationService notificationService;
     private static final Logger log = LoggerFactory.getLogger(BoardServiceImpl.class);
 
     @Override
@@ -97,13 +90,9 @@ public class BoardServiceImpl implements BoardService {
             resolvedAcademyCode = user.getAcademyId();
         }
 
-        String htmlContent = request.getContent();
-        String plainTextContent = Jsoup.clean(htmlContent != null ? htmlContent : "", Safelist.none());
-
         Board board = Board.builder()
                 .title(request.getTitle())
-                .content(htmlContent)
-                .contentText(plainTextContent)
+                .content(request.getContent())
                 .academyCode(resolvedAcademyCode)
                 .user(user)
                 .status(Status.ACTIVE)
@@ -140,6 +129,9 @@ public class BoardServiceImpl implements BoardService {
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             fileService.linkImagesToBoard(request.getTempIdList(), board.getId());
         }
+
+        board.setModificationTime(null);
+        boardRepository.save(board);
 
         return createBoardResponse(board);
     }
@@ -223,11 +215,7 @@ public class BoardServiceImpl implements BoardService {
 
         board.validateUser(userId);
         board.validateStatus();
-
-        String htmlContent = request.getContent();
-        String plainTextContent = Jsoup.clean(htmlContent != null ? htmlContent : "", Safelist.none());
-
-        board.update(request.getTitle(), htmlContent, plainTextContent, request.getBoardType());
+        board.update(request.getTitle(), request.getContent(), request.getBoardType());
 
         board.getTags().clear();
 
@@ -244,6 +232,7 @@ public class BoardServiceImpl implements BoardService {
         else {
             resolvedAcademyCode = user.getAcademyId();
         }
+
 
         if (request.getTags() != null) {
             for (String tagName : request.getTags()) {
@@ -264,7 +253,7 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
+                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e); // 원복: log.error 사용
                 }
             }
         }
@@ -276,6 +265,8 @@ public class BoardServiceImpl implements BoardService {
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             fileService.linkImagesToBoard(request.getTempIdList(), id);
         }
+
+        boardRepository.save(board);
 
         return createBoardResponse(board);
     }
@@ -317,57 +308,24 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public void toggleLike(Long boardId, Long userId, String academyCode) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
-
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound());
 
-        if (academyCode != null && !academyCode.isEmpty() && !board.getAcademyCode().equals(academyCode)) {
-            throw new IllegalArgumentException("학원 코드가 게시물과 일치하지 않습니다.");
+        if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
         }
 
         board.validateStatus();
 
         boardLikeRepository.findByBoardIdAndUserId(boardId, userId)
                 .ifPresentOrElse(
-                        boardLike -> {
-                            boardLikeRepository.delete(boardLike);
-                        },
+                        boardLikeRepository::delete,
                         () -> {
-                            BoardLike newBoardLike = BoardLike.builder()
-                                    .user(user)
+                            BoardLike boardLike = BoardLike.builder()
                                     .board(board)
+                                    .user(userRepository.findById(userId)
+                                            .orElseThrow(() -> BoardException.notFound()))
                                     .build();
-                            boardLikeRepository.save(newBoardLike);
-
-                            if (!board.getUser().getId().equals(userId)) {
-                                String message = String.format("회원님이 작성한 글 '%s'에 좋아요가 표시되었습니다.", board.getTitle());
-                                String link = "/post/" + board.getId();
-                                notificationService.createNotification(
-                                        board.getUser(),
-                                        NotificationType.POST_LIKE,
-                                        message,
-                                        link
-                                );
-
-                                int currentLikeCount = board.getLikeCount();
-
-                                if (currentLikeCount == 9) {
-                                    boolean alreadyNotified = notificationService.hasPopularPostNotification(board);
-                                    if (!alreadyNotified) {
-                                        String popularMessage = String.format("회원님의 글 '%s'이(가) 인기글에 선정되었습니다!", board.getTitle());
-                                        String popularLink = "/post/" + board.getId();
-                                        notificationService.createNotification(
-                                                board.getUser(),
-                                                NotificationType.POPULAR_POST,
-                                                popularMessage,
-                                                popularLink
-                                        );
-
-                                    }
-                                }
-                            }
+                            boardLikeRepository.save(boardLike);
                         }
                 );
     }

@@ -65,10 +65,10 @@ public class Image extends BaseEntity {
 
 
     @Column(nullable = false)
-    private boolean isTemporary;  
+    private boolean isTemporary;  // 임시 파일 여부
 
     @Column
-    private LocalDateTime expiresAt;  
+    private LocalDateTime expiresAt;  // 임시 파일 만료 시간
 
     @Column
     private String s3Key;
@@ -83,7 +83,7 @@ public class Image extends BaseEntity {
         this.tempId = tempId;
         this.s3Key = s3Key;
         if (isTemporary) {
-            this.expiresAt = LocalDateTime.now().plusHours(24); 
+            this.expiresAt = LocalDateTime.now().plusHours(24); // 임시 파일 24시간 후 만료
         }
     }
 

@@ -1,13 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { fetchApi } from '@/utils/api'
-import { BellIcon } from '@heroicons/react/24/outline'
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
 
 /**
  * 헤더 컴포넌트
@@ -17,24 +14,6 @@ import { ko } from 'date-fns/locale';
  * 로그인 상태에 따라 UI가 변경됩니다.
  * 반응형으로 설계되어 모바일과 데스크톱 환경에 모두 대응합니다.
  */
-
-// 백엔드 DTO와 필드 일치시키기
-interface Notification {
-    id: number;
-    notificationType: 'POST_LIKE' | 'POST_COMMENT' | 'POPULAR_POST'; // Enum 값들
-    message: string;
-    link: string;
-    isRead: boolean;
-    creationTime: string; // ISO 8601 형식 문자열로 받을 것으로 예상
-}
-
-// API 응답 페이지 타입 정의 (간단하게)
-interface Page<T> {
-    content: T[];
-    totalElements: number;
-    // ... 기타 페이징 정보
-}
-
 export default function Header() {
     // 모바일에서 메뉴 버튼 클릭 시 상태 관리
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -42,20 +21,12 @@ export default function Header() {
     const [isAdmin, setIsAdmin] = useState(false)
     // 검색어 상태 관리
     const [searchQuery, setSearchQuery] = useState('')
-    // 알림 드롭다운 상태
-    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-    const [notifications, setNotifications] = useState<Notification[]>([]); // 초기값 빈 배열
-    const [notificationCount, setNotificationCount] = useState(0); // 초기값 0
-    const [isLoadingNotifications, setIsLoadingNotifications] = useState(false); // 로딩 상태 추가
-    const [isLoadingCount, setIsLoadingCount] = useState(false); // 개수 로딩 (분리)
     // 현재 경로 가져오기
     const pathname = usePathname()
     // 라우터 가져오기
     const router = useRouter()
     // 검색 파라미터 가져오기
     const searchParams = useSearchParams()
-    // 드롭다운 참조
-    const notificationRef = useRef<HTMLDivElement>(null);
 
     // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
@@ -196,154 +167,7 @@ export default function Header() {
         setSearchQuery('')
     }
 
-    // 알림 드롭다운 토글 함수
-    const toggleNotificationDropdown = () => {
-        const newState = !isNotificationOpen;
-        setIsNotificationOpen(newState);
-        // 드롭다운이 열릴 때만 알림 목록을 가져옴
-        if (newState) {
-            fetchNotifications();
-        }
-    };
-
-    // 외부 클릭 감지 로직
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-                setIsNotificationOpen(false);
-            }
-        };
-        if (isNotificationOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isNotificationOpen]);
-
-    // 알림 읽음 처리 API 호출 함수
-    const markNotificationAsRead = async (notificationId: number) => {
-        console.log(`📬 알림 ${notificationId} 읽음 처리 시도`); // 로그 문구 원래대로
-
-        // ======== API 호출 다시 활성화 ========
-        try {
-            // API 호출
-            const response = await fetchApi(`/api/v1/notifications/my/${notificationId}/read`, {
-                method: 'PATCH',
-                credentials: 'include',
-            });
-
-            if (!response.ok) {
-                console.error(`API 호출 실패: ${response.status}`);
-                return;
-            }
-
-            console.log(`✅ API 호출 성공, 상태 업데이트 시도`); // 상태 업데이트 로그
-
-            // 상태 업데이트
-            setNotifications(prev => {
-                const newState = prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n);
-                console.log('🔔 알림 목록 상태 업데이트됨:', newState.find(n => n.id === notificationId));
-                return newState;
-            });
-            setNotificationCount(prev => {
-                const newCount = Math.max(0, prev - 1);
-                console.log('🔢 알림 카운트 상태 업데이트됨:', newCount);
-                return newCount;
-            });
-
-        } catch (error) {
-            console.error(`알림 ${notificationId} 읽음 처리 API 호출 중 오류 발생:`, error);
-            // API 호출 실패 시 상태 업데이트 안 함
-        }
-        // ======== API 호출 로직 끝 ========
-    };
-
-    // 알림 목록 가져오는 함수 (페이지네이션 적용)
-    const fetchNotifications = async (page = 0, size = 10, loadMore = false) => {
-        console.log('[fetchNotifications] 함수 호출됨! page:', page); // <-- 로그 추가
-        if (!isLogin) return;
-        setIsLoadingNotifications(true);
-        try {
-            console.log(`🔔 알림 목록 가져오기 API 호출 (page: ${page}, size: ${size})`);
-            // API 경로 수정: /api/v1/notifications/my
-            const response = await fetchApi(`/api/v1/notifications/my?page=${page}&size=${size}&sort=creationTime,desc`);
-            if (!response.ok) {
-                console.error('알림 목록 가져오기 실패:', response.status);
-                setNotifications([]); // 실패 시 초기화
-                setNotificationCount(0);
-                return;
-            }
-            const data: Page<Notification> = await response.json();
-            console.log('🔔 알림 목록 수신:', data);
-            setNotifications(data.content || []);
-            // TODO: 백엔드에서 읽지 않은 알림 개수를 별도로 제공한다면 해당 값을 사용
-            // 지금은 일단 총 개수를 배지에 표시 (totalElements 사용)
-            // setNotificationCount(data.totalElements || 0); // 👈 이 라인 제거!
-
-        } catch (error) {
-            console.error('알림 목록 가져오기 중 오류 발생:', error);
-            setNotifications([]);
-            setNotificationCount(0);
-        } finally {
-            setIsLoadingNotifications(false);
-        }
-    };
-
-    // 읽지 않은 알림 개수 가져오는 함수
-    const fetchUnreadCount = async () => {
-        console.log('[fetchUnreadCount] 함수 호출됨!');
-        if (!isLogin) return;
-        setIsLoadingCount(true);
-        try {
-            const response = await fetchApi('/api/v1/notifications/my/unread-count');
-            if (!response.ok) throw new Error('Failed to fetch unread count');
-            const data: { unreadCount: number } = await response.json();
-
-            // 👇 API 응답 데이터와 상태 업데이트 전 값 로깅 추가
-            console.log('[fetchUnreadCount] API 응답 데이터:', data);
-            const newCount = data.unreadCount || 0;
-            console.log('[fetchUnreadCount] setNotificationCount 호출 예정 값:', newCount);
-
-            setNotificationCount(newCount); // 상태 업데이트
-
-            console.log('📊 읽지 않은 알림 개수 (상태 업데이트 후):', newCount); // 로그 위치 변경                                          
-        } catch (error) {
-            console.error('읽지 않은 알림 개수 가져오기 오류:', error);
-            setNotificationCount(0);
-        } finally {
-             setIsLoadingCount(false);
-        }
-    };
-
-    // 로그인 상태 변경 시 읽지 않은 개수 가져오기
-    useEffect(() => {
-        console.log('[useEffect isLogin] 실행됨, isLogin:', isLogin);
-        if (isLogin) {
-            console.log('[useEffect isLogin] isLogin=true, fetchUnreadCount 호출 시도...');
-            // fetchUnreadCount(); // 바로 호출하지 않고
-            const timer = setTimeout(() => { // 짧은 지연 후 호출
-                console.log('[useEffect isLogin] setTimeout 실행, fetchUnreadCount 호출!');
-                fetchUnreadCount();
-            }, 10); // 10ms 지연
-            return () => clearTimeout(timer); // 클린업 함수: 컴포넌트 언마운트 시 타이머 제거
-        } else {
-            // 로그아웃 시 상태 초기화
-            setNotifications([]);
-            setNotificationCount(0);
-            setIsNotificationOpen(false);
-        }
-    }, [isLogin]);
-
-    // 새로고침 버튼 클릭 핸들러
-    const handleRefresh = () => {
-        console.log('[handleRefresh] 새로고침 버튼 클릭됨, fetchUnreadCount 호출 시도...'); // <-- 확인용 로그 추가
-        fetchUnreadCount(); // 개수 새로고침
-        if (isNotificationOpen) { // 드롭다운 열려있으면 목록도 새로고침
-            fetchNotifications(0, 10);
-        }
-    };
-
+    // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
     if (isAuthPage) {
         return null
     }
@@ -447,7 +271,7 @@ export default function Header() {
                         </nav>
                     </div>
 
-                    {/* 오른쪽: 검색, 알림, 로그인/로그아웃 */}
+                    {/* 오른쪽: 검색과 로그인/로그아웃 */}
                     <div className="flex items-center space-x-2 md:space-x-3">
                         {/* 검색 입력창 - 관리자가 아닐 때만 표시 */}
                         {!isAdmin && (
@@ -480,82 +304,6 @@ export default function Header() {
                                         </button>
                                     </div>
                                 </form>
-                            </div>
-                        )}
-
-                         {/* 알림 영역 - 로그인 상태이고 관리자가 아닐 때만 표시 */}
-                        {isLogin && !isAdmin && (
-                            <div className="relative" ref={notificationRef}> {/* 외부 클릭 감지를 위해 ref 추가 */}
-                                <button
-                                    onClick={toggleNotificationDropdown} // 클릭 핸들러 연결
-                                    className="relative p-1 mr-[10px] text-gray-600 hover:text-gray-800 focus:outline-none" // 오른쪽 마진 유지 (10px로 재수정)
-                                    aria-label="알림"
-                                >
-                                    <BellIcon className="h-6 w-6" />
-                                    {/* notificationCount는 이제 읽지 않은 개수를 의미 */}
-                                    {((): null => { console.log('[Render Badge] notificationCount:', notificationCount); return null; })()}
-                                    {notificationCount > 0 && (
-                                        <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                                            {notificationCount > 99 ? '99+' : notificationCount}
-                                        </span>
-                                    )}
-                                </button>
-
-                                {/* 알림 드롭다운 박스 */} 
-                                {isNotificationOpen && (
-                                    <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-md shadow-lg overflow-hidden z-20">
-                                        <div className="py-2 px-3 text-sm font-semibold text-gray-700 border-b flex justify-between items-center">
-                                            <span>알림 목록</span>
-                                            {/* 새로고침 버튼 - handleRefresh 호출 */} 
-                                            <button
-                                                onClick={handleRefresh}
-                                                disabled={isLoadingCount || isLoadingNotifications} // 로딩 상태 둘 다 고려
-                                                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                                                aria-label="알림 새로고침"
-                                            >
-                                                {/* 아이콘: 로딩 중이면 스핀 */} 
-                                                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${(isLoadingCount || isLoadingNotifications) ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0115.357-2m0 0H15" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div className="py-1 max-h-80 overflow-y-auto">
-                                            {isLoadingNotifications ? (
-                                                <div className="px-4 py-3 text-sm text-gray-500 text-center">로딩 중...</div>
-                                            ) : notifications.length > 0 ? (
-                                                notifications.map((notification) => (
-                                                    <Link
-                                                        key={notification.id}
-                                                        href={notification.link}
-                                                        className={`block px-4 py-3 text-sm hover:bg-gray-100 ${notification.isRead ? 'text-gray-500' : 'text-gray-800 font-medium'}`}
-                                                        onClick={() => {
-                                                            // 읽지 않은 알림만 읽음 처리 시도
-                                                            if (!notification.isRead) {
-                                                                markNotificationAsRead(notification.id);
-                                                            }
-                                                            setIsNotificationOpen(false);
-                                                        }}
-                                                    >
-                                                        {/* 알림 타입 아이콘 (선택 사항) */}
-                                                        {/* {notification.notificationType === 'POST_LIKE' && '👍 ' } */}
-                                                        {/* {notification.notificationType === 'POST_COMMENT' && '💬 ' } */}
-                                                        {/* {notification.notificationType === 'POPULAR_POST' && '🌟 ' } */}
-                                                        {notification.message}
-                                                        <span className="block text-xs text-gray-400 mt-1">
-                                                            {formatDistanceToNow(new Date(notification.creationTime), { addSuffix: true, locale: ko })}
-                                                        </span>
-                                                    </Link>
-                                                ))
-                                            ) : (
-                                                <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                                                    새로운 알림이 없습니다.
-                                                </div>
-                                            )}
-                                        </div>
-                                        {/* TODO: 전체 알림 보기 링크는 페이지네이션 구현 후 추가 */}
-                                        {/* {notificationCount > 10 && ( ... ) } */}
-                                    </div>
-                                )}
                             </div>
                         )}
 
@@ -693,59 +441,59 @@ export default function Header() {
                             {!isAdmin && (
                                 <>
                                     <Link
-                                href="/home"
-                                className={`font-medium text-base ${pathname === '/home' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                홈
-                            </Link>
-                            <Link
-                                href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
-                                className={`font-medium text-base ${pathname?.startsWith('/post/notice') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                공지사항
-                            </Link>
-                            <Link
-                                href="/post"
-                                className={`font-medium text-base ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                자유게시판
-                            </Link>
-                            <Link
-                                href="/post?type=popular"
-                                className={`font-medium text-base ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                인기글
-                            </Link>
-                            <Link
-                                href="/calendar"
-                                className={`font-medium text-base ${pathname === '/calendar' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                캘린더
-                            </Link>
-                            {pathname?.startsWith('/myinfo') && (
+                                        href="/home"
+                                        className={`font-medium text-base ${pathname === '/home' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                    >
+                                        홈
+                                    </Link>
+                                    <Link
+                                        href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
+                                        className={`font-medium text-base ${pathname?.startsWith('/post/notice') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                    >
+                                        공지사항
+                                    </Link>
+                                    <Link
+                                        href="/post"
+                                        className={`font-medium text-base ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                    >
+                                        자유게시판
+                                    </Link>
+                                    <Link
+                                        href="/post?type=popular"
+                                        className={`font-medium text-base ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                    >
+                                        인기글
+                                    </Link>
+                                    <Link
+                                        href="/calendar"
+                                        className={`font-medium text-base ${pathname === '/calendar' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                    >
+                                        캘린더
+                                    </Link>
+                                    {pathname?.startsWith('/myinfo') && (
+                                        <Link
+                                            href="/myinfo"
+                                            className="font-medium text-base text-purple-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                        >
+                                            내정보
+                                        </Link>
+                                    )}
+                                </>
+                            )}
+                            {/* 모바일 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
+                            {isAdmin && (
                                 <Link
-                                    href="/myinfo"
-                                    className="font-medium text-base text-purple-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                    href="/admin"
+                                    className="font-medium text-base text-red-600 hover:text-red-800 px-2 py-2 rounded-md hover:bg-gray-100 flex items-center"
                                 >
-                                    내정보
+                                    <span className="mr-1">👑</span>
+                                    관리자
                                 </Link>
                             )}
-                        </>
-                    )}
-                    {/* 모바일 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
-                    {isAdmin && (
-                        <Link
-                            href="/admin"
-                            className="font-medium text-base text-red-600 hover:text-red-800 px-2 py-2 rounded-md hover:bg-gray-100 flex items-center"
-                        >
-                            <span className="mr-1">👑</span>
-                            관리자
-                        </Link>
-                       )}
-                </nav>
-                 </div>
-        )}
+                        </nav>
+                    </div>
+                )}
             </div>
         </header>
-    );
+    )
 }

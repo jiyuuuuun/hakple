@@ -22,7 +22,6 @@ interface Post {
     boardType?: string;
     type?: string;
     academyCode?: string;
-    profileImageUrl?: string;
 }
 
 interface Comment {
@@ -35,7 +34,6 @@ interface Comment {
     isLiked?: boolean;
     isReported?: boolean;
     isOwner?: boolean;
-    profileImageUrl?: string;
 }
 
 export default function PostDetailPage() {
@@ -66,9 +64,6 @@ export default function PostDetailPage() {
     const commentMenuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
     const [commentLikingId, setCommentLikingId] = useState<number | null>(null);
     const editCommentRef = useRef<HTMLTextAreaElement>(null);
-
-    const [postAuthorImgError, setPostAuthorImgError] = useState(false);
-    const [commentImgErrors, setCommentImgErrors] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -934,16 +929,7 @@ export default function PostDetailPage() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                                {post.profileImageUrl && !postAuthorImgError ? (
-                                    <img
-                                        src={post.profileImageUrl}
-                                        alt={`${post.nickname} 프로필 이미지`}
-                                        className="w-full h-full object-cover"
-                                        onError={() => setPostAuthorImgError(true)}
-                                    />
-                                ) : (
-                                    <span className="material-icons text-[#980ffa] text-2xl">account_circle</span>
-                                )}
+                                <span className="material-icons text-[#980ffa] text-2xl">account_circle</span>
                             </div>
                             <div>
                                 <span className="font-semibold text-gray-800 block">{post.nickname}</span>
@@ -1166,17 +1152,8 @@ export default function PostDetailPage() {
                             >
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                                            {comment.profileImageUrl && !commentImgErrors[comment.id] ? (
-                                                <img
-                                                    src={comment.profileImageUrl}
-                                                    alt={`${comment.nickname} 프로필 이미지`}
-                                                    className="w-full h-full object-cover"
-                                                    onError={() => setCommentImgErrors(prev => ({ ...prev, [comment.id]: true }))}
-                                                />
-                                            ) : (
-                                                <span className="material-icons text-[#980ffa]">account_circle</span>
-                                            )}
+                                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <span className="material-icons text-[#980ffa]">account_circle</span>
                                         </div>
                                         <div>
                                             <h4 className="font-medium text-gray-900">{comment.nickname}</h4>
