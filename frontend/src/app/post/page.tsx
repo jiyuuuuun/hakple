@@ -22,6 +22,7 @@ interface Post {
   boardComments?: number;
   hasImage?: boolean;
   isLiked?: boolean;
+  profileImageUrl?: string;
 }
 
 interface Tag {
@@ -172,7 +173,8 @@ export default function PostPage() {
           isLiked: likedPostIds.includes(post.id),
           commentCount: post.commentCount || (post.boardComments ? post.boardComments : 0),
           likeCount: post.likeCount || (post.boardLikes ? post.boardLikes : 0),
-          hasImage: post.hasImage || false
+          hasImage: post.hasImage || false,
+          profileImageUrl: post.profileImageUrl
         })));
         setTotalPages(postData.totalPages || 1);
         setSearchCount(postData.totalElements || 0);
@@ -182,8 +184,8 @@ export default function PostPage() {
         setTotalPages(1);
         setSearchCount(0);
       }
-    } catch (error: any) {
-      console.log('게시물을 가져오는 중 오류가 발생했습니다:', error.message);
+    } catch (fetchError) {
+      console.error('게시물을 가져오는 중 오류:', fetchError instanceof Error ? fetchError.message : String(fetchError));
       setPosts([]);
       setTotalPages(1);
       setSearchCount(0);
@@ -210,20 +212,20 @@ export default function PostPage() {
       });
 
       if (!response.ok) {
+        let errorMessage = `인기 태그 로딩 실패 (상태: ${response.status})`;
         try {
           const errorData = await response.json();
-          const errorMessage = errorData.message || '인기 태그를 불러오는데 실패했습니다.';
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          console.warn("인기 태그 에러 응답 파싱 실패:", parseError);
+        }
 
-          if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
+        if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
             errorMessage.includes('먼저 학원을 등록해주세요')) {
             showAcademyAlert();
             return;
-          }
-
-          throw new Error(errorMessage);
-        } catch (error) {
-          throw new Error('인기 태그를 불러오는데 실패했습니다.');
         }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -244,8 +246,8 @@ export default function PostPage() {
       } else {
         setPopularTags([]);
       }
-    } catch (error: any) {
-      console.log('인기 태그를 가져오는 중 오류가 발생했습니다:', error.message);
+    } catch (fetchTagsError) {
+      console.error('인기 태그 로딩 중 오류:', fetchTagsError instanceof Error ? fetchTagsError.message : String(fetchTagsError));
       setPopularTags([]);
     } finally {
       setTagsLoading(false);
@@ -287,7 +289,7 @@ export default function PostPage() {
     setSortType(newSortType);
     setCurrentPage(1);
 
-    fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
+    // fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
   };
 
   const handleSearch = (keyword: string) => {
@@ -541,6 +543,7 @@ export default function PostPage() {
                         onLikeClick={(e) => handleLikeClick(post, e)}
                         likingPosts={likingPosts}
                         hasImage={post.hasImage || false}
+                        profileImageUrl={post.profileImageUrl}
                       />
                     ))}
                   </div>
@@ -561,6 +564,7 @@ export default function PostPage() {
                           onLikeClick={(e) => handleLikeClick(post, e)}
                           likingPosts={likingPosts}
                           hasImage={post.hasImage || false}
+                          profileImageUrl={post.profileImageUrl}
                         />
                         {index < posts.length - 1 && (
                           <div className="mx-6 border-b border-gray-200"></div>
@@ -729,7 +733,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
   );
 }
 
-function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
+function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
   id: number;
   title: string;
   nickname: string;
@@ -742,27 +746,26 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
   hasImage: boolean;
+  profileImageUrl?: string;
 }) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-200 border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
       <div className="p-6">
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              {profileImageUrl && !imgError ? (
+                <img
+                  src={profileImageUrl}
+                  alt={`${nickname} 프로필 이미지`}
+                  className="w-full h-full object-cover"
+                  onError={() => setImgError(true)}
                 />
-              </svg>
+              ) : (
+                <span className="material-icons text-gray-400 text-2xl">account_circle</span>
+              )}
             </div>
             <div>
               <p className="font-medium text-gray-900">{nickname}</p>
@@ -794,8 +797,6 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             <span className="invisible inline-block px-2 py-1 text-xs">#태그자리</span>
           )}
         </div>
-
-
 
         <div className="flex items-center gap-6 text-gray-500">
           <button
@@ -870,7 +871,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   );
 }
 
-function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
+function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
   id: number;
   title: string;
   nickname: string;
@@ -883,26 +884,25 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
   hasImage: boolean;
+  profileImageUrl?: string;
 }) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
       <Link href={`/post/${id}`} className="block">
         <div className="flex items-center gap-4 mb-2">
           <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            {profileImageUrl && !imgError ? (
+              <img
+                src={profileImageUrl}
+                alt={`${nickname} 프로필 이미지`}
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
               />
-            </svg>
+            ) : (
+              <span className="material-icons text-gray-400 text-2xl">account_circle</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900">{nickname}</span>
@@ -923,8 +923,6 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
             <span key={index} className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer">#{tag}</span>
           ))}
         </div>
-
-
 
         <div className="flex items-center gap-6 text-gray-500">
           <button
@@ -993,50 +991,6 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   );
 }
 
-// 시간을 상대적으로 표시하는 함수
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-
-  // 1분 미만
-  if (diffMs < 60 * 1000) {
-    return '방금 전';
-  }
-
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}분 전`;
-  } else if (diffHours < 24) {
-    const minutes = diffMinutes % 60;
-    if (minutes === 0) {
-      return `${diffHours}시간 전`;
-    }
-    return `${diffHours}시간 ${minutes}분 전`;
-  } else if (diffDays < 7) {
-    return `${diffDays}일 전`;
-  } else {
-    const year = date.getFullYear();
-    const currentYear = now.getFullYear();
-
-    if (year === currentYear) {
-      return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-    } else {
-      return `${year}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-    }
-  }
-}
-
-function getFormattedTime(creationTime: string, modificationTime?: string): string {
-  if (modificationTime) {
-    return `${formatRelativeTime(modificationTime)} (수정)`;
-  }
-  return formatRelativeTime(creationTime);
-}
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -1060,10 +1014,4 @@ function formatDate(dateString: string): string {
       minute: '2-digit'
     }).format(date);
   }
-}
-
-function summarizeContent(content: string): string {
-  const textContent = content.replace(/<[^>]+>/g, '');
-  const trimmedContent = textContent.replace(/\s+/g, ' ').trim();
-  return trimmedContent.length > 100 ? `${trimmedContent.slice(0, 100)}...` : trimmedContent;
 }
