@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import MobileBottomNav from '@/components/MobileBottomNav'
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation"
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
     const {
@@ -34,6 +34,24 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         checkAdminAndRedirect
     }
 
+    // Next.js의 현재 경로 감지
+    const pathname = usePathname()
+    
+    // 헤더와 푸터를 숨길 페이지 목록
+    const hideHeaderFooterPages = [
+        '/login', 
+        '/signup', 
+        '/forgot-username', 
+        '/forgot-password',
+        '/reset-password'
+    ]
+    
+    // 현재 페이지에서 헤더와 푸터를 숨길지 여부 (Next.js의 pathname 사용)
+    const shouldHideHeaderFooter = hideHeaderFooterPages.some(page => 
+        pathname?.startsWith(page)
+    )
+
+    
     const checkLoginStatus = async () => {
         try {
             console.log('로그인 상태 확인 시작')
@@ -70,66 +88,93 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         console.log('ClientLayout - 로그인 상태 확인 시작')
 
-        const currentPath = window.location.pathname
-
-
         // 로그인이 필요없는 페이지 목록
-        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success']
+        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
 
         const specialPages = ['/login', '/admin']
-        const isPublicPage = publicPages.some((page) => currentPath.startsWith(page))
-        const isSpecialPage = specialPages.some((page) => currentPath.startsWith(page))
+        const isPublicPage = publicPages.some((page) => pathname?.startsWith(page))
+        const isSpecialPage = specialPages.some((page) => pathname?.startsWith(page))
 
-        console.log('페이지 정보 - 현재 경로:', currentPath, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
+        console.log('페이지 정보 - 현재 경로:', pathname, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage)
 
-
-        // 로그인 상태 체크 API 호출
-        fetch(`http://localhost:8090/api/v1/auth/me`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-            .then((res) => {
-                console.log('로그인 상태 응답:', res.status)
-                if (!res.ok) {
+        const checkLoginStatus = () => {
+            // 로그인 상태 체크 API 호출
+            return fetch(`http://localhost:8090/api/v1/auth/me`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then((res) => {
+                    console.log('로그인 상태 응답:', res.status)
+                    if (!res.ok) {
+                        setNoLoginMember()
+                        setIsLogin(false)
+                        return Promise.reject(new Error('인증 필요'))
+                    }
+                    return res.json()
+                })
+                .then((data) => {
+                    // 로그인 성공
+                    console.log('로그인 상태 성공', data)
+                    setLoginMember(data)
+                    setIsLogin(true)
+                    return true
+                })
+                .catch((error) => {
+                    console.log('로그인 되어있지 않음', error)
                     setNoLoginMember()
                     setIsLogin(false)
-                    return Promise.reject(new Error('인증 필요'))
-                }
-                return res.json()
-            })
-            .then((data) => {
-                // 로그인 성공
-                console.log('로그인 상태 성공', data)
-                setLoginMember(data)
-                setIsLogin(true)
+                    return false
+                })
+        }
 
-                // 로그인 페이지에 있을 경우 홈으로 리다이렉트
-                if (currentPath === '/login' && !isSpecialPage) {
-                    console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
-                    router.replace("/")
-                }
-            })
-            .catch((error) => {
-                console.log('로그인 되어있지 않음', error)
-                setNoLoginMember()
-                setIsLogin(false)
-
+        // 로그인 상태 확인 및 리다이렉트 처리
+        checkLoginStatus()
+            .then((isLoggedIn) => {
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
-                if (!isPublicPage && !isSpecialPage) {
+                if (!isPublicPage && !isSpecialPage && !isLoggedIn) {
                     console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
-               //     router.replace("/login")
+                    router.replace("/login")
+                }
+                
+                // 로그인 페이지에 있을 경우 홈으로 리다이렉트
+                if (pathname === '/login' && isLoggedIn) {
+                    console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
+                    router.replace("/home")
+                }
+
+                // 관리자인 경우 /myinfo 페이지 접근 제한
+                if (isLoggedIn && pathname?.startsWith('/myinfo')) {
+                    // 관리자 권한 확인
+                    fetch(`http://localhost:8090/api/v1/admin/check`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                    })
+                    .then(response => {
+                        if (!response.ok) return false
+                        return response.json()
+                    })
+                    .then(isAdmin => {
+                        if (isAdmin === true) {
+                            console.log('관리자의 /myinfo 페이지 접근 - 관리자 페이지로 리다이렉트')
+                            router.replace("/admin")
+                        }
+                    })
+                    .catch(error => {
+                        console.log('관리자 권한 확인 중 오류:', error)
+                    })
                 }
             })
-            checkLoginStatus()
-
             .finally(() => {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
 
-    }, []) // 초기 로딩 시에만 실행
+    }, [pathname]) // pathname이 변경될 때마다 실행
 
 
     // ✅ 로그인 상태가 변경된 후 (렌더 기준) 로그 출력
@@ -137,6 +182,31 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         console.log('✅ 렌더 기준 로그인 상태 변경됨');
         console.log('🔐 isLogin:', isLogin);
         console.log('👤 loginMember:', loginMember);
+        
+        // 로그인 상태이고 프로필 이미지가 없는 경우 API에서 정보 다시 가져오기
+        if (isLogin && !loginMember.profileImageUrl) {
+            console.log('프로필 이미지가 없어서 사용자 정보 다시 가져오기 시도');
+            fetch('/api/v1/myInfos', {
+                method: 'GET',
+                credentials: 'include',
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        return Promise.reject('사용자 정보를 가져올 수 없습니다.');
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    console.log('추가 사용자 정보 조회 결과:', data);
+                    if (data.profileImageUrl) {
+                        console.log('프로필 이미지 URL 발견:', data.profileImageUrl);
+                        setLoginMember(data);
+                    }
+                })
+                .catch(err => {
+                    console.log('추가 사용자 정보 조회 실패:', err);
+                });
+        }
     }, [isLogin, loginMember]);
 
     if (isLoginMemberPending) {
@@ -150,11 +220,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return (
         <LoginMemberContext.Provider value={loginMemberContextValue}>
             <div className="flex flex-col min-h-screen">
-                <Header />
+                {!shouldHideHeaderFooter && <Header />}
                 <div className="flex-grow">{children}</div>
-                <Footer />
+                {!shouldHideHeaderFooter && <Footer />}
                 {/* ✅ 모바일 하단 탭 추가 */}
-                <MobileBottomNav />
+                {!shouldHideHeaderFooter && <MobileBottomNav />}
             </div>
         </LoginMemberContext.Provider>
     )

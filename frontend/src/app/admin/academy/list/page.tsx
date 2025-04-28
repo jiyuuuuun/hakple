@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 
 interface Academy {
   id?: number;             // 백엔드에서 제공할 수도 있음
@@ -13,33 +14,48 @@ interface Academy {
   creationTime: string;    // 생성 시간
 }
 
+// 페이지네이션을 위한 응답 인터페이스 추가
+interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
 export default function AcademyListPage() {
   const router = useRouter();
+  const { loginMember } = useGlobalLoginMember();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [filteredAcademies, setFilteredAcademies] = useState<Academy[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  
+  // 페이지네이션 관련 상태 추가
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
 
   // 관리자 권한 확인
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        // 로컬 스토리지에서 액세스 토큰 가져오기
-        const token = localStorage.getItem('accessToken');
-        
-        if (!token) {
-          router.push('/login');
-          return;
+        if (!loginMember) {
+          router.push('/login')
+          return
         }
-        
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
           method: 'GET',
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
           },
         });
 
@@ -53,7 +69,7 @@ export default function AcademyListPage() {
         
         if (isAdminResult === true) {
           setIsAdmin(true);
-          fetchAcademies(token);
+          fetchAcademies();
         } else {
           router.push('/');
         }
@@ -66,15 +82,15 @@ export default function AcademyListPage() {
     };
 
     checkAdmin();
-  }, [router]);
+  }, [router, currentPage, pageSize]);
 
   // 학원 목록 가져오기
-  const fetchAcademies = async (token: string) => {
+  const fetchAcademies = async () => {
     try {
       console.log('학원 목록 조회 API 요청 시작');
       
-      // API 엔드포인트를 원래대로 수정
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/academies`;
+      // 페이지네이션이 적용된 API 엔드포인트
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/academies?page=${currentPage}&size=${pageSize}`;
       console.log('요청 URL:', apiUrl);
       
       const response = await fetch(apiUrl, {
@@ -82,7 +98,6 @@ export default function AcademyListPage() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
       });
       
@@ -104,7 +119,7 @@ export default function AcademyListPage() {
       const contentType = response.headers.get('content-type');
       console.log('응답 Content-Type:', contentType);
       
-      // 응답 처리 방식 개선
+      // 응답 처리
       let data;
       try {
         const responseText = await response.text();
@@ -112,44 +127,39 @@ export default function AcademyListPage() {
         
         if (!responseText || responseText.trim() === '') {
           console.log('응답이 비어있습니다.');
-          data = [];
+          data = { content: [], totalPages: 0, totalElements: 0 };
         } else {
           try {
             data = JSON.parse(responseText);
             console.log('파싱된 데이터:', data);
           } catch (parseError) {
             console.error('JSON 파싱 오류:', parseError);
-            data = [];
+            data = { content: [], totalPages: 0, totalElements: 0 };
           }
         }
       } catch (error) {
         console.error('응답 데이터 처리 중 오류:', error);
-        data = [];
+        data = { content: [], totalPages: 0, totalElements: 0 };
       }
       
-      // 배열인지 확인
-      if (!Array.isArray(data)) {
-        console.error('API 응답이 배열이 아닙니다:', data);
-        // 가능한 응답 형식 확인
-        if (Array.isArray(data?.content)) {
-          data = data.content;
-        } else if (data && typeof data === 'object') {
-          // 객체의 첫 번째 속성이 배열인지 확인
-          const firstProp = Object.values(data)[0];
-          if (Array.isArray(firstProp)) {
-            data = firstProp;
-          } else {
-            // 그 외의 경우 빈 배열 반환
-            data = [];
-          }
-        } else {
-          data = [];
-        }
-        console.log('배열로 변환된 데이터:', data);
+      // 페이지네이션 응답 형식 처리
+      let academyList = [];
+      if (Array.isArray(data)) {
+        academyList = data;
+        setTotalPages(1);
+        setTotalElements(data.length);
+      } else if (data && Array.isArray(data.content)) {
+        academyList = data.content;
+        setTotalPages(data.totalPages || 1);
+        setTotalElements(data.totalElements || academyList.length);
+      } else {
+        academyList = [];
+        setTotalPages(1);
+        setTotalElements(0);
       }
       
       // Academy 인터페이스에 맞게 데이터 매핑
-      const mappedData = data.map((item: any) => ({
+      const mappedData = academyList.map((item: any) => ({
         id: item.id || 0,
         name: item.academyName || '이름 없음',
         phone: item.phoneNum || '',
@@ -212,6 +222,18 @@ export default function AcademyListPage() {
     }
   };
 
+  // 페이지 변경 처리 함수 추가
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // 페이지 크기 변경 처리 함수 추가
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = parseInt(e.target.value);
+    setPageSize(newSize);
+    setCurrentPage(1); // 페이지 크기 변경 시 첫 페이지로 이동
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -235,17 +257,32 @@ export default function AcademyListPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex mb-6">
-            <div className="w-full">
-              <input
-                type="text"
-                placeholder="학원 이름, 코드 또는 전화번호로 검색"
-                value={searchTerm}
-                onChange={handleSearch}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
-              />
+          <div className="flex flex-col md:flex-row justify-between space-y-4 md:space-y-0 mb-6">
+            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+              <div className="w-full md:w-64">
+                <input
+                  type="text"
+                  placeholder="학원 이름, 코드 또는 전화번호로 검색"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
+                />
+              </div>
+              {/* 페이지 크기 선택 옵션 추가 */}
+              <div>
+                <select
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
+                >
+                  <option value={10}>10개씩</option>
+                  <option value={20}>20개씩</option>
+                  <option value={50}>50개씩</option>
+                </select>
+              </div>
             </div>
-            <div className="ml-4">
+            
+            <div className="flex space-x-2">
               <Link 
                 href="/admin/academy/register" 
                 className="whitespace-nowrap px-6 py-2 bg-[#8C4FF2] text-white rounded-lg font-medium hover:bg-[#7340C2] inline-flex items-center justify-center transition-colors"
@@ -310,6 +347,87 @@ export default function AcademyListPage() {
               </table>
             </div>
           )}
+          
+          {/* 페이지네이션 UI 추가 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <nav className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded-md ${
+                    currentPage === 1
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  이전
+                </button>
+                
+                <div className="flex space-x-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      // 현재 페이지 주변의 페이지만 표시
+                      return (
+                        page === 1 ||
+                        page === totalPages ||
+                        Math.abs(page - currentPage) <= 2
+                      );
+                    })
+                    .map((page, index, array) => {
+                      // 페이지 번호 사이에 간격이 있는 경우 ... 표시
+                      if (index > 0 && array[index - 1] !== page - 1) {
+                        return (
+                          <div key={`ellipsis-${page}`} className="flex items-center">
+                            <span className="px-1">...</span>
+                            <button
+                              onClick={() => handlePageChange(page)}
+                              className={`px-3 py-1 rounded-md ${
+                                currentPage === page
+                                  ? 'bg-[#8C4FF2] text-white'
+                                  : 'text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`px-3 py-1 rounded-md ${
+                            currentPage === page
+                              ? 'bg-[#8C4FF2] text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded-md ${
+                    currentPage === totalPages
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  다음
+                </button>
+              </nav>
+            </div>
+          )}
+          
+          {/* 페이지 정보 표시 */}
+          <div className="text-sm text-gray-500 text-center mt-4">
+            전체 {totalElements}개 항목 중 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalElements)}개 표시
+          </div>
         </div>
       </div>
     </div>

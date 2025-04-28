@@ -6,637 +6,566 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
 
-// LoginMember 타입 명확히 정의
 interface LoginMember {
-  id: number;
-  nickname: string;
-  isAdmin: boolean;
-  // ... 기타 필요한 필드
+    id: number;
+    nickname: string;
+    isAdmin: boolean;
 }
 
 interface Post {
-  id: number;
-  title: string;
-  nickname: string;
-  creationTime: string;
-  modificationTime?: string;
-  viewCount: number;
-  commentCount: number;
-  likeCount: number;
-  tags: string[];
-  hasImage?: boolean;  // 이미지 첨부 여부
+    id: number;
+    title: string;
+    nickname: string;
+    creationTime: string;
+    modificationTime?: string;
+    viewCount: number;
+    commentCount: number;
+    likeCount: number;
+    tags: string[];
+    hasImage?: boolean;  // 이미지 첨부 여부
 }
 
 export default function NoticePage() {
-  // 타입 명확히 지정
-  const { isLogin, loginMember } = useGlobalLoginMember() as {
-    isLogin: boolean;
-    loginMember: LoginMember | null;
-  };
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
+    const { isLogin, loginMember } = useGlobalLoginMember() as {
+        isLogin: boolean;
+        loginMember: LoginMember | null;
+    };
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [searchMode, setSearchMode] = useState(false);
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [searchCount, setSearchCount] = useState(0);
+    const [pageSize, setPageSize] = useState('10');
+    const [sortType, setSortType] = useState('creationTime');
+    const [filterType, setFilterType] = useState('title');
+    const [academyCode, setAcademyCode] = useState<string | null>(null);
+    const [academyName] = useState<string>('');
+    const [postType, setPostType] = useState<string | null>(null);
+    const [isAdminState, setIsAdminState] = useState(false);
 
-  // 검색 및 정렬 관련 상태 추가
-  const [searchMode, setSearchMode] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchCount, setSearchCount] = useState(0);
-  const [pageSize, setPageSize] = useState('10');
-  const [sortType, setSortType] = useState('등록일순');
-  const [filterType, setFilterType] = useState('제목');
-  const [academyCode, setAcademyCode] = useState<string | null>(null);
-  const [academyName, setAcademyName] = useState<string>('');
-  const [postType, setPostType] = useState<string | null>(null);
+    const isAdmin = () => isAdminState || (loginMember && !!loginMember.isAdmin);
 
-  // 관리자 상태를 별도의 상태로 관리
-  const [isAdminState, setIsAdminState] = useState(false);
+    useEffect(() => {
+        const checkAdminPermission = async () => {
+            if (isLogin && loginMember) {
+                try {
+                    const response = await fetchApi('/api/v1/admin/check', {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
 
-  // isAdmin 체크 함수 수정
-  const isAdmin = () => isAdminState || (loginMember && !!loginMember.isAdmin);
-
-  // 초기 로딩 시 관리자 권한 확인
-  useEffect(() => {
-    const checkAdminPermission = async () => {
-      if (isLogin && loginMember) {
-        try {
-          const response = await fetchApi('/api/v1/admin/check', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json'
+                    if (response.ok) {
+                        const isAdminResult = await response.json();
+                        setIsAdminState(isAdminResult === true);
+                        console.log('관리자 권한 확인 결과:', isAdminResult);
+                    }
+                } catch (error) {
+                    console.error('관리자 권한 확인 중 오류 발생:', error);
+                }
             }
-          });
+        };
 
-          if (response.ok) {
-            const isAdminResult = await response.json();
-            setIsAdminState(isAdminResult === true);
-            console.log('관리자 권한 확인 결과:', isAdminResult);
-          }
-        } catch (error) {
-          console.error('관리자 권한 확인 중 오류 발생:', error);
+        checkAdminPermission();
+    }, [isLogin, loginMember]);
+
+    useEffect(() => {
+        if (searchParams) {
+            if (searchParams.has('keyword')) {
+                const keyword = searchParams.get('keyword');
+                if (keyword) {
+                    setSearchKeyword(keyword);
+                    setSearchMode(true);
+                }
+            }
+
+            if (searchParams.has('sortType')) {
+                const sort = searchParams.get('sortType');
+                if (sort) {
+                    setSortType(sort);
+                }
+            }
+
+            if (searchParams.has('filterType')) {
+                const filter = searchParams.get('filterType');
+                if (filter) {
+                    setFilterType(filter);
+                }
+            }
+
+            if (searchParams.has('academyCode')) {
+                const code = searchParams.get('academyCode');
+                if (code) {
+                    setAcademyCode(code);
+                }
+            }
+
+            if (searchParams.has('type')) {
+                const type = searchParams.get('type');
+                if (type) {
+                    setPostType(type);
+                }
+            }
         }
-      }
+
+        const pathParts = window.location.pathname.split('/');
+        if (pathParts.length > 3) {
+            const codeFromPath = pathParts[3];
+            if (codeFromPath && codeFromPath !== '') {
+                setAcademyCode(codeFromPath);
+            }
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
+        if (!isLogin) {
+            router.push('/login');
+        }
+    }, [isLogin, router]);
+
+    useEffect(() => {
+        if (isLogin && academyCode && postType) {
+            fetchNoticeBoards();
+        } else if (isLogin && (!academyCode || !postType)) {
+            const pathParts = window.location.pathname.split('/');
+            const urlHasAcademyCode = pathParts.length > 3 && pathParts[3] && pathParts[3] !== '';
+
+            if (urlHasAcademyCode || (searchParams.has('academyCode') && searchParams.has('type'))) {
+                fetchNoticeBoards();
+            }
+        }
+    }, [isLogin, currentPage, pageSize, sortType, searchKeyword, academyCode, postType]);
+
+    const fetchNoticeBoards = async () => {
+        setLoading(true);
+        try {
+            let url = `/api/v1/posts/notice?page=${currentPage}&size=${pageSize}`;
+
+            url += `&sortType=${encodeURIComponent(sortType)}`;
+
+            if (searchKeyword && searchKeyword.trim() !== '') {
+                url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+                url += `&searchType=${encodeURIComponent(filterType)}`;
+            }
+
+            const currentAcademyCode = academyCode || searchParams.get('academyCode');
+            if (currentAcademyCode) {
+                url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
+            }
+
+            const currentPostType = postType || searchParams.get('type');
+            if (currentPostType) {
+                url += `&type=${encodeURIComponent(currentPostType)}`;
+            }
+
+            console.log('공지사항 API 요청 URL:', url);
+            const response = await fetchApi(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            });
+
+            console.log(response);
+
+            if (!response.ok) {
+                throw new Error('공지사항을 불러오는데 실패했습니다.');
+            }
+
+            const data = await response.json();
+            if (data && Array.isArray(data.content)) {
+                setPosts(data.content.map((post: Post) => ({
+                    ...post,
+                    hasImage: post.hasImage || false,
+                    commentCount: post.commentCount || 0
+                })));
+                setTotalPages(data.totalPages || 1);
+                setSearchCount(data.totalElements || 0);
+            } else {
+                setPosts([]);
+                setTotalPages(1);
+                setSearchCount(0);
+            }
+        } catch (error) {
+            console.error('공지사항을 불러오는데 실패했습니다:', error);
+            setPosts([]);
+            setTotalPages(1);
+            setSearchCount(0);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    checkAdminPermission();
-  }, [isLogin, loginMember]);
+    const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setPageSize(e.target.value);
+        setCurrentPage(1);
+    };
 
-  // URL 파라미터 처리
-  useEffect(() => {
-    if (searchParams) {
-      // 헤더에서 전달된 검색 파라미터 처리
-      if (searchParams.has('keyword')) {
-        const keyword = searchParams.get('keyword');
-        if (keyword) {
-          setSearchKeyword(keyword);
-          setSearchMode(true);
-        }
-      }
-
-      // 정렬 타입 파라미터 처리
-      if (searchParams.has('sortType')) {
-        const sort = searchParams.get('sortType');
-        if (sort) {
-          setSortType(sort);
-        }
-      }
-
-      // 필터 타입 파라미터 처리
-      if (searchParams.has('filterType')) {
-        const filter = searchParams.get('filterType');
-        if (filter) {
-          setFilterType(filter);
-        }
-      }
-
-      // 아카데미 코드 파라미터 처리
-      if (searchParams.has('academyCode')) {
-        const code = searchParams.get('academyCode');
-        if (code) {
-          setAcademyCode(code);
-        }
-      }
-
-      // 포스트 타입 파라미터 처리
-      if (searchParams.has('type')) {
-        const type = searchParams.get('type');
-        if (type) {
-          setPostType(type);
-        }
-      }
-    }
-
-    // URL 경로에서 아카데미 코드 추출 (ex: /post/notice/ABC1234)
-    const pathParts = window.location.pathname.split('/');
-    if (pathParts.length > 3) {
-      const codeFromPath = pathParts[3];
-      if (codeFromPath && codeFromPath !== '') {
-        setAcademyCode(codeFromPath);
-      }
-    }
-  }, [searchParams]);
-
-  // 로그인 확인
-  useEffect(() => {
-    if (!isLogin) {
-      router.push('/login');
-    }
-  }, [isLogin, router]);
-
-  // 공지사항 데이터 가져오기
-  useEffect(() => {
-    if (isLogin && academyCode && postType) {
-      fetchNoticeBoards();
-    } else if (isLogin && (!academyCode || !postType)) {
-      // URL 파라미터에서 값 가져오기가 완료된 후에만 API 호출
-      const pathParts = window.location.pathname.split('/');
-      const urlHasAcademyCode = pathParts.length > 3 && pathParts[3] && pathParts[3] !== '';
-
-      if (urlHasAcademyCode || (searchParams.has('academyCode') && searchParams.has('type'))) {
+    const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newSortType = e.target.value;
+        console.log(`정렬 방식 변경: ${newSortType}`);
+        setSortType(newSortType);
+        setCurrentPage(1);
         fetchNoticeBoards();
-      }
-    }
-  }, [isLogin, currentPage, pageSize, sortType, searchKeyword, academyCode, postType]);
+    };
 
-  // 아카데미 정보 가져오기
-  useEffect(() => {
-    if (academyCode) {
-      fetchAcademyInfo();
-    }
-  }, [academyCode]);
+    const handleSearch = (keyword: string) => {
+        setSearchKeyword(keyword);
+        setCurrentPage(1);
+        setSearchMode(true);
+    };
 
-  // 공지사항 데이터 가져오는 함수
-  const fetchNoticeBoards = async () => {
-    setLoading(true);
-    try {
-      let url = `/api/v1/posts/notice?page=${currentPage}&size=${pageSize}`;
-
-      // 정렬 방식 추가
-      url += `&sortType=${encodeURIComponent(sortType)}`;
-
-      // 검색어가 있는 경우 추가
-      if (searchKeyword && searchKeyword.trim() !== '') {
-        if (filterType === '제목') {
-          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
-        } else if (filterType === '작성자') {
-          url += `&keyword=${encodeURIComponent(searchKeyword)}`;
+    const handleFilterChange = (type: string) => {
+        if (type !== filterType) {
+            console.log(`필터 유형 변경: ${filterType} -> ${type}`);
+            setFilterType(type);
         }
-      }
+    };
 
-      // URL에서 아카데미 코드 확인
-      const currentAcademyCode = academyCode || searchParams.get('academyCode');
-      // 아카데미 코드가 있는 경우 추가
-      if (currentAcademyCode) {
-        url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
-      }
+    const resetAllFilters = () => {
+        setSearchMode(false);
+        setSearchKeyword('');
+        setSortType('creationTime');
+        setPageSize('10');
+        setCurrentPage(1);
+        setFilterType('title');
+    };
 
-      // URL에서 포스트 타입 확인
-      const currentPostType = postType || searchParams.get('type');
-      // 포스트 타입 추가
-      if (currentPostType) {
-        url += `&type=${encodeURIComponent(currentPostType)}`;
-      }
+    function formatRelativeTime(dateString: string): string {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
 
-      console.log('공지사항 API 요청 URL:', url);
-      const response = await fetchApi(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include'
-      });
+        if (diffMs < 60 * 1000) {
+            return '방금 전';
+        }
 
-      console.log(response);
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-      if (!response.ok) {
-        throw new Error('공지사항을 불러오는데 실패했습니다.');
-      }
+        if (diffMinutes < 60) {
+            return `${diffMinutes}분 전`;
+        } else if (diffHours < 24) {
+            const minutes = diffMinutes % 60;
+            if (minutes === 0) {
+                return `${diffHours}시간 전`;
+            }
+            return `${diffHours}시간 ${minutes}분 전`;
+        } else if (diffDays < 7) {
+            return `${diffDays}일 전`;
+        } else {
+            const year = date.getFullYear();
+            const currentYear = now.getFullYear();
 
-      const data = await response.json();
-      if (data && Array.isArray(data.content)) {
-        setPosts(data.content.map((post: Post) => ({
-          ...post,
-          hasImage: post.hasImage || false, // API에서 hasImage 필드가 없으면 false로 설정
-          commentCount: post.commentCount || 0 // API에서 commentCount 필드가 없으면 0으로 설정
-        })));
-        setTotalPages(data.totalPages || 1);
-        setSearchCount(data.totalElements || 0);
-      } else {
-        setPosts([]);
-        setTotalPages(1);
-        setSearchCount(0);
-      }
-    } catch (error) {
-      console.error('공지사항을 불러오는데 실패했습니다:', error);
-      setPosts([]);
-      setTotalPages(1);
-      setSearchCount(0);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 아카데미 정보 조회
-  const fetchAcademyInfo = async () => {
-    if (!academyCode) return;
-
-    try {
-      const response = await fetchApi(`/api/v1/admin/academies/${academyCode}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAcademyName(data.academyName || '학원 정보 없음');
-      } else {
-        setAcademyName('학원 정보 없음');
-      }
-    } catch (error) {
-      console.error('학원 정보를 불러오는데 실패했습니다:', error);
-      setAcademyName('학원 정보 없음');
-    }
-  };
-
-  // 페이지 크기 변경 처리 함수
-  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(e.target.value);
-    setCurrentPage(1);
-  };
-
-  // 정렬 방식 변경 처리 함수
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newSortType = e.target.value;
-    console.log(`정렬 방식 변경: ${newSortType}`);
-    setSortType(newSortType);
-    setCurrentPage(1); // 정렬 변경 시 첫 페이지로 이동
-
-    // 정렬 변경 시 데이터 새로 불러오기
-    fetchNoticeBoards();
-  };
-
-  // 검색 처리 함수
-  const handleSearch = (keyword: string) => {
-    setSearchKeyword(keyword);
-    setCurrentPage(1);
-    setSearchMode(true);
-  };
-
-  // 필터 유형 변경 처리 함수
-  const handleFilterChange = (type: string) => {
-    if (type !== filterType) {
-      console.log(`필터 유형 변경: ${filterType} -> ${type}`);
-      setFilterType(type);
-    }
-  };
-
-  // 상태 초기화 함수
-  const resetAllFilters = () => {
-    setSearchMode(false);
-    setSearchKeyword('');
-    setSortType('등록일순');
-    setPageSize('10');
-    setCurrentPage(1);
-    setFilterType('제목');
-
-    // 초기화 후 데이터 다시 불러오기
-    fetchNoticeBoards();
-  };
-
-  function formatRelativeTime(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-
-    // 1분 미만
-    if (diffMs < 60 * 1000) {
-      return '방금 전';
+            if (year === currentYear) {
+                return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+            } else {
+                return `${year}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+            }
+        }
     }
 
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMinutes < 60) {
-      return `${diffMinutes}분 전`;
-    } else if (diffHours < 24) {
-      const minutes = diffMinutes % 60;
-      if (minutes === 0) {
-        return `${diffHours}시간 전`;
-      }
-      return `${diffHours}시간 ${minutes}분 전`;
-    } else if (diffDays < 7) {
-      return `${diffDays}일 전`;
-    } else {
-      // 같은 해의 경우 월일만 표시, 다른 해의 경우 연월일 모두 표시
-      const year = date.getFullYear();
-      const currentYear = now.getFullYear();
-
-      if (year === currentYear) {
-        return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-      } else {
-        return `${year}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-      }
+    function getFormattedTime(creationTime: string, modificationTime?: string): string {
+        if (modificationTime) {
+            return `${formatRelativeTime(modificationTime)} (수정)`;
+        }
+        return formatRelativeTime(creationTime);
     }
-  }
 
-  // 게시물에 수정 정보 추가 및 표시 함수
-  function getFormattedTime(creationTime: string, modificationTime?: string): string {
-    if (modificationTime) {
-      // 수정 시간이 있는 경우 "(수정)" 표시 추가
-      return `${formatRelativeTime(modificationTime)} (수정)`;
+    if (!isLogin) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+                <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                    <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
+                    <p className="text-gray-600 mb-6">공지사항에 접근하려면 로그인이 필요합니다.</p>
+                    <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
+                </div>
+            </div>
+        );
     }
-    // 수정 시간이 없는 경우 생성 시간만 표시
-    return formatRelativeTime(creationTime);
-  }
 
-  // 로그인되지 않은 경우 로딩 화면 표시
-  if (!isLogin) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
-          <p className="text-gray-600 mb-6">공지사항에 접근하려면 로그인이 필요합니다.</p>
-          <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
-        </div>
-      </div>
-    );
-  }
+        <main className="min-h-screen bg-gray-50">
+            <div className="max-w-[1600px] mx-auto px-4 py-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        공지사항
+                        {isAdmin() && academyName && academyCode && (
+                            <span className="ml-2 text-[#9C50D4]">: {academyName}</span>
+                        )}
+                    </h1>
+                    {isAdmin() && (
+                        <Link
+                            href={`/post/new?type=notice&academyCode=${academyCode}`}
+                            className="bg-[#9C50D4] hover:bg-[#8544B2] transition-all rounded-lg text-white py-2 px-4 text-base font-medium flex items-center gap-2"
+                        >
+                            <span className="material-icons text-base">edit</span>
+                            새 글쓰기
+                        </Link>
+                    )}
+                </div>
 
-  return (
-    <main className="bg-[#f9fafc] min-h-screen pb-8">
-      <div className="max-w-[1400px] mx-auto px-4">
-        <div className="flex justify-between items-center my-6 pt-14">
-          <div>
-            <h1 className="text-2xl font-bold">
-              공지사항
-              {isAdmin() && academyName && academyCode && (
-                <span className="ml-2 text-[#8C4FF2]">: {academyName}</span>
-              )}
-            </h1>
-          </div>
-          {/* 관리자만 글쓰기 버튼 노출 */}
-          {isAdmin() && (
-            <Link
-              href={`/post/new?type=notice&academyCode=${academyCode}`}
-              className="bg-[#980ffa] rounded-[10px] text-[#ffffff] py-[8px] px-[15px] text-base no-underline flex items-center"
-            >
-              <span className="material-icons text-base text-[#ffffff] mr-[8px]">edit</span>
-              새 글쓰기
-            </Link>
-          )}
-        </div>
-
-        {searchMode && (
-          <div className="pt-14 pb-[20px] bg-[#ffffff] rounded-lg mb-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold text-[#333333] mb-2 pl-[20px] pt-[20px]">&quot;{searchKeyword}&quot; 검색 결과</h2>
-                <p className="text-sm text-[#666666] pl-[20px] pb-[20px]">총 {searchCount}개의 게시물이 검색되었습니다.</p>
-              </div>
-              <button
-                onClick={resetAllFilters}
-                className="bg-[#f2f2f2] text-[#666666] rounded-[5px] py-[5px] px-[10px] text-sm mr-[20px] hover:bg-[#e5e5e5] flex items-center"
-              >
-                <span className="material-icons text-sm mr-[5px]">refresh</span>
-                초기화
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-between items-center my-6 pb-[25px] pt-[25px] bg-[#ffffff] rounded-lg">
-          <div className="flex pl-[15px] pr-[15px]">
-            <div className="pr-[15px]">
-              <FilterDropdown value={filterType} onChange={handleFilterChange} />
-            </div>
-            <SearchInput filterType={filterType} onSearch={handleSearch} />
-          </div>
-          <div className="flex items-center pr-[15px]">
-            <SortDropdown value={sortType} onChange={handleSortChange} />
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-10">로딩 중...</div>
-        ) : (
-          <>
-            <div className="rounded-[10px] bg-[#ffffff] border-[#eeeeee] p-[15px]">
-              {posts.length > 0 ? (
-                posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="px-[15px] py-[20px] bg-white border border-[#eeeeee] rounded-[10px] m-[15px] cursor-pointer hover:bg-gray-50"
-                    onClick={() => router.push(`/post/${post.id}`)}
-                  >
-                    <h3 className="text-xl font-semibold text-[#333333] mb-4">
-                      {post.title}
-                      {post.hasImage && (
-                        <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-                      )}
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-base text-[#666666]">{post.nickname}</span>
-                        <span className="text-sm text-[#999999]">•</span>
-                        <span className="text-base text-[#999999]">
-                          {getFormattedTime(post.creationTime, post.modificationTime)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-[15px]">
-                        <div className="flex items-center gap-2">
-                          <span className="material-icons text-base text-[#999999]">visibility</span>
-                          <span className="text-sm text-[#999999]">{post.viewCount}</span>
+                <div className="bg-white rounded-lg shadow p-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-6 items-end">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">검색 필터</label>
+                            <select
+                                className="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                                value={filterType}
+                                onChange={(e) => handleFilterChange(e.target.value)}
+                            >
+                                <option value="title">제목</option>
+                                <option value="content">내용</option>
+                                <option value="nickname">작성자</option>
+                            </select>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="material-icons text-base text-[#999999]">chat_bubble_outline</span>
-                          <span className="text-sm text-[#999999]">{post.commentCount}</span>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">검색</label>
+                            <div className="relative flex-1">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="material-icons text-gray-400 text-lg">search</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder={
+                                        filterType === 'title' ? '제목으로 검색'
+                                            : filterType === 'content' ? '내용으로 검색'
+                                                : '작성자로 검색'
+                                    }
+                                    className="w-full pl-10 pr-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                                    value={searchKeyword}
+                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter' && searchKeyword.trim()) {
+                                            handleSearch(searchKeyword.trim());
+                                        }
+                                    }}
+                                />
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="material-icons text-base text-[#999999]">favorite_border</span>
-                          <span className="text-sm text-[#999999]">{post.likeCount}</span>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">정렬</label>
+                            <select
+                                className="w-full px-3 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                                value={sortType}
+                                onChange={handleSortChange}
+                            >
+                                <option value="creationTime">등록일순</option>
+                                <option value="commentCount">댓글순</option>
+                                <option value="viewCount">조회순</option>
+                                <option value="likeCount">좋아요순</option>
+                            </select>
                         </div>
-                      </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-10 text-[#666666]">
-                  <p className="text-lg">등록된 공지사항이 없습니다.</p>
-                  {searchKeyword && <p className="text-base">&apos;{searchKeyword}&apos; 검색어를 변경하여 다시 시도해보세요.</p>}
                 </div>
-              )}
+
+                {searchMode && (
+                    <div className="bg-white rounded-lg shadow p-4 mb-6">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-lg font-medium text-gray-900">&quot;{searchKeyword}&quot; 검색 결과</h2>
+                                <p className="text-sm text-gray-500 mt-1">총 {searchCount}개의 게시물</p>
+                            </div>
+                            <button
+                                onClick={resetAllFilters}
+                                className="inline-flex items-center px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+                            >
+                                <span className="material-icons text-sm mr-1">refresh</span>
+                                초기화
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9C50D4]"></div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="bg-white rounded-lg shadow">
+                            {posts.length > 0 ? (
+                                posts.map((post, index) => (
+                                    <div key={post.id}>
+                                        <div 
+                                            className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md cursor-pointer"
+                                            onClick={() => router.push(`/post/${post.id}`)}
+                                        >
+                                            <div className="flex items-center gap-4 mb-2">
+                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-6 w-6 text-gray-400"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-gray-900">{post.nickname}</span>
+                                                    <span className="text-gray-400">•</span>
+                                                    <span className="text-gray-500">{getFormattedTime(post.creationTime, post.modificationTime)}</span>
+                                                </div>
+                                            </div>
+
+                                            <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
+                                                {post.title}
+                                                {post.hasImage && (
+                                                    <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
+                                                )}
+                                            </h2>
+
+                                            <div className="flex items-center gap-6 text-gray-500">
+                                                <div className="flex items-center gap-2">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-5 w-5"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={1.5}
+                                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                                        />
+                                                    </svg>
+                                                    <span className="text-sm">{post.likeCount}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-5 w-5"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={1.5}
+                                                            d="M8 12h.01M12 12h.01M16 12h.01M12 21a9 9 0 1 0-9-9c0 1.488.36 2.89 1 4.127L3 21l4.873-1C9.11 20.64 10.512 21 12 21z"
+                                                        />
+                                                    </svg>
+                                                    <span className="text-sm">{post.commentCount}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 ml-auto">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-5 w-5"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={1.5}
+                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                        />
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={1.5}
+                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                        />
+                                                    </svg>
+                                                    <span className="text-sm">{post.viewCount}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {index < posts.length - 1 && (
+                                            <div className="mx-6 border-b border-gray-200"></div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="bg-white rounded-lg shadow p-16 text-center">
+                                    <p className="text-gray-500 text-lg mb-1">공지사항이 없습니다</p>
+                                    {searchKeyword && (
+                                        <p className="text-gray-400 text-sm">
+                                            &apos;{searchKeyword}&apos; 검색어를 변경하여 다시 시도해보세요
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {posts.length > 0 && (
+                            <div className="bg-white rounded-lg shadow p-4 mt-6">
+                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <select
+                                        className="w-32 px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-md hover:border-purple-400 focus:outline-none focus:border-[#9C50D4] focus:ring-1 focus:ring-[#9C50D4] transition-colors"
+                                        value={pageSize}
+                                        onChange={handlePageSizeChange}
+                                    >
+                                        <option value="10">10개씩 보기</option>
+                                        <option value="15">15개씩 보기</option>
+                                        <option value="20">20개씩 보기</option>
+                                    </select>
+
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => setCurrentPage(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            className={`min-w-[32px] h-8 px-2 text-sm rounded-md transition-colors ${
+                                                currentPage === 1
+                                                    ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                                            }`}
+                                        >
+                                            이전
+                                        </button>
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`min-w-[32px] h-8 px-2 text-sm rounded-md transition-colors ${
+                                                    currentPage === page
+                                                        ? 'bg-purple-100 text-purple-700 font-medium'
+                                                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
+                                        <button
+                                            onClick={() => setCurrentPage(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            className={`min-w-[32px] h-8 px-2 text-sm rounded-md transition-colors ${
+                                                currentPage === totalPages
+                                                    ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                                                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                                            }`}
+                                        >
+                                            다음
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
-
-            {posts.length > 0 && (
-              <div className="flex justify-between items-center py-6">
-                <div className="m-[10px]">
-                  <select
-                    className="px-4 py-[7px] text-sm text-[#666666] bg-white border border-[#e5e5e5] rounded hover:bg-gray-50 cursor-pointer focus:outline-none"
-                    value={pageSize}
-                    onChange={handlePageSizeChange}
-                  >
-                    <option value="10">10개씩 보기</option>
-                    <option value="15">15개씩 보기</option>
-                    <option value="20">20개씩 보기</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-[10px]">
-                  <PageButton
-                    text="이전"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                  />
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PageButton
-                      key={page}
-                      text={page.toString()}
-                      active={currentPage === page}
-                      onClick={() => setCurrentPage(page)}
-                    />
-                  ))}
-                  <div className="pr-[10px]">
-                    <PageButton
-                      text="다음"
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </main>
-  );
-}
-
-// 필터 드롭다운
-function FilterDropdown({ value, onChange }: { value: string; onChange: (type: string) => void }) {
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    // 값이 실제로 변경된 경우에만 onChange 호출
-    if (e.target.value !== value) {
-      onChange(e.target.value);
-    }
-  };
-
-  // 클릭 이벤트 중지 함수 추가
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-  };
-
-  return (
-    <div className="relative" onClick={handleClick}>
-      <select
-        className="px-4 py-[7px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
-        value={value}
-        onChange={handleFilterChange}
-      >
-        <option value="제목">제목</option>
-        <option value="작성자">작성자</option>
-      </select>
-    </div>
-  );
-}
-
-// 검색 입력 필드
-function SearchInput({ filterType, onSearch }: { filterType: string; onSearch: (keyword: string) => void }) {
-  const [inputValue, setInputValue] = useState('');
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && inputValue.trim() !== '') {
-      onSearch(inputValue.trim());
-    }
-  };
-
-  const handleSearchClick = () => {
-    if (inputValue.trim() !== '') {
-      onSearch(inputValue.trim());
-    }
-  };
-
-  const getPlaceholder = () => {
-    switch (filterType) {
-      case '제목':
-        return '제목을 입력하세요';
-      case '작성자':
-        return '작성자를 입력하세요';
-      default:
-        return '검색어를 입력하세요';
-    }
-  };
-
-  return (
-    <div className="relative w-[300px]">
-      <div className="flex items-center border border-[#e5e5e5] rounded">
-        <span
-          className="material-icons text-[#999999] pt-[2px] pb-[2px] p-[10px] ml-[2px] cursor-pointer"
-          onClick={handleSearchClick}
-        >
-          search
-        </span>
-        <input
-          type="text"
-          placeholder={getPlaceholder()}
-          className="pl-[5px] pr-4 py-[8px] w-full text-sm border-none focus:outline-none"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
-      </div>
-    </div>
-  );
-}
-
-// 정렬 드롭다운
-function SortDropdown({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) {
-  return (
-    <div className="relative">
-      <select
-        className="p-[7px] mr-[10px] text-sm text-[#333333] border border-[#e5e5e5] rounded-[10px] bg-white cursor-pointer focus:outline-none"
-        value={value}
-        onChange={onChange}
-      >
-        <option value="등록일순">등록일순</option>
-        <option value="댓글순">댓글순</option>
-        <option value="조회순">조회순</option>
-        <option value="좋아요순">좋아요순</option>
-      </select>
-    </div>
-  );
-}
-
-// 페이지 버튼
-function PageButton({ text, active = false, disabled = false, onClick }: { text: string; active?: boolean; disabled?: boolean; onClick?: () => void }) {
-  const baseClasses = "flex items-center justify-center min-w-8 h-8 px-2 rounded";
-
-  if (disabled) {
-    return (
-      <button disabled className={`${baseClasses} text-[#cccccc] bg-white cursor-not-allowed border border-[#e5e5e5]`}>
-        {text}
-      </button>
+        </main>
     );
-  }
-
-  if (active) {
-    return (
-      <button className={`${baseClasses} text-[#ffffff] bg-[#980ffa] font-medium border-0`}>
-        {text}
-      </button>
-    );
-  }
-
-  return (
-    <button className={`${baseClasses} text-[#555555] bg-white hover:bg-[#f5f5f5] border border-[#e5e5e5]`} onClick={onClick}>
-      {text}
-    </button>
-  );
 }
+
 

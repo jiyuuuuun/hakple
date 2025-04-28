@@ -12,8 +12,6 @@ import lombok.NoArgsConstructor;
 @Schema(description = "아이디 찾기 요청 DTO")
 public class FindUsernameRequest {
     @NotBlank
-    private String nickName;
-    @NotBlank
     private String phoneNum;
 
 }

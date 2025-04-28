@@ -447,7 +447,7 @@ export default function HomePage() {
     // 게시글 신고 함수
     const handleReport = async (postId: number) => {
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.')
+            alert(' 기능입니다.')
             router.push('/login')
             return
         }

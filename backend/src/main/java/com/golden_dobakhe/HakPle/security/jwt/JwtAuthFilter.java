@@ -52,6 +52,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         //여기서 재발급
         if (accessToken == null && refreshToken != null) {
+            log.warn("@@@@@@@@@나 재발급 잘됨??????????@@@@@@@@@@");
             accessToken = jwtAuthenticationProvider.genNewAccessToken(refreshToken);
 
             Cookie newAccessTokenCookie = new Cookie("accessToken", accessToken);

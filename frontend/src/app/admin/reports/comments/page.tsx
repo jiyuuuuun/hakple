@@ -41,25 +41,16 @@ export default function ReportedCommentsPage() {
   const PAGE_SIZE = 10;
 
   useEffect(() => {
-    // 컴포넌트 마운트 시 토큰 가져오기
-    const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) {
-      router.push('/login');
-      return;
-    }
-    
-    setToken(accessToken);
-    checkAdmin(accessToken);
+    checkAdmin();
   }, [router]);
 
-  const checkAdmin = async (accessToken: string) => {
+  const checkAdmin = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
         method: 'GET',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
         },
       });
 
@@ -74,7 +65,7 @@ export default function ReportedCommentsPage() {
       // boolean 값을 확인하여 관리자 권한 설정
       if (isAdminResult === true) {
         setIsAdmin(true);
-        fetchComments(0, accessToken);
+        fetchComments(0);
       } else {
         // 관리자가 아니면 홈으로 이동
         router.push('/');
@@ -85,7 +76,7 @@ export default function ReportedCommentsPage() {
     }
   };
 
-  const fetchComments = async (page: number, accessToken: string) => {
+  const fetchComments = async (page: number) => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -95,7 +86,6 @@ export default function ReportedCommentsPage() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
           },
         }
       );
@@ -118,8 +108,8 @@ export default function ReportedCommentsPage() {
   };
 
   const handlePageChange = (page: number) => {
-    if (page < 0 || page >= totalPages || !token) return;
-    fetchComments(page, token);
+    if (page < 0 || page >= totalPages) return;
+    fetchComments(page);
   };
 
   const handleDeleteComment = async (commentId: number) => {
@@ -175,7 +165,7 @@ export default function ReportedCommentsPage() {
 
     setComments(filtered);
   };
-
+  
   // 검색어 변경 핸들러
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -257,7 +247,7 @@ export default function ReportedCommentsPage() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               placeholder="검색어를 입력하세요"
               className="w-full px-4 py-2 border-y border-r border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8C4FF2]/20"
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -426,6 +416,13 @@ export default function ReportedCommentsPage() {
               </li>
             </ul>
           </nav>
+        </div>
+      )}
+      
+      {/* 페이지 정보 표시 */}
+      {comments.length > 0 && (
+        <div className="text-sm text-gray-500 text-center mt-4">
+          전체 {totalPages * PAGE_SIZE}개 항목 중 {(currentPage) * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalPages * PAGE_SIZE)}개 표시
         </div>
       )}
     </div>

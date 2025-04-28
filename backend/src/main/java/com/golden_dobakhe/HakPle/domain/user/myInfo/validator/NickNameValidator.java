@@ -21,9 +21,5 @@ public class NickNameValidator {
         if (!newNickName.matches(NICKNAME_REGEX)) {
             throw new MyInfoException(MyInfoErrorCode.NICKNAME_INVALID);
         }
-
-        if (userRepository.existsByNickName(newNickName)) {
-            throw new MyInfoException(MyInfoErrorCode.NICKNAME_DUPLICATE);
-        }
     }
 }

@@ -1,6 +1,10 @@
 package com.golden_dobakhe.HakPle.security;
 
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -52,6 +56,14 @@ public class WebConfig implements WebMvcConfigurer {
         System.out.println("CORS 설정됨");
         System.out.println("허용 오리진: " + frontUrl);
         System.out.println("==================================");
+    }
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @Bean
+    public JPAQueryFactory jpaQueryFactory() {
+        return new JPAQueryFactory(entityManager);
     }
 }
 

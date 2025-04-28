@@ -9,10 +9,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardReportRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.*;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
@@ -57,7 +54,7 @@ public class AdminService {
         User admin = User.builder()
                 .userName(dto.getUserName())
                 .password(passwordEncoder.encode(dto.getPassword()))
-                .nickName(dto.getNickName())
+                .nickName("관리자")
                 .phoneNum(dto.getPhoneNumber())
                 .roles(new HashSet<>(Set.of(Role.ADMIN)))
                 .status(Status.ACTIVE)
@@ -162,13 +159,14 @@ public class AdminService {
         comment.setStatus(Status.PENDING);
     }
     //관리자 목록 조회
-    public List<User> getAdminUsers() {
-        return userRepository.findAllByRole(Role.ADMIN);
+    public Page<AdminUserListDto> getAdminUsers(Pageable pageable) {
+        return userRepository.findAllByRoles(Role.ADMIN, pageable)
+                .map(AdminUserListDto::new);
     }
 
     //등록되어 있는 학원 조회, 학원 별 사용 자 수
-    public List<AcademyWithUserCountDto> getAcademyListWithUserCounts() {
-        return academyRepository.findAllAcademiesWithUserCount();
+    public Page<AcademyWithUserCountDto> getAcademyListWithUserCounts(Pageable pageable) {
+        return academyRepository.findAllAcademiesWithUserCount(pageable);
     }
 
     public Page<TotalBoardResponse> getBoardsByFilterNullable(Status status, String academyCode, Pageable pageable) {
@@ -201,6 +199,34 @@ public class AdminService {
     public Academy getAcademyByCode(String academyCode) {
         return academyRepository.findByAcademyCode(academyCode)
                 .orElseThrow(() -> new UserException(UserErrorCode.ACADEMY_ID_NOT_FOUND));
+    }
+
+    //회원 목록 조회
+    public Page<UserListDto> getUser(Pageable pageable) {
+        Page<User> userList = userRepository.findAllUserByRoles(Role.USER, pageable);
+
+        if (userList.isEmpty()) {
+            throw new UserException(UserErrorCode.USER_NOT_FOUND);
+        }
+
+        return userList.map(user -> {
+            String academyName;
+            if (user.getAcademyId() != null) {
+                Academy academy = academyRepository.findByAcademyCode(user.getAcademyId())
+                        .orElse(null);
+                academyName = (academy != null) ? academy.getAcademyName() : "학원 정보 없음";
+            } else {
+                academyName = "학원 정보 없음";
+            }
+            return new UserListDto(user, academyName);
+        });
+    }
+
+
+    //회원 상태 바꾸기
+    public void changeUserStatus(Long userId,Status status) {
+        User user=userRepository.findById(userId).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        user.setStatus(status);
     }
 
 }

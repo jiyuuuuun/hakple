@@ -95,12 +95,33 @@ module.exports = {
           '0%, 100%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.2)' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        wave: {
+          '0%': { transform: 'translateX(0) translateZ(0) scaleY(1)' },
+          '50%': { transform: 'translateX(-25%) translateZ(0) scaleY(0.85)' },
+          '100%': { transform: 'translateX(-50%) translateZ(0) scaleY(1)' },
+        },
+        'spin-slow': {
+          '0%': { transform: 'translate(-50%, -50%) rotate(0deg)' },
+          '100%': { transform: 'translate(-50%, -50%) rotate(360deg)' },
+        },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
       },
       animation: {
         'pulse-light': 'pulse-light 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'highlight-fade': 'highlight-fade 3s ease-in-out 1',
         'highlight-fade': 'highlightFade 5s ease-out',
         'pulse-like': 'pulseLike 0.5s ease-in-out',
+        'float': 'float 3s ease-in-out infinite',
+        'wave': 'wave 15s -3s linear infinite',
+        'spin-slow': 'spin-slow 15s linear infinite',
+        'blink': 'blink 1s step-end infinite',
       }
     },
   },

@@ -37,25 +37,16 @@ export default function ReportedPostsPage() {
   const PAGE_SIZE = 10;
 
   useEffect(() => {
-    // 컴포넌트 마운트 시 토큰 가져오기
-    const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken) {
-      router.push('/login');
-      return;
-    }
-    
-    setToken(accessToken);
-    checkAdmin(accessToken);
+    checkAdmin();
   }, [router]);
 
-  const checkAdmin = async (accessToken: string) => {
+  const checkAdmin = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
         method: 'GET',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
         },
       });
 
@@ -68,7 +59,7 @@ export default function ReportedPostsPage() {
       
       if (isAdminResult === true) {
         setIsAdmin(true);
-        fetchPosts(0, accessToken);
+        fetchPosts(0);
       } else {
         router.push('/');
       }
@@ -78,7 +69,7 @@ export default function ReportedPostsPage() {
     }
   };
 
-  const fetchPosts = async (page: number, accessToken: string) => {
+  const fetchPosts = async (page: number) => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -88,7 +79,6 @@ export default function ReportedPostsPage() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
           },
         }
       );
@@ -112,11 +102,11 @@ export default function ReportedPostsPage() {
 
   const handlePageChange = (page: number) => {
     if (page < 0 || page >= totalPages || !token) return;
-    fetchPosts(page, token);
+    fetchPosts(page);
   };
 
   const handleDeletePost = async (boardId: number) => {
-    if (processingIds.includes(boardId) || !token) return;
+    if (processingIds.includes(boardId)) return;
     
     setProcessingIds(prev => [...prev, boardId]);
     
@@ -417,6 +407,13 @@ export default function ReportedPostsPage() {
               </li>
             </ul>
           </nav>
+        </div>
+      )}
+      
+      {/* 페이지 정보 표시 */}
+      {posts.length > 0 && (
+        <div className="text-sm text-gray-500 text-center mt-4">
+          전체 {totalPages * PAGE_SIZE}개 항목 중 {(currentPage) * PAGE_SIZE + 1} - {Math.min((currentPage + 1) * PAGE_SIZE, totalPages * PAGE_SIZE)}개 표시
         </div>
       )}
     </div>
