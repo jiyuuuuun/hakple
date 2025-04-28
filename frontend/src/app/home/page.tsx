@@ -45,6 +45,7 @@ interface Post {
     boardLikes?: Like[]
     isReported?: boolean
     isLiked?: boolean
+    profileImageUrl?: string
 }
 
 // API 응답 타입
@@ -532,12 +533,31 @@ export default function HomePage() {
     const fetchNoticeBoards = async () => {
         try {
             const storedAcademyCode = localStorage.getItem('academyCode')
-            const response = await fetchApi(`/api/v1/posts/notice?page=1&sizes=3&sortType=등록일순&type=notice&academyCode=${storedAcademyCode}`, {
+            if (!storedAcademyCode) {
+                console.log('학원 코드가 없어 공지사항을 불러올 수 없습니다.')
+                setNoticePosts([])
+                return
+            }
+
+            // sortType을 백엔드가 처리할 수 있는 값으로 변경 (등록일순 -> creationTime)
+            const response = await fetchApi(`/api/v1/posts/notice?page=1&size=3&sortType=creationTime&type=notice&academyCode=${storedAcademyCode}`, {
                 credentials: 'include',
             })
 
+        
             if (!response.ok) {
-                console.error('공지사항 로딩 실패:', response.status)
+                console.error('공지사항 로딩 실패:', response.status, '- 응답 상태:', response.statusText)
+                
+                // 응답 본문을 확인하여 추가 디버깅 정보 제공
+                try {
+                    const errorText = await response.text()
+                    if (errorText) {
+                        console.error('공지사항 로딩 에러 응답:', errorText)
+                    }
+                } catch (textError) {
+                    console.error('응답 본문 확인 실패:', textError)
+                }
+                
                 setNoticePosts([])
                 return
             }
@@ -798,20 +818,49 @@ export default function HomePage() {
                                         <div className="flex justify-between items-center mb-5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-6 w-6 text-gray-400"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                    {post.profileImageUrl ? (
+                                                        <img
+                                                            src={post.profileImageUrl}
+                                                            alt={`${post.nickname}의 프로필 이미지`}
+                                                            className="h-full w-full object-cover"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.onerror = null; // 추가 오류 이벤트 방지
+                                                                target.style.display = 'none'; // 이미지 숨기기
+                                                                target.parentElement!.innerHTML = `
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        class="h-6 w-6 text-gray-400"
+                                                                        fill="none"
+                                                                        viewBox="0 0 24 24"
+                                                                        stroke="currentColor"
+                                                                    >
+                                                                        <path
+                                                                            stroke-linecap="round"
+                                                                            stroke-linejoin="round"
+                                                                            stroke-width="2"
+                                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                                        />
+                                                                    </svg>
+                                                                `;
+                                                            }}
                                                         />
-                                                    </svg>
+                                                    ) : (
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-6 w-6 text-gray-400"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                            />
+                                                        </svg>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-medium text-gray-900">{post.nickname}</span>

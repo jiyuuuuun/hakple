@@ -4,10 +4,9 @@ import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepositor
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
+
 
 @Getter
 @Builder
@@ -29,6 +28,7 @@ public class BoardResponse {
     private LocalDateTime modificationTime;
     private String type;
     private boolean hasImage;
+    private String profileImageUrl;
     
     /**
      * 이전 버전과의 호환성을 위한 메서드
@@ -62,6 +62,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
+                .profileImageUrl(board.getUser().getProfileImage()!= null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 
@@ -88,6 +89,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
+                .profileImageUrl(board.getUser().getProfileImage()!= null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
     
@@ -113,6 +115,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
+                .profileImageUrl(board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 
@@ -137,6 +140,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
+                .profileImageUrl(board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 }

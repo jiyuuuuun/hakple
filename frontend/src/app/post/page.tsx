@@ -22,6 +22,7 @@ interface Post {
   boardComments?: number;
   hasImage?: boolean;
   isLiked?: boolean;
+  profileImageUrl?: string;
 }
 
 interface Tag {
@@ -549,6 +550,7 @@ export default function PostPage() {
                         onLikeClick={(e) => handleLikeClick(post, e)}
                         likingPosts={likingPosts}
                         hasImage={post.hasImage || false}
+                        profileImageUrl={post.profileImageUrl}
                       />
                     ))}
                   </div>
@@ -569,6 +571,7 @@ export default function PostPage() {
                           onLikeClick={(e) => handleLikeClick(post, e)}
                           likingPosts={likingPosts}
                           hasImage={post.hasImage || false}
+                          profileImageUrl={post.profileImageUrl}
                         />
                         {index < posts.length - 1 && (
                           <div className="mx-6 border-b border-gray-200"></div>
@@ -737,7 +740,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
   );
 }
 
-function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
+function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
   id: number;
   title: string;
   nickname: string;
@@ -750,6 +753,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
   hasImage: boolean;
+  profileImageUrl?: string;
 }) {
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-200 border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
@@ -757,20 +761,49 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={`${nickname}의 프로필 이미지`}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null; // 추가 오류 이벤트 방지
+                    target.style.display = 'none'; // 이미지 숨기기
+                    target.parentElement!.innerHTML = `
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    `;
+                  }}
                 />
-              </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
             </div>
             <div>
               <p className="font-medium text-gray-900">{nickname}</p>
@@ -878,7 +911,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   );
 }
 
-function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
+function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
   id: number;
   title: string;
   nickname: string;
@@ -891,26 +924,56 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
   hasImage: boolean;
+  profileImageUrl?: string;
 }) {
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
       <Link href={`/post/${id}`} className="block">
         <div className="flex items-center gap-4 mb-2">
           <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            {profileImageUrl ? (
+              <img
+                src={profileImageUrl}
+                alt={`${nickname}의 프로필 이미지`}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null; // 추가 오류 이벤트 방지
+                  target.style.display = 'none'; // 이미지 숨기기
+                  target.parentElement!.innerHTML = `
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  `;
+                }}
               />
-            </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900">{nickname}</span>
