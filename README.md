@@ -21,8 +21,8 @@
 
 | 분야 | 기술 |
 |:---|:---|
-| Backend | Java 17, Spring Boot |
-| Frontend | TypeScript, React, Next.js |
+| Backend | Java 21, Spring Boot |
+| Frontend | JavaScript, React, Next.js |
 | Database | MySQL, Redis, S3 |
 | DevOps | Docker, Terraform, AWS (EC2, RDS) |
 | CI/CD | GitHub Actions |
