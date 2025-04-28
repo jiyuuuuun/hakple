@@ -4,9 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import SafeImage from '@/components/SafeImage';
+import SafeHtmlImage from '@/components/SafeHtmlImage';
 
 export default function Home() {
   const router = useRouter();
+  // API 기본 URL
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
   // 타이핑 애니메이션을 위한 상태
   const [typedText, setTypedText] = useState("");
   const [currentTextIndex, setCurrentTextIndex] = useState(0);
@@ -14,29 +18,8 @@ export default function Home() {
   const texts = ["함께 성장하는", "함께 배우는", "함께 나누는", "함께 도전하는"];
   const [typingSpeed, setTypingSpeed] = useState(150);
   
-  // CSS 애니메이션 스타일 정의
+  // CSS 애니메이션 스타일 정의 - 간소화
   const floatAnimation = {
-    '@keyframes float': {
-      '0%': { transform: 'translateY(0px)' },
-      '50%': { transform: 'translateY(-10px)' },
-      '100%': { transform: 'translateY(0px)' }
-    },
-    '@keyframes wave': {
-      '0%': { transform: 'translateX(0) translateZ(0) scaleY(1)' },
-      '50%': { transform: 'translateX(-25%) translateZ(0) scaleY(0.85)' },
-      '100%': { transform: 'translateX(-50%) translateZ(0) scaleY(1)' }
-    },
-    '@keyframes ping': {
-      '75%, 100%': { transform: 'scale(2)', opacity: 0 }
-    },
-    '@keyframes blink': {
-      '0%, 100%': { opacity: 1 },
-      '50%': { opacity: 0 }
-    },
-    '@keyframes spin-slow': {
-      '0%': { transform: 'rotate(0deg)' },
-      '100%': { transform: 'rotate(360deg)' }
-    },
     animation: {
       float: 'float 3s ease-in-out infinite',
       wave: 'wave 15s -3s linear infinite',
@@ -52,10 +35,44 @@ export default function Home() {
   
   // 로그인 상태 확인
   useEffect(() => {
+    // 관리자 권한 확인 함수를 useEffect 내부로 이동
+    const checkAdminPermission = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/admin/check`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const isAdminResult = await response.json();
+          console.log('관리자 권한 확인:', isAdminResult);
+          
+          setIsAdmin(isAdminResult === true);
+          
+          // 관리자인 경우 관리자 페이지로 리다이렉트
+          if (isAdminResult === true) {
+            console.log('관리자로 로그인 - 관리자 페이지로 이동');
+            router.push('/admin');
+          }
+        } else {
+          console.log('관리자 권한 없음');
+          setIsAdmin(false);
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error('관리자 권한 확인 중 오류:', error);
+        setIsAdmin(false);
+        setIsLoading(false);
+      }
+    };
+
     // API를 통한 로그인 상태 확인
     const checkLoginStatus = async () => {
       try {
-        const response = await fetch(`http://localhost:8090/api/v1/auth/me`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
           method: 'GET',
           credentials: 'include',
           headers: {
@@ -85,41 +102,7 @@ export default function Home() {
     };
     
     checkLoginStatus();
-  }, []);
-
-  // 관리자 권한 확인
-  const checkAdminPermission = async () => {
-    try {
-      const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const isAdminResult = await response.json();
-        console.log('관리자 권한 확인:', isAdminResult);
-        
-        setIsAdmin(isAdminResult === true);
-        
-        // 관리자인 경우 관리자 페이지로 리다이렉트
-        if (isAdminResult === true) {
-          console.log('관리자로 로그인 - 관리자 페이지로 이동');
-          router.push('/admin');
-        }
-      } else {
-        console.log('관리자 권한 없음');
-        setIsAdmin(false);
-      }
-      setIsLoading(false);
-    } catch (error) {
-      console.error('관리자 권한 확인 중 오류:', error);
-      setIsAdmin(false);
-      setIsLoading(false);
-    }
-  };
+  }, [API_BASE_URL, router]); // router도 의존성에 추가
 
   // 타이핑 효과 구현
   useEffect(() => {
@@ -198,6 +181,23 @@ export default function Home() {
         .animate-blink {
           animation: blink 1s step-end infinite;
         }
+
+        /* 애니메이션 지연 클래스 추가 */
+        .delay-500 {
+          animation-delay: 0.5s;
+        }
+        
+        .delay-1000 {
+          animation-delay: 1s;
+        }
+        
+        .delay-1500 {
+          animation-delay: 1.5s;
+        }
+        
+        .delay-2000 {
+          animation-delay: 2s;
+        }
       `}</style>
 
       {/* 히어로 섹션 */}
@@ -211,38 +211,38 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-full overflow-hidden">
           <svg className="relative block w-full h-[60px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
             <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" 
-                  className="fill-white/30 animate-wave" style={{ animationDuration: '15s' }}></path>
+                  className="fill-white/30 animate-wave"></path>
           </svg>
           <svg className="relative block w-full h-[60px] -mt-[60px]" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
             <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" 
-                  className="fill-purple-200/50 animate-wave" style={{ animationDuration: '25s', animationDelay: '2s' }}></path>
+                  className="fill-purple-200/50 animate-wave delay-2000"></path>
           </svg>
         </div>
 
         {/* 중앙 장식 요소 */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] rounded-full bg-gradient-to-br from-purple-400/10 to-indigo-400/10 z-0 animate-spin-slow" style={{ animationDuration: '40s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] md:w-[400px] md:h-[400px] rounded-full border-2 border-purple-300/20 z-0 animate-spin-slow" style={{ animationDuration: '30s', animationDirection: 'reverse' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px] md:w-[300px] md:h-[300px] rounded-full border border-indigo-300/30 z-0 animate-spin-slow" style={{ animationDuration: '20s' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] rounded-full bg-gradient-to-br from-purple-400/10 to-indigo-400/10 z-0 animate-spin-slow"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] md:w-[400px] md:h-[400px] rounded-full border-2 border-purple-300/20 z-0 animate-spin-slow" style={{ animationDirection: 'reverse' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px] md:w-[300px] md:h-[300px] rounded-full border border-indigo-300/30 z-0 animate-spin-slow"></div>
 
         {/* 부유하는 3D 오브젝트들 */}
-        <div className="absolute top-[20%] left-[45%] z-10">
-          <div className="relative w-12 h-12 animate-float" style={{ animationDuration: '5s' }}>
+        <div className="absolute top-[20%] left-[45%] z-10 hidden md:block">
+          <div className="relative w-12 h-12 animate-float">
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg shadow-lg transform rotate-45"></div>
             <div className="absolute inset-0 flex items-center justify-center text-white">
               <span className="material-icons">school</span>
             </div>
           </div>
         </div>
-        <div className="absolute top-[35%] right-[20%] z-10">
-          <div className="relative w-10 h-10 animate-float" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+        <div className="absolute top-[35%] right-[20%] z-10 hidden md:block">
+          <div className="relative w-10 h-10 animate-float delay-1000">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full shadow-lg"></div>
             <div className="absolute inset-0 flex items-center justify-center text-white">
               <span className="material-icons text-sm">edit</span>
             </div>
           </div>
         </div>
-        <div className="absolute bottom-[40%] left-[15%] z-10">
-          <div className="relative w-14 h-14 animate-float" style={{ animationDuration: '6s', animationDelay: '0.5s' }}>
+        <div className="absolute bottom-[40%] left-[15%] z-10 hidden md:block">
+          <div className="relative w-14 h-14 animate-float delay-500">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shadow-lg transform -rotate-12"></div>
             <div className="absolute inset-0 flex items-center justify-center text-white">
               <span className="material-icons">menu_book</span>
@@ -309,8 +309,8 @@ export default function Home() {
             {/* 오른쪽 콘텐츠 - 플로팅 카드 */}
             <div className="relative flex-1 h-[350px] sm:h-[400px] md:h-[450px] mt-12 md:mt-0">
               {/* 중앙 노트북/디바이스 이미지 */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl shadow-2xl z-30 rotate-12 animate-float">
-                <div className="absolute inset-1 bg-white rounded-xl overflow-hidden flex flex-col">
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl shadow-2xl z-30 rotate-12">
+                <div className="absolute inset-1 bg-white rounded-xl overflow-hidden flex flex-col animate-float">
                   <div className="h-6 bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center px-2">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 rounded-full bg-red-400"></div>
@@ -329,8 +329,8 @@ export default function Home() {
                     <div className="h-10 bg-white rounded mb-2"></div>
                     <div className="h-2 bg-purple-200 rounded-full w-2/3"></div>
                   </div>
-            </div>
-          </div>
+                </div>
+              </div>
 
               {/* 카드 1 */}
               <div className="absolute top-0 left-[5%] sm:left-[10%] w-[240px] sm:w-[280px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform -rotate-6 hover:rotate-0 transition-all duration-300 hover:scale-105 z-10 animate-float">
@@ -355,7 +355,7 @@ export default function Home() {
               </div>
 
               {/* 카드 2 */}
-              <div className="absolute top-[30%] right-[5%] w-[240px] sm:w-[280px] md:w-[300px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform rotate-6 hover:rotate-0 transition-all duration-300 hover:scale-105 z-20 animate-float" style={{ animationDelay: '0.5s' }}>
+              <div className="absolute top-[30%] right-[5%] w-[240px] sm:w-[280px] md:w-[300px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform rotate-6 hover:rotate-0 transition-all duration-300 hover:scale-105 z-20 animate-float delay-500">
                 <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-indigo-100 flex items-center justify-center">
                     <span className="material-icons text-indigo-600">forum</span>
@@ -363,8 +363,8 @@ export default function Home() {
                   <div>
                     <h3 className="font-semibold text-sm sm:text-base text-gray-900">지식 공유 플랫폼</h3>
                     <p className="text-xs sm:text-sm text-gray-500">경험과 노하우 공유</p>
-              </div>
-            </div>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <div className="h-2 sm:h-3 bg-indigo-100 rounded-full w-2/3"></div>
                   <div className="h-2 sm:h-3 bg-indigo-100 rounded-full w-4/5"></div>
@@ -387,7 +387,7 @@ export default function Home() {
               </div>
 
               {/* 카드 3 */}
-              <div className="absolute bottom-0 left-[5%] sm:left-[15%] w-[240px] sm:w-[280px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform rotate-3 hover:rotate-0 transition-all duration-300 hover:scale-105 z-30 animate-float" style={{ animationDelay: '1s' }}>
+              <div className="absolute bottom-0 left-[5%] sm:left-[15%] w-[240px] sm:w-[280px] bg-white rounded-2xl shadow-xl p-4 sm:p-6 transform rotate-3 hover:rotate-0 transition-all duration-300 hover:scale-105 z-30 animate-float delay-1000">
                 <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 flex items-center justify-center">
                     <span className="material-icons text-amber-600">calendar_today</span>
@@ -395,8 +395,8 @@ export default function Home() {
                   <div>
                     <h3 className="font-semibold text-sm sm:text-base text-gray-900">스마트 일정 관리</h3>
                     <p className="text-xs sm:text-sm text-gray-500">체계적인 학습 계획</p>
-              </div>
-            </div>
+                  </div>
+                </div>
                 <div className="grid grid-cols-7 gap-1 mb-2">
                   {Array.from({ length: 7 }).map((_, i) => (
                     <div key={i} className={`h-5 sm:h-6 rounded ${i % 3 === 0 ? 'bg-amber-200' : 'bg-amber-100'} text-xs flex items-center justify-center ${i === 2 ? 'ring-2 ring-amber-400' : ''}`}>{i + 10}</div>
@@ -415,13 +415,13 @@ export default function Home() {
               </div>
 
               {/* 부유하는 아이콘들 */}
-              <div className="absolute top-[15%] left-[45%] w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center z-40 animate-float" style={{ animationDelay: '1.2s' }}>
+              <div className="absolute top-[15%] left-[45%] w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center z-40 animate-float delay-1500 hidden md:flex">
                 <span className="material-icons text-purple-600">psychology</span>
               </div>
-              <div className="absolute top-[60%] right-[25%] w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center z-40 animate-float" style={{ animationDelay: '1.5s' }}>
+              <div className="absolute top-[60%] right-[25%] w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center z-40 animate-float delay-1500 hidden md:flex">
                 <span className="material-icons text-blue-600">lightbulb</span>
               </div>
-              <div className="absolute bottom-[20%] right-[40%] w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center z-40 animate-float" style={{ animationDelay: '1.8s' }}>
+              <div className="absolute bottom-[20%] right-[40%] w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center z-40 animate-float delay-2000 hidden md:flex">
                 <span className="material-icons text-amber-600">emoji_events</span>
               </div>
             </div>
@@ -509,17 +509,6 @@ export default function Home() {
           
           <div className="mt-12 pt-12 border-t border-purple-400/30 flex flex-col md:flex-row justify-between items-center gap-6">
             <p className="text-purple-200">© 2023 HakPle. 모든 권리 보유.</p>
-            <div className="flex gap-4">
-              <a href="#" className="text-purple-200 hover:text-white transition-colors">
-                <span className="material-icons">facebook</span>
-              </a>
-              <a href="#" className="text-purple-200 hover:text-white transition-colors">
-                <span className="material-icons">twitter</span>
-              </a>
-              <a href="#" className="text-purple-200 hover:text-white transition-colors">
-                <span className="material-icons">instagram</span>
-              </a>
-            </div>
             <div className="flex gap-4 text-sm">
               <a href="#" className="text-purple-200 hover:text-white transition-colors">이용약관</a>
               <a href="#" className="text-purple-200 hover:text-white transition-colors">개인정보처리방침</a>

@@ -9,7 +9,7 @@ const nextConfig = {
         ]
     },
     images: {
-        domains: ['hakplebucket.s3.ap-northeast-2.amazonaws.com'],
+        domains: ['hakplebucket.s3.ap-northeast-2.amazonaws.com', 'via.placeholder.com'],
         remotePatterns: [
             {
                 protocol: 'https',
@@ -32,9 +32,34 @@ const nextConfig = {
                 pathname: '**',
             },
         ],
+        deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+        imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+        formats: ['image/webp'],
+        minimumCacheTTL: 60,
+        dangerouslyAllowSVG: true,
+        contentDispositionType: 'attachment',
+        contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     },
     experimental: {
         optimizeCss: true,
+        appDir: true,
+        scrollRestoration: true,
+        serverActions: true,
+    },
+    webpack: (config, { isServer }) => {
+        if (!isServer) {
+            config.module.rules.forEach((rule) => {
+                if (rule.loader === 'next-image-loader' || rule.loader?.includes('next/dist/build/webpack/loaders/next-image-loader')) {
+                    rule.options = {
+                        ...rule.options,
+                        isServer,
+                        isDev: process.env.NODE_ENV !== 'production',
+                        assetPrefix: '',
+                    };
+                }
+            });
+        }
+        return config;
     },
 }
 
