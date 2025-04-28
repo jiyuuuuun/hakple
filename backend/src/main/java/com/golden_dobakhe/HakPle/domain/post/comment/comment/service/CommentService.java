@@ -65,7 +65,6 @@ public class CommentService {
     // 게시글 ID로 댓글 목록 조회 (로그인 한 사용자의 좋아요 상태 포함)
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getCommentsByBoardId(Long boardId, Long userId) {
-        log.info("게시글 ID: {}, 사용자 ID: {}로 댓글 목록을 조회합니다.", boardId, userId);
         
         // 게시글 존재 여부 확인
         Board board = boardRepository.findById(boardId)
@@ -76,8 +75,6 @@ public class CommentService {
                 .filter(comment -> comment.getStatus() == Status.ACTIVE)
                 .collect(Collectors.toList());
         
-        log.info("조회된 댓글 수: {}", comments.size());
-        
         if (comments.isEmpty()) {
             return List.of();
         }
@@ -87,36 +84,23 @@ public class CommentService {
                 .map(Comment::getId)
                 .collect(Collectors.toList());
         
-        log.info("사용자 {}의 좋아요 상태를 조회할 댓글 ID 목록: {}", userId, commentIds);
-        
         // 사용자가 좋아요한 댓글 목록을 한 번에 조회
         List<CommentLike> likes = likeRepository.findByCommentIdInAndUserId(commentIds, userId);
-        
-        log.info("사용자 {}가 좋아요 한 댓글 수: {}", userId, likes.size());
-        
+
         // 좋아요한 댓글 ID 세트 생성 (빠른 조회용)
         Set<Long> likedCommentIds = likes.stream()
                 .map(like -> like.getComment().getId())
                 .collect(Collectors.toSet());
         
-        log.info("좋아요한 댓글 ID 목록: {}", likedCommentIds);
-        
         // 댓글 DTO 변환 시 좋아요 상태 확인
         List<CommentResponseDto> result = comments.stream()
                 .map(comment -> {
                     boolean isLiked = likedCommentIds.contains(comment.getId());
-                    log.info("댓글 ID: {}, 작성자: {}, 좋아요 상태: {}", 
-                            comment.getId(), comment.getUser().getNickName(), isLiked);
-                    
                     CommentResponseDto dto = CommentResponseDto.fromEntity(comment, isLiked);
-                    log.info("변환된 DTO - 댓글 ID: {}, isLiked 필드값: {}", dto.getId(), dto.isLiked());
                     return dto;
                 })
                 .collect(Collectors.toList());
-        
-        log.info("최종 결과물 개수: {}, 첫 번째 댓글의 isLiked: {}", 
-            result.size(), result.isEmpty() ? "없음" : result.get(0).isLiked());
-        
+
         return result;
     }
 
@@ -148,7 +132,6 @@ public class CommentService {
                .user(user)
                .status(Status.ACTIVE)
                .build();
-       log.info(comment.toString());
        commentRepository.save(comment);
      return comment;
     }
@@ -177,7 +160,6 @@ public class CommentService {
        
         if(comment.getUser().getId() == userId || isAdmin) {
             comment.setContent(commentRequestDto.getContent());
-            log.info(comment.toString());
             return CommentResult.SUCCESS;
         } else{
             return CommentResult.UNAUTHORIZED;
@@ -200,7 +182,6 @@ public class CommentService {
         
         if(comment.getUser().getId() == userId || isAdmin) {
             comment.setStatus(Status.INACTIVE);
-            log.info(comment.toString());
             return CommentResult.SUCCESS;
         } else {
             return CommentResult.UNAUTHORIZED;

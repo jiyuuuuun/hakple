@@ -32,7 +32,6 @@ public class JwtAuthenticationProvider {
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다"));
 
         if (user.getStatus() != Status.ACTIVE) {
-            log.warn("🚫 비활성 사용자 접근 시도 (userId: {})", userId);
             throw new RuntimeException("비활성화된 계정입니다");
         }
 
@@ -45,7 +44,6 @@ public class JwtAuthenticationProvider {
             //여기서 리프래시 토큰을 파싱과 동시에 유효성을 검증한다
             claims = jwtTokenizer.parseRefreshToken(refreshToken);
         } catch (Exception e) {
-            log.warn("🔐 토큰 파싱 실패: {}", e.getMessage());
             throw new RuntimeException("유효하지 않은 토큰입니다", e);
         }
 
@@ -60,10 +58,8 @@ public class JwtAuthenticationProvider {
         try {
             claims = jwtTokenizer.parseAccessToken(token);
         } catch (ExpiredJwtException e) {
-            log.warn("🔐 만료된 토큰: {}", e.getMessage());
             throw new RuntimeException("토큰이 만료되었습니다", e);
         } catch (Exception e) {
-            log.warn("🔐 토큰 파싱 실패: {}", e.getMessage());
             throw new RuntimeException("유효하지 않은 토큰입니다", e);
         }
 
@@ -90,7 +86,6 @@ public class JwtAuthenticationProvider {
         // academyId가 토큰에 있을 경우 사용자 정보에 설정
         String academyId = (String) claims.get("academyId");
         if (academyId != null && !academyId.isEmpty()) {
-            log.info("📌 토큰에서 academyId 추출: {}", academyId);
             user.setAcademyId(academyId);
         }
 

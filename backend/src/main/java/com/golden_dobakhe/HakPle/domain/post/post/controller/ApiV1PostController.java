@@ -103,7 +103,6 @@ public class ApiV1PostController {
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
             default:
-                log.warn("Invalid sortType: {}. Falling back to creationTime.", sortType);
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
         }
@@ -114,7 +113,6 @@ public class ApiV1PostController {
          }
 
         if (page < 1) {
-            log.warn("Invalid page number: {}. Setting to 1.", page);
             page = 1;
         }
         Pageable adjustedPageable = PageRequest.of(page - 1, size, sort);
@@ -152,16 +150,11 @@ public class ApiV1PostController {
             @PathVariable(name="id") Long id,
             @RequestParam(name = "academyCode", required = false) String academyCode
     ) {
-
-        log.info("❤️ 좋아요 요청: postId = {}", id);
         Long userId = getCurrentUserId();
-        log.info("👤 요청자 ID: {}", userId);
-
         try{
             boardService.toggleLike(id, userId, academyCode);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("🔥 좋아요 처리 실패", e);
             return ResponseEntity.status(500).body(Map.of("message", "서버 내부 오류", "error", e.getMessage()));
         }
 
@@ -187,8 +180,6 @@ public class ApiV1PostController {
         if (type == null || type.isEmpty()) {
             type = "free";
         }
-
-        log.debug("태그별 게시물 조회 - tag: {}, sortType: {}, type: {}", tag, sortType, type);
 
         return ResponseEntity.ok(
                 boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, type, adjustedPageable));
@@ -276,9 +267,6 @@ public class ApiV1PostController {
             // type이 없으면 기본값 free 사용, 전달된 minLikes 파라미터 사용
             actualMinLikes = minLikesParam;
         }
-
-        log.debug("인기 태그 조회 - 요청 type: {}, 요청 minLikes: {}, 실제 type: {}, 실제 minLikes: {}",
-                  typeParam, minLikesParam, actualType, actualMinLikes);
 
         if (actualMinLikes != null) {
             return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, actualMinLikes, actualType));
@@ -374,13 +362,9 @@ public class ApiV1PostController {
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
             default:
-                log.warn("Invalid sortType: {}. Falling back to creationTime.", sortType);
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
         }
-
-        log.debug("게시글 동적 검색 - academyCode: {}, searchType: {}, searchKeyword: {}, type: {}, sortType: {}",
-                academyCode, searchType, searchKeyword, type, sortType);
 
         Pageable pageable = PageRequest.of(page - 1, size, sort);
 
