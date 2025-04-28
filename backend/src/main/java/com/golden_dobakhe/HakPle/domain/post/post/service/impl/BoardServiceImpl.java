@@ -17,6 +17,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.HashtagRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.TagMappingRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
+import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
@@ -24,6 +25,10 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
+import com.golden_dobakhe.HakPle.domain.notification.entity.NotificationType;
+import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService;
+import jakarta.persistence.EntityNotFoundException;
+import java.util.Optional;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -40,10 +45,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
+import java.util.Map;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 @Service
 @Transactional
@@ -61,6 +73,8 @@ public class BoardServiceImpl implements BoardService {
     private final ImageRepository imageRepository;
     private final CommentRepository commentRepository;
     private final FileService fileService;
+    private final NotificationService notificationService;
+    private static final Logger log = LoggerFactory.getLogger(BoardServiceImpl.class);
 
     @Override
     @Transactional
@@ -83,9 +97,13 @@ public class BoardServiceImpl implements BoardService {
             resolvedAcademyCode = user.getAcademyId();
         }
 
+        String htmlContent = request.getContent();
+        String plainTextContent = Jsoup.clean(htmlContent != null ? htmlContent : "", Safelist.none());
+
         Board board = Board.builder()
                 .title(request.getTitle())
-                .content(request.getContent())
+                .content(htmlContent)
+                .contentText(plainTextContent)
                 .academyCode(resolvedAcademyCode)
                 .user(user)
                 .status(Status.ACTIVE)
@@ -114,7 +132,7 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    throw new RuntimeException("해시태그 처리 중 예외 발생: " + e.getMessage(), e);
+                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
                 }
             }
         }
@@ -122,9 +140,6 @@ public class BoardServiceImpl implements BoardService {
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             fileService.linkImagesToBoard(request.getTempIdList(), board.getId());
         }
-
-        board.setModificationTime(null);
-        boardRepository.save(board);
 
         return createBoardResponse(board);
     }
@@ -208,7 +223,11 @@ public class BoardServiceImpl implements BoardService {
 
         board.validateUser(userId);
         board.validateStatus();
-        board.update(request.getTitle(), request.getContent(), request.getBoardType());
+
+        String htmlContent = request.getContent();
+        String plainTextContent = Jsoup.clean(htmlContent != null ? htmlContent : "", Safelist.none());
+
+        board.update(request.getTitle(), htmlContent, plainTextContent, request.getBoardType());
 
         board.getTags().clear();
 
@@ -225,7 +244,6 @@ public class BoardServiceImpl implements BoardService {
         else {
             resolvedAcademyCode = user.getAcademyId();
         }
-
 
         if (request.getTags() != null) {
             for (String tagName : request.getTags()) {
@@ -246,7 +264,7 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    throw new RuntimeException("해시태그 처리 중 예외 발생:" + e.getMessage(), e);
+                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
                 }
             }
         }
@@ -258,8 +276,6 @@ public class BoardServiceImpl implements BoardService {
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             fileService.linkImagesToBoard(request.getTempIdList(), id);
         }
-
-        boardRepository.save(board);
 
         return createBoardResponse(board);
     }
@@ -301,24 +317,57 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public void toggleLike(Long boardId, Long userId, String academyCode) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound());
 
-        if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
+        if (academyCode != null && !academyCode.isEmpty() && !board.getAcademyCode().equals(academyCode)) {
+            throw new IllegalArgumentException("학원 코드가 게시물과 일치하지 않습니다.");
         }
 
         board.validateStatus();
 
         boardLikeRepository.findByBoardIdAndUserId(boardId, userId)
                 .ifPresentOrElse(
-                        boardLikeRepository::delete,
+                        boardLike -> {
+                            boardLikeRepository.delete(boardLike);
+                        },
                         () -> {
-                            BoardLike boardLike = BoardLike.builder()
+                            BoardLike newBoardLike = BoardLike.builder()
+                                    .user(user)
                                     .board(board)
-                                    .user(userRepository.findById(userId)
-                                            .orElseThrow(() -> BoardException.notFound()))
                                     .build();
-                            boardLikeRepository.save(boardLike);
+                            boardLikeRepository.save(newBoardLike);
+
+                            if (!board.getUser().getId().equals(userId)) {
+                                String message = String.format("회원님이 작성한 글 '%s'에 좋아요가 표시되었습니다.", board.getTitle());
+                                String link = "/post/" + board.getId();
+                                notificationService.createNotification(
+                                        board.getUser(),
+                                        NotificationType.POST_LIKE,
+                                        message,
+                                        link
+                                );
+
+                                int currentLikeCount = board.getLikeCount();
+
+                                if (currentLikeCount == 9) {
+                                    boolean alreadyNotified = notificationService.hasPopularPostNotification(board);
+                                    if (!alreadyNotified) {
+                                        String popularMessage = String.format("회원님의 글 '%s'이(가) 인기글에 선정되었습니다!", board.getTitle());
+                                        String popularLink = "/post/" + board.getId();
+                                        notificationService.createNotification(
+                                                board.getUser(),
+                                                NotificationType.POPULAR_POST,
+                                                popularMessage,
+                                                popularLink
+                                        );
+
+                                    }
+                                }
+                            }
                         }
                 );
     }

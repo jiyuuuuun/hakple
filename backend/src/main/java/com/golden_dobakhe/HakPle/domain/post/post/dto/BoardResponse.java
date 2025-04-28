@@ -24,16 +24,13 @@ public class BoardResponse {
     private Long userId;
     private String nickname;
     private String userName;
+    private String profileImageUrl;
     private List<String> tags;
     private LocalDateTime creationTime;
     private LocalDateTime modificationTime;
     private String type;
     private boolean hasImage;
     
-    /**
-     * 이전 버전과의 호환성을 위한 메서드
-     * @deprecated 새 코드에서는 getType()을 사용하세요.
-     */
     @Deprecated
     public String getBoardType() {
         return type;
@@ -56,6 +53,7 @@ public class BoardResponse {
                 .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
                 .userName(board.getUser() != null ? board.getUser().getUserName() : null)
+                .profileImageUrl(board.getUser() != null && board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
@@ -82,6 +80,7 @@ public class BoardResponse {
                 .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
                 .userName(board.getUser() != null ? board.getUser().getUserName() : null)
+                .profileImageUrl(board.getUser() != null && board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
@@ -107,6 +106,7 @@ public class BoardResponse {
                 .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
                 .userName(board.getUser() != null ? board.getUser().getUserName() : null)
+                .profileImageUrl(board.getUser() != null && board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())
@@ -131,6 +131,7 @@ public class BoardResponse {
                 .userId(board.getUser() != null ? board.getUser().getId() : null)
                 .nickname(board.getUser() != null ? board.getUser().getNickName() : null)
                 .userName(board.getUser() != null ? board.getUser().getUserName() : null)
+                .profileImageUrl(board.getUser() != null && board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .tags(tags)
                 .creationTime(board.getCreationTime())
                 .modificationTime(board.getModificationTime())

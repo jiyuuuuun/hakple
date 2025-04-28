@@ -20,10 +20,10 @@ import java.util.List;
 })
 public class Hashtag extends BaseEntity {
     @Column(length=255, nullable=false)
-    String hashtagName; // 해시태그 이름
+    private String hashtagName; 
 
     @Column(nullable = false)
-    private String academyCode; // 학원 코드로 구분
+    private String academyCode; 
 
     @OneToMany(mappedBy = "hashtag", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TagMapping> tagMappings = new ArrayList<>();

@@ -64,7 +64,6 @@ public class ApiV1PostController {
             @PathVariable(name = "id") Long id,
             @RequestParam(name = "postView", required = false, defaultValue = "true") Boolean postView,
             @RequestParam(name = "academyCode", required = false) String academyCode) {
-        // 로그인 여부와 관계없이 게시글 조회 가능
         return ResponseEntity.ok(boardService.getBoard(id, postView, academyCode));
     }
 
@@ -81,9 +80,6 @@ public class ApiV1PostController {
             @RequestParam(name = "academyCode", required = false) String academyCode
     ) {
         Long userId = getCurrentUserId();
-
-        System.out.println("왜왜왜");
-
 
         if (academyCode == null || academyCode.isEmpty()) {
             academyCode = boardService.getAcademyCodeByUserId(userId);
@@ -150,7 +146,9 @@ public class ApiV1PostController {
             @PathVariable(name="id") Long id,
             @RequestParam(name = "academyCode", required = false) String academyCode
     ) {
+
         Long userId = getCurrentUserId();
+
         try{
             boardService.toggleLike(id, userId, academyCode);
             return ResponseEntity.ok().build();
@@ -180,6 +178,7 @@ public class ApiV1PostController {
         if (type == null || type.isEmpty()) {
             type = "free";
         }
+
 
         return ResponseEntity.ok(
                 boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, type, adjustedPageable));
@@ -253,20 +252,18 @@ public class ApiV1PostController {
             @RequestParam(name = "type", required = false) String typeParam
     ) {
         Long userId = getCurrentUserId();
-        String actualType = "free"; // 기본값은 free
-        Integer actualMinLikes = null; // 기본값은 null
+        String actualType = "free"; 
+        Integer actualMinLikes = null; 
 
         if ("popular".equalsIgnoreCase(typeParam)) {
-            // type이 popular이면, 실제 조회할 타입은 free로 설정하고 minLikes는 10으로 강제
             actualMinLikes = 10;
         } else if (typeParam != null && !typeParam.isEmpty()) {
-            // type이 popular가 아니면서 값이 있으면 해당 값 사용
             actualType = typeParam;
-            actualMinLikes = minLikesParam; // 전달된 minLikes 파라미터 사용
+            actualMinLikes = minLikesParam; 
         } else {
-            // type이 없으면 기본값 free 사용, 전달된 minLikes 파라미터 사용
             actualMinLikes = minLikesParam;
         }
+
 
         if (actualMinLikes != null) {
             return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, actualMinLikes, actualType));
@@ -366,6 +363,7 @@ public class ApiV1PostController {
                 break;
         }
 
+
         Pageable pageable = PageRequest.of(page - 1, size, sort);
 
         return ResponseEntity.ok(
@@ -376,11 +374,9 @@ public class ApiV1PostController {
     @GetMapping("/my/like-status")
     @Operation(summary = "내가 좋아요한 게시글 ID 목록 조회")
     public ResponseEntity<List<Long>> getLikedPostIds() {
-        Long userId = getCurrentUserId(); // 현재 로그인 유저 ID 가져오기
-        List<Long> likedIds = boardService.getLikedBoardIds(userId); // 서비스에서 ID만 추출
+        Long userId = getCurrentUserId(); 
+        List<Long> likedIds = boardService.getLikedBoardIds(userId); 
         return ResponseEntity.ok(likedIds);
     }
-
-
 
 }
