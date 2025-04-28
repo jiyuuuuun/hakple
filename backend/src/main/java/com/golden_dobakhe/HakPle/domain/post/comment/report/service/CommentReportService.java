@@ -52,7 +52,6 @@ public class CommentReportService {
                 .build();
 
         user.setReportedCount(user.getReportedCount() + 1); //신고 횟수 누적
-        log.info("UserReportCount : {}", user.getReportedCount());
 
         reportRepository.save(report);
     }

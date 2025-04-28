@@ -17,7 +17,6 @@ import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.HashtagRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.TagMappingRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
-import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
@@ -41,15 +40,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
-import java.util.Map;
 
 @Service
 @Transactional
@@ -67,7 +61,6 @@ public class BoardServiceImpl implements BoardService {
     private final ImageRepository imageRepository;
     private final CommentRepository commentRepository;
     private final FileService fileService;
-    private static final Logger log = LoggerFactory.getLogger(BoardServiceImpl.class);
 
     @Override
     @Transactional
@@ -121,7 +114,7 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
+                    throw new RuntimeException("해시태그 처리 중 예외 발생: " + e.getMessage(), e);
                 }
             }
         }
@@ -253,7 +246,7 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e); // 원복: log.error 사용
+                    throw new RuntimeException("해시태그 처리 중 예외 발생:" + e.getMessage(), e);
                 }
             }
         }

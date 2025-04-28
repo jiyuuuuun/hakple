@@ -91,8 +91,6 @@ public class ApiV1AdminController {
                 .stream()
                 .anyMatch(role -> role.equals(Role.ADMIN));
 
-        log.info(principal.getUser().getRoles().toString());
-
         return ResponseEntity.ok(isAdmin);
     }
 
