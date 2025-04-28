@@ -512,7 +512,7 @@ export default function Home() {
             <div className="flex gap-4 text-sm">
               <a href="#" className="text-purple-200 hover:text-white transition-colors">이용약관</a>
               <a href="#" className="text-purple-200 hover:text-white transition-colors">개인정보처리방침</a>
-              <a href="#" className="text-purple-200 hover:text-white transition-colors">고객센터</a>
+              <a href="/customer" className="text-purple-200 hover:text-white transition-colors">고객센터</a>
             </div>
           </div>
         </div>
