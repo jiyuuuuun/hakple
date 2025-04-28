@@ -53,50 +53,28 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
       }
-      // 401 응답도 그대로 반환해야 할 수 있음 (호출 측에서 처리하도록)
-      // return response; // 여기서 바로 반환하면 아래 로직 실행 안됨
     }
 
-    // ======== 사용자 정보 갱신 로직 임시 주석 처리 시작 ========
-    /*
-    // ======== 사용자 정보 갱신 로직 디버깅 로그 추가 ========
     // myInfos API가 아닌 다른 API 요청에서 200 응답을 받았을 때
     if (response.ok && !url.includes('/api/v1/myInfos')) {
-      console.log('[fetchApi] 사용자 정보 갱신 로직 시작...'); // Log 1
       try {
-        console.log('[fetchApi] /api/v1/myInfos 호출 시도...'); // Log 2
+        // 사용자 정보 갱신
         const userInfoResponse = await fetch(`${BASE_URL}/api/v1/myInfos`, {
           credentials: 'include',
         });
-        console.log('[fetchApi] /api/v1/myInfos 응답 상태:', userInfoResponse.ok); // Log 3
 
         if (userInfoResponse.ok) {
-          console.log('[fetchApi] userInfoResponse.json() 호출 시도...'); // Log 4
           const userInfo = await userInfoResponse.json();
-          console.log('[fetchApi] userInfo 객체:', userInfo); // Log 5
-
           // localStorage에 최신 학원 정보 저장
           if (typeof window !== 'undefined' && userInfo.academyCode) {
-            console.log('[fetchApi] localStorage 업데이트 시도 (academyCode):', userInfo.academyCode); // Log 6
             localStorage.setItem('academyCode', userInfo.academyCode);
-            console.log('[fetchApi] localStorage 업데이트 시도 (academyName):', userInfo.academyName || '등록된 학원'); // Log 7
             localStorage.setItem('academyName', userInfo.academyName || '등록된 학원');
-            console.log('[fetchApi] localStorage 업데이트 완료.'); // Log 8
-          } else {
-            console.log('[fetchApi] localStorage 업데이트 건너뜀 (window 없거나 academyCode 없음).'); // Log 9
           }
-        } else {
-            console.warn(`[fetchApi] 사용자 정보 갱신 API(/api/v1/myInfos) 호출 실패: ${userInfoResponse.status}`);
         }
-        console.log('[fetchApi] 사용자 정보 갱신 try 블록 끝.'); // Log 10
       } catch (error) {
-        console.error('[fetchApi] 사용자 정보 갱신 중 오류 발생:', error);
-        throw error;
+        console.error('사용자 정보 갱신 실패:', error);
       }
     }
-    // ======== 사용자 정보 갱신 로직 끝 ========
-    */
-    // ======== 사용자 정보 갱신 로직 임시 주석 처리 끝 ========
 
     return response;
   } catch (error) {
