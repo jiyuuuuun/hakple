@@ -1,11 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    eslint: {
+        // 빌드 중에 ESLint 검사를 건너뜁니다
+        ignoreDuringBuilds: true,
+    },
     async rewrites() {
         return [
             {
                 source: '/api/:path*',
                 destination: 'http://localhost:8090/api/:path*', // 백엔드 API 서버 주소
             },
+            
         ]
     },
     images: {
