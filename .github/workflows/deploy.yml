@@ -9,7 +9,6 @@ on:
       - "backend/Dockerfile"
     branches:
       - main
-      - develop
       - feat/#143
 jobs:
   makeTagAndRelease:
