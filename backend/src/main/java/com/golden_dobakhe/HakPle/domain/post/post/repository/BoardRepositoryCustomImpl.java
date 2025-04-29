@@ -46,7 +46,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
             try {
                 return valueOf(value.toUpperCase());
             } catch (IllegalArgumentException e) {
-                // 영어 소문자로 입력받은 경우 처리
                 switch (value.toLowerCase()) {
                     case "title":
                     case "제목": 
@@ -77,7 +76,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
             try {
                 return valueOf(value.toUpperCase());
             } catch (IllegalArgumentException e) {
-                // 소문자로 입력된 경우 처리
                 if ("free".equalsIgnoreCase(value) || "notice".equalsIgnoreCase(value)) {
                     return valueOf(value.toUpperCase());
                 }
@@ -106,19 +104,17 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
         QHashtag hashtag = QHashtag.hashtag;
         QComment comment = QComment.comment;
         QBoardLike boardLike = QBoardLike.boardLike;
-        QBoardLike boardLikeAlias = new QBoardLike("boardLikeAlias"); // Alias for QBoardLike
+        QBoardLike boardLikeAlias = new QBoardLike("boardLikeAlias"); 
 
         if (!StringUtils.hasText(academyCode)) {
             throw new IllegalArgumentException("학원 코드는 필수 입력값입니다.");
         }
 
-        // 인기 게시판 여부 체크
         boolean isPopular = "popular".equalsIgnoreCase(type);
         
-        // 게시판 타입 설정
         BoardType boardType = null;
         if (isPopular) {
-            boardType = BoardType.FREE; // popular인 경우 FREE로 설정
+            boardType = BoardType.FREE; 
         } else if (StringUtils.hasText(type)) {
             boardType = BoardType.fromString(type);
         }
@@ -128,10 +124,8 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
         BooleanBuilder whereCondition = buildWhereCondition(
                 academyCode, boardType, searchTypeEnum, searchKeyword, board, tagMapping, hashtag);
 
-        // 인기 게시판 (자유 게시판 + 좋아요 10개 이상)
         if (isPopular) {
             whereCondition.and(board.type.eq("free"));
-            // 좋아요 수 10개 이상인 게시물 ID만 조회
             JPQLQuery<Long> likeSubQuery = JPAExpressions
                     .select(boardLike.board.id)
                     .from(boardLike)
@@ -171,7 +165,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                 String property = sort.getProperty();
                 Order direction = sort.isAscending() ? Order.ASC : Order.DESC;
                 try {
-                    // CamelCase 속성을 Enum 이름 형식으로 변환 (예: viewCount -> VIEW_COUNT)
                     String enumName = property.replaceAll("([a-z])([A-Z])", "$1_$2").toUpperCase();
                     SortProperty sortProperty = SortProperty.valueOf(enumName);
                     switch (sortProperty) {
@@ -179,7 +172,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                             orderSpecifiers.add(new OrderSpecifier<>(direction, board.viewCount));
                             break;
                         case COMMENT_COUNT:
-                            // 댓글 수로 정렬
                             NumberTemplate<Long> countExpression = Expressions.numberTemplate(Long.class,
                                     "coalesce({0}, 0)",
                                     queryFactory
@@ -190,7 +182,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                             orderSpecifiers.add(new OrderSpecifier<>(direction, countExpression));
                             break;
                         case LIKE_COUNT:
-                            // 좋아요 수로 정렬
                             orderSpecifiers.add(new OrderSpecifier<>(direction, board.boardLikes.size()));
 
                             break;

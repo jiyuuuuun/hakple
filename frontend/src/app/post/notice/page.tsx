@@ -66,7 +66,6 @@ export default function NoticePage() {
                     if (response.ok) {
                         const isAdminResult = await response.json();
                         setIsAdminState(isAdminResult === true);
-                        console.log('관리자 권한 확인 결과:', isAdminResult);
                     }
                 } catch (error) {
                     console.error('관리자 권한 확인 중 오류 발생:', error);
@@ -166,12 +165,9 @@ export default function NoticePage() {
                 url += `&type=${encodeURIComponent(currentPostType)}`;
             }
 
-            console.log('공지사항 API 요청 URL:', url);
             const response = await fetchApi(url, {
                 method: 'GET',
             });
-
-            console.log(response);
 
 
             const [postsResponse, likeStatusResponse] = await Promise.all([

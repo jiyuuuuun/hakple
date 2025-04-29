@@ -132,7 +132,8 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
+                    log.error("Error processing tag '{}' for academyCode '{}': {}", tagName, resolvedAcademyCode, e.getMessage(), e);
+                    throw e;
                 }
             }
         }
@@ -264,7 +265,8 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("해시태그 처리 중 예외 발생: {}", e.getMessage(), e);
+                    log.error("Error processing tag '{}' for academyCode '{}': {}", tagName, resolvedAcademyCode, e.getMessage(), e);
+                    throw e;
                 }
             }
         }
@@ -296,7 +298,6 @@ public class BoardServiceImpl implements BoardService {
 
         board.setStatus(Status.INACTIVE);
         boardRepository.save(board);
-        log.info("사용자에 의해 게시글 상태 INACTIVE로 변경됨: boardId={}, userId={}", id, userId);
     }
 
     @Override
@@ -886,7 +887,6 @@ public class BoardServiceImpl implements BoardService {
 
         board.setStatus(status);
         boardRepository.save(board);
-        log.info("관리자에 의해 게시글 상태 변경됨: boardId={}, newStatus={}", id, status);
     }
 
 }
