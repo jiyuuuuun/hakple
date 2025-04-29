@@ -25,7 +25,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
-import com.golden_dobakhe.HakPle.domain.post.dto.AdminStatusChangeRequestDto;
+import com.golden_dobakhe.HakPle.domain.post.post.dto.AdminStatusChangeRequestDto;
 
 
 @RestController
