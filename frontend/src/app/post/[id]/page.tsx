@@ -46,7 +46,7 @@ export default function PostDetailPage() {
     const postId = params.id;
     const searchParams = useSearchParams();
     const academyCode = searchParams.get('academyCode');
-
+    const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
     const [post, setPost] = useState<Post | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -97,9 +97,32 @@ export default function PostDetailPage() {
     }, [showCommentMenu]);
 
     useEffect(() => {
-        console.log('편집 중인 댓글 ID 변경:', editingCommentId);
-        console.log('편집 중인 댓글 내용:', editCommentContent);
     }, [editingCommentId, editCommentContent]);
+
+    useEffect(() => {
+        const checkAdmin = async () => {
+            if (isLogin) {
+                try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                        method: 'GET',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    if (response.ok) {
+                        const isAdminResult = await response.json();
+                        setIsCurrentUserAdmin(isAdminResult === true);
+                    } else {
+                        setIsCurrentUserAdmin(false);
+                    }
+                } catch (e) {
+                    setIsCurrentUserAdmin(false);
+                }
+            } else {
+                setIsCurrentUserAdmin(false);
+            }
+        };
+        checkAdmin();
+    }, [isLogin]);
 
     useEffect(() => {
         const fetchPostDetail = async () => {
@@ -177,7 +200,6 @@ export default function PostDetailPage() {
                                 const likeData = await res.json();
                                 setIsLiked(likeData.isLiked);
                             } else {
-                                console.log('좋아요 상태 확인 실패:', await res.text());
                                 setIsLiked(false);
                             }
                         }).catch(err => {
@@ -192,7 +214,6 @@ export default function PostDetailPage() {
                                 const reportData = await res.json();
                                 setIsReported(reportData.isReported);
                             } else {
-                                console.log('신고 상태 확인 실패:', await res.text());
                                 setIsReported(false);
                             }
                         }).catch(err => {
@@ -206,9 +227,7 @@ export default function PostDetailPage() {
                             if (res.ok) {
                                 const ownerData = await res.json();
                                 setPost(prev => prev ? { ...prev, isOwner: ownerData.isOwner } : null);
-                                console.log('게시글 작성자 여부:', ownerData.isOwner);
                             } else {
-                                console.log('게시글 작성자 확인 실패:', await res.text());
                                 setPost(prev => prev ? { ...prev, isOwner: false } : null);
                             }
                         }).catch(err => {
@@ -254,7 +273,6 @@ export default function PostDetailPage() {
                 url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
             }
 
-            console.log('좋아요 API 요청 URL:', url);
 
             const response = await fetchApi(url, {
                 method: 'POST',
@@ -293,33 +311,25 @@ export default function PostDetailPage() {
     const handleEdit = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-
         if (!post) return;
-
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
         }
 
-        if (!post.isOwner) {
-            alert('자신의 게시글만 수정할 수 있습니다.');
+        if (!isCurrentUserAdmin && !post.isOwner) {
+            alert('수정 권한이 없습니다.');
+            setShowPostMenu(false);
             return;
         }
 
         setShowPostMenu(false);
 
         const isNotice = post.type === 'notice' || post.boardType === 'notice';
-        console.log('게시물 타입 정보:', { type: post.type, boardType: post.boardType, isNotice });
 
         const searchParams = new URLSearchParams(window.location.search);
         const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
 
-        console.log('수정 사용할 아카데미 코드:', {
-            postAcademyCode: post.academyCode,
-            urlAcademyCode: academyCode,
-            searchParamsAcademyCode: searchParams.get('academyCode'),
-            finalAcademyCode: currentAcademyCode
-        });
 
         let editUrl = `/post/${post.id}/edit${isNotice ? '?type=notice' : ''}`;
         if (currentAcademyCode) {
@@ -333,8 +343,7 @@ export default function PostDetailPage() {
     };
 
     const handleDelete = async () => {
-        if (!post || !confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
-
+        if (!post || isCurrentUserAdmin) return;
         if (!isLogin) {
             alert('로그인이 필요한 기능입니다.');
             return;
@@ -342,8 +351,11 @@ export default function PostDetailPage() {
 
         if (!post.isOwner) {
             alert('자신의 게시글만 삭제할 수 있습니다.');
+            setShowPostMenu(false);
             return;
         }
+
+        if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
 
         try {
             const response = await fetchApi(`/api/v1/posts/${post.id}`, {
@@ -393,7 +405,6 @@ export default function PostDetailPage() {
                 url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
             }
 
-            console.log('게시글 신고 요청:', id);
 
             const response = await fetchApi(url, {
                 method: 'POST',
@@ -421,11 +432,9 @@ export default function PostDetailPage() {
     const fetchComments = async (postId: number) => {
         try {
             if (!isLogin) {
-                console.log('로그인이 필요한 기능입니다.');
                 return [];
             }
 
-            console.log(`댓글 목록 조회 API 호출: 게시글 ID ${postId}`);
 
             try {
                 const searchParams = new URLSearchParams(window.location.search);
@@ -448,14 +457,12 @@ export default function PostDetailPage() {
                 const commentsText = await commentsResponse.text();
 
                 if (!commentsText.trim()) {
-                    console.log('게시글에 댓글이 없습니다.');
                     return [];
                 }
 
                 let commentsData;
                 try {
                     commentsData = JSON.parse(commentsText);
-                    console.log('댓글 목록 조회 성공:', commentsData);
 
                     if (commentsData && commentsData.length > 0) {
                         const firstComment = commentsData[0];
@@ -506,7 +513,6 @@ export default function PostDetailPage() {
 
                 const commentsWithStatus = await Promise.all(commentStatusPromises);
 
-                console.log('댓글 목록과 상태 로드 완료:', commentsWithStatus);
                 return commentsWithStatus;
 
             } catch (error) {
@@ -543,12 +549,10 @@ export default function PostDetailPage() {
             const responseText = await response.text();
 
             if (response.ok) {
-                console.log('댓글 등록 성공:', responseText);
                 setCommentInput('');
                 const updatedComments = await fetchComments(post.id);
                 setComments(updatedComments);
             } else {
-                console.error('댓글 등록 실패:', responseText);
                 alert(`댓글 등록에 실패했습니다: ${responseText}`);
             }
         } catch (error) {
@@ -564,13 +568,12 @@ export default function PostDetailPage() {
     };
 
     const startCommentEdit = (commentId: number, content: string) => {
-        console.log('댓글 수정 시작:', commentId, content);
 
         const comment = comments.find(c => c.id === commentId);
         if (!comment) return;
 
-        if (!comment.isOwner) {
-            alert('자신의 댓글만 수정할 수 있습니다.');
+        if (!isCurrentUserAdmin && !comment.isOwner) {
+            alert('댓글 수정 권한이 없습니다.');
             setShowCommentMenu(null);
             return;
         }
@@ -630,7 +633,6 @@ export default function PostDetailPage() {
             });
 
             if (response.ok) {
-                console.log('댓글 수정 성공');
                 setLastEditedCommentId(editingCommentId);
                 setEditingCommentId(null);
                 setEditCommentContent('');
@@ -652,7 +654,11 @@ export default function PostDetailPage() {
 
     const handleCommentDelete = async (commentId: number) => {
         const comment = comments.find(c => c.id === commentId);
-        if (!comment) return;
+        if (!comment || isCurrentUserAdmin) return;
+        if (!isLogin) {
+            alert('로그인이 필요한 기능입니다.');
+            return;
+        }
 
         if (!comment.isOwner) {
             alert('자신의 댓글만 삭제할 수 있습니다.');
@@ -662,13 +668,7 @@ export default function PostDetailPage() {
 
         if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) return;
 
-        if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
-        }
-
         try {
-            console.log('댓글 삭제 요청:', commentId);
 
             const response = await fetchApi(`/api/v1/comments/${commentId}`, {
                 method: 'DELETE',
@@ -704,7 +704,6 @@ export default function PostDetailPage() {
             if (!comment) return;
 
             const isCurrentlyLiked = Boolean(comment.isLiked);
-            console.log(`댓글 ID ${commentId}의 현재 좋아요 상태:`, isCurrentlyLiked);
 
             const newLikedState = !isCurrentlyLiked;
             setComments(prev => prev.map(c =>
@@ -738,7 +737,6 @@ export default function PostDetailPage() {
                 throw new Error('좋아요 처리에 실패했습니다.');
             }
 
-            console.log(`댓글 좋아요 ${newLikedState ? '추가' : '취소'} 완료:`, commentId);
 
         } catch (err) {
             console.error('댓글 좋아요 처리 중 오류:', err);
@@ -772,7 +770,6 @@ export default function PostDetailPage() {
         }
 
         try {
-            console.log('댓글 신고 요청:', commentId);
 
             const response = await fetchApi(`/api/v1/comments/reports/${commentId}`, {
                 method: 'POST',
@@ -800,6 +797,58 @@ export default function PostDetailPage() {
     const isNoticePost = useCallback((post: Post | null) => {
         return post?.type === 'notice' || post?.boardType === 'notice';
     }, []);
+
+    const handleAdminAction = async (
+        itemId: number,
+        itemType: 'post' | 'comment',
+        targetStatus: 'inactive' | 'pending'
+    ) => {
+        if (!isCurrentUserAdmin) return;
+
+        const itemTypeName = itemType === 'post' ? '게시글' : '댓글';
+        const actionName = targetStatus === 'inactive' ? '비활성화' : '정지';
+        const confirmMessage = `관리자 권한으로 이 ${itemTypeName}을(를) '${actionName}' 상태로 변경하시겠습니까?`;
+
+        if (!confirm(confirmMessage)) return;
+
+        const apiUrl = itemType === 'post'
+            ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${itemId}/admin-status-change`
+            : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${itemId}/admin-status-change`;
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ status: targetStatus })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`${itemTypeName} 상태 변경 실패: ${errorText || response.status}`);
+            }
+
+            alert(`${itemTypeName} 상태가 성공적으로 변경되었습니다.`);
+            setShowPostMenu(false);
+            setShowCommentMenu(null);
+
+            if (itemType === 'post') {
+                const listUrl = isNoticePost(post)
+                    ? `/post/notice?academyCode=${post?.academyCode || academyCode || searchParams.get('academyCode')}&type=notice`
+                    : '/post';
+                router.push(listUrl.replace(/&?academyCode=undefined|&?academyCode=/g, ''));
+            } else {
+                if (post) {
+                    const updatedComments = await fetchComments(post.id);
+                    setComments(updatedComments);
+                }
+            }
+
+        } catch (err) {
+            console.error(`${itemTypeName} 상태 변경 중 오류:`, err);
+            alert(err instanceof Error ? err.message : `${itemTypeName} 상태 변경에 실패했습니다.`);
+        }
+    };
 
     if (loading) {
         return (
@@ -909,7 +958,7 @@ export default function PostDetailPage() {
                                 </span>
                             </div>
                         </div>
-                        {isLogin && !isNoticePost(post) && (
+                        {isLogin && (!isNoticePost(post) || isCurrentUserAdmin) && (
                             <div className="relative" ref={postMenuRef}>
                                 <button
                                     className="p-2 rounded-full hover:bg-gray-100 transition-colors menu-button"
@@ -919,38 +968,43 @@ export default function PostDetailPage() {
                                 </button>
 
                                 {/* 게시글 드롭다운 메뉴 */}
-                                {showPostMenu && (
+                                {showPostMenu && post && (
                                     <div className="absolute right-0 top-full mt-2 bg-white rounded-[15px] shadow-lg z-10 w-[160px] overflow-hidden border border-gray-100">
-                                        {post.isOwner && (
+                                        {isCurrentUserAdmin ? (
+                                            post.isOwner ? (
+                                                <>
+                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={handleEdit}>
+                                                        <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
+                                                    </button>
+                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={() => handleAdminAction(post.id, 'post', 'inactive')}>
+                                                        <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-orange-600 menu-item" onClick={() => handleAdminAction(post.id, 'post', 'inactive')}>
+                                                        <span className="material-icons text-orange-600 mr-3">visibility_off</span> 비활성화
+                                                    </button>
+                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-purple-600 menu-item" onClick={() => handleAdminAction(post.id, 'post', 'pending')}>
+                                                        <span className="material-icons text-purple-600 mr-3">block</span> 정지
+                                                    </button>
+                                                </>
+                                            )
+                                        ) : post.isOwner ? (
                                             <>
-                                                <button
-                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
-                                                    onClick={handleEdit}
-                                                >
-                                                    <span className="material-icons text-blue-600 mr-3">edit</span>
-                                                    수정하기
+                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={handleEdit}>
+                                                    <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
                                                 </button>
-                                                <button
-                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
-                                                    onClick={handleDelete}
-                                                >
-                                                    <span className="material-icons text-red-600 mr-3">delete</span>
-                                                    삭제하기
+                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={handleDelete}>
+                                                    <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
                                                 </button>
                                             </>
+                                        ) : (
+                                            <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item" onClick={() => handleReport(post.id)} disabled={isReported}>
+                                                <span className={`material-icons mr-3 ${isReported ? 'text-gray-400' : 'text-gray-600'}`}>flag</span>
+                                                <span className={isReported ? 'text-gray-400' : 'text-gray-600'}>{isReported ? '신고 완료' : '신고하기'}</span>
+                                            </button>
                                         )}
-                                        <button
-                                            className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item"
-                                            onClick={() => handleReport(post.id)}
-                                            disabled={isReported || post?.isOwner}
-                                        >
-                                            <span className={`material-icons mr-3 ${isReported || post?.isOwner ? 'text-gray-400' : 'text-gray-600'}`}>
-                                                flag
-                                            </span>
-                                            <span className={isReported || post?.isOwner ? 'text-gray-400' : 'text-gray-600'}>
-                                                {isReported ? '신고 완료' : post?.isOwner ? '내 게시글' : '신고하기'}
-                                            </span>
-                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -1162,37 +1216,41 @@ export default function PostDetailPage() {
 
                                             {showCommentMenu === comment.id && (
                                                 <div className="absolute right-0 top-full mt-2 bg-white rounded-[15px] shadow-lg z-10 w-[160px] overflow-hidden border border-gray-100">
-                                                    {comment.isOwner && (
+                                                    {isCurrentUserAdmin ? (
+                                                        comment.isOwner ? (
+                                                            <>
+                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={() => startCommentEdit(comment.id, comment.content)}>
+                                                                    <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
+                                                                </button>
+                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={() => handleAdminAction(comment.id, 'comment', 'inactive')}>
+                                                                    <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-orange-600 menu-item" onClick={() => handleAdminAction(comment.id, 'comment', 'inactive')}>
+                                                                    <span className="material-icons text-orange-600 mr-3">visibility_off</span> 비활성화
+                                                                </button>
+                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-purple-600 menu-item" onClick={() => handleAdminAction(comment.id, 'comment', 'pending')}>
+                                                                    <span className="material-icons text-purple-600 mr-3">block</span> 정지
+                                                                </button>
+                                                            </>
+                                                        )
+                                                    ) : comment.isOwner ? (
                                                         <>
-                                                            <button
-                                                                className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
-                                                                onClick={() => startCommentEdit(comment.id, comment.content)}
-                                                            >
-                                                                <span className="material-icons text-blue-600 mr-3">edit</span>
-                                                                수정하기
+                                                            <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={() => startCommentEdit(comment.id, comment.content)}>
+                                                                <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
                                                             </button>
-                                                            <button
-                                                                className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
-                                                                onClick={() => handleCommentDelete(comment.id)}
-                                                            >
-                                                                <span className="material-icons text-red-600 mr-3">delete</span>
-                                                                삭제하기
+                                                            <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={() => handleCommentDelete(comment.id)}>
+                                                                <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
                                                             </button>
                                                         </>
+                                                    ) : (
+                                                        <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item" onClick={() => handleCommentReport(comment.id)} disabled={comment.isReported}>
+                                                            <span className={`material-icons mr-3 ${comment.isReported ? 'text-gray-400' : 'text-gray-600'}`}>flag</span>
+                                                            <span className={comment.isReported ? 'text-gray-400' : 'text-gray-600'}>{comment.isReported ? '신고 완료' : '신고하기'}</span>
+                                                        </button>
                                                     )}
-                                                    <button
-                                                        className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item"
-                                                        onClick={() => handleCommentReport(comment.id)}
-                                                        disabled={comment.isReported || comment.isOwner}
-                                                    >
-                                                        <span className={`material-icons mr-3 ${comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-600'
-                                                            }`}>
-                                                            flag
-                                                        </span>
-                                                        <span className={comment.isReported || comment.isOwner ? 'text-gray-400' : 'text-gray-600'}>
-                                                            {comment.isReported ? '신고 완료' : comment.isOwner ? '내 댓글' : '신고하기'}
-                                                        </span>
-                                                    </button>
                                                 </div>
                                             )}
                                         </div>

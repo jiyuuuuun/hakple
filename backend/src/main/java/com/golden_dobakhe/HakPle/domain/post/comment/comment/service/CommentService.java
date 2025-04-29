@@ -166,11 +166,10 @@ public class CommentService {
             return CommentResult.COMMENT_NOT_FOUND;
         }
         
-        
+        // 관리자 수정 권한 복원
         boolean isAdmin = user.getRoles().contains(Role.ADMIN);
-        
        
-        if(comment.getUser().getId() == userId || isAdmin) {
+        if(comment.getUser().getId() == userId || isAdmin) { 
             comment.setContent(commentRequestDto.getContent());
             return CommentResult.SUCCESS;
         } else{
@@ -178,6 +177,7 @@ public class CommentService {
         }
     }
 
+    //댓글 삭제
     public CommentResult commentDelete(Long commentId, Long userId) {
         User user = userRepository.findById(userId).orElse(null);
         if(user == null) { 
@@ -189,6 +189,7 @@ public class CommentService {
             return CommentResult.COMMENT_NOT_FOUND;
         }
         
+        // 관리자 삭제 권한 복원
         boolean isAdmin = user.getRoles().contains(Role.ADMIN);
         
         if(comment.getUser().getId() == userId || isAdmin) {
@@ -198,6 +199,22 @@ public class CommentService {
             return CommentResult.UNAUTHORIZED;
         }
     }
+
+    
+    @Transactional
+    public void adminChangeCommentStatus(Long commentId, Status status) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
+        
+        if (status != Status.ACTIVE && status != Status.PENDING && status != Status.INACTIVE) {
+             throw CommentException.invalidRequest("허용되지 않는 상태 값입니다: " + status);
+        }
+
+        comment.setStatus(status);
+        commentRepository.save(comment);
+        log.info("관리자에 의해 댓글 상태 변경됨: commentId={}, newStatus={}", commentId, status);
+    }
+
     public Page<CommentResponseDto> findMyComments(String userName, Pageable pageable) {
         User user = userRepository.findByUserName(userName)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));

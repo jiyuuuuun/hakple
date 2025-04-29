@@ -8,6 +8,7 @@ import java.util.List;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Hashtag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import com.golden_dobakhe.HakPle.global.Status;
 
 public interface BoardService {
     BoardResponse createBoard(BoardRequest request, Long userId);
@@ -105,4 +106,6 @@ public interface BoardService {
 
     Page<BoardResponse> searchBoardsDynamic(String academyCode, String searchType,
                                           String searchKeyword, String type, Pageable pageable);
+
+    void adminChangeBoardStatus(Long id, Status status);
 }
