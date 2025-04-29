@@ -59,7 +59,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
-                .profileImageUrl(board.getUser().getProfileImage()!= null ? board.getUser().getProfileImage().getFilePath() : null)
+                //.profileImageUrl(board.getUser().getProfileImage()!= null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 
@@ -87,7 +87,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
-                .profileImageUrl(board.getUser().getProfileImage()!= null ? board.getUser().getProfileImage().getFilePath() : null)
+                //.profileImageUrl(board.getUser().getProfileImage()!= null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
     
@@ -114,7 +114,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
-                .profileImageUrl(board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
+                //.profileImageUrl(board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 
@@ -140,7 +140,7 @@ public class BoardResponse {
                 .type(board.getType())
                 .hasImage(hasImage)
                 .imageUrls(imageUrls)
-                .profileImageUrl(board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
+                //.profileImageUrl(board.getUser().getProfileImage() != null ? board.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 }
