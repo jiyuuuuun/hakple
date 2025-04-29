@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
+import PostListSkeleton from '@/components/PostListSkeleton';
 
 interface LoginMember {
     id: number;
@@ -370,29 +371,29 @@ export default function NoticePage() {
     };
 
     // Scroll event handler
-  const handleScroll = () => {
-    if (window.scrollY > 300) {
-      setShowScrollTopButton(true);
-    } else {
-      setShowScrollTopButton(false);
-    }
-  };
-
-  // Add/remove scroll event listener
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
+    const handleScroll = () => {
+        if (window.scrollY > 300) {
+            setShowScrollTopButton(true);
+        } else {
+            setShowScrollTopButton(false);
+        }
     };
-  }, []);
 
-  // Scroll to top function
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  };
+    // Add/remove scroll event listener
+    useEffect(() => {
+        window.addEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
+
+    // Scroll to top function
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+        });
+    };
 
     if (!isLogin) {
         return (
@@ -500,9 +501,7 @@ export default function NoticePage() {
                 )}
 
                 {loading ? (
-                    <div className="flex justify-center items-center py-20">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9C50D4]"></div>
-                    </div>
+                    <PostListSkeleton count={10} />
                 ) : (
                     <>
                         <div className="bg-white rounded-lg shadow">
@@ -514,32 +513,24 @@ export default function NoticePage() {
                                             onClick={() => router.push(`/post/${post.id}`)}
                                         >
                                             <div className="flex items-center gap-4 mb-2">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                                                     {post.profileImageUrl ? (
-                                                      <>
                                                         <img
-                                                          src={post.profileImageUrl}
-                                                          alt={`${post.nickname} 프로필 이미지`}
-                                                          className="w-full h-full object-cover"
-                                                          onError={(e) => {
-                                                            const img = e.target as HTMLImageElement;
-                                                            img.onerror = null; // 무한 루프 방지
-                                                            img.style.display = 'none'; // 이미지 숨김
-                                                            // 아이콘 표시 (형제 요소로 추가 또는 클래스 토글)
-                                                            const icon = img.nextElementSibling;
-                                                            if (icon) {
-                                                              icon.classList.remove('hidden');
-                                                            }
-                                                          }}
+                                                            src={post.profileImageUrl}
+                                                            alt={`${post.nickname} 프로필 이미지`}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                const img = e.target as HTMLImageElement;
+                                                                img.onerror = null;
+                                                                img.style.display = 'none';
+                                                                const icon = img.nextElementSibling;
+                                                                if (icon) {
+                                                                    icon.classList.remove('hidden');
+                                                                }
+                                                            }}
                                                         />
-                                                        {/* Fallback Icon (initially hidden) */}
-                                                        <span className="material-icons text-gray-400 text-2xl absolute inset-0 flex items-center justify-center hidden">
-                                                          account_circle
-                                                        </span>
-                                                      </>
                                                     ) : (
-                                                      // 기본 아이콘
-                                                      <span className="material-icons text-gray-400 text-2xl">account_circle</span>
+                                                        <span className="material-icons text-gray-400 text-2xl">account_circle</span>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -549,7 +540,7 @@ export default function NoticePage() {
                                                 </div>
                                             </div>
 
-                                            <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
+                                            <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-1">
                                                 {post.title}
                                                 {post.hasImage && (
                                                     <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
@@ -683,16 +674,16 @@ export default function NoticePage() {
                         )}
                     </>
                 )}
-                 {/* Scroll to Top Button */}
-        {showScrollTopButton && (
-          <button
-            onClick={scrollToTop}
-            className="fixed bottom-100 right-100 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
-            aria-label="맨 위로 스크롤"
-          >
-            <span className="material-icons">arrow_upward</span>
-          </button>
-        )}
+                {/* Scroll to Top Button */}
+                {showScrollTopButton && (
+                    <button
+                        onClick={scrollToTop}
+                        className="fixed bottom-100 right-100 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+                        aria-label="맨 위로 스크롤"
+                    >
+                        <span className="material-icons">arrow_upward</span>
+                    </button>
+                )}
             </div>
         </main>
     );
