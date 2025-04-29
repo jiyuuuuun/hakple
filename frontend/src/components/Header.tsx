@@ -295,9 +295,9 @@ export default function Header() {
     useEffect(() => {
         
         if (isLogin) {
-            console.log('[useEffect isLogin] isLogin=true, fetchUnreadCount 호출 시도...');
+            
             const timer = setTimeout(() => {
-                console.log('[useEffect isLogin] setTimeout 실행, fetchUnreadCount 호출!');
+               
                 fetchUnreadCount();
             }, 10);
             return () => clearTimeout(timer);
@@ -465,7 +465,6 @@ export default function Header() {
                                 >
                                     <BellIcon className="h-6 w-6" />
                                     {/* notificationCount는 이제 읽지 않은 개수를 의미 */}
-                                    {((): null => { console.log('[Render Badge] notificationCount:', notificationCount); return null; })()}
                                     {notificationCount > 0 && (
                                         <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                                             {notificationCount > 99 ? '99+' : notificationCount}

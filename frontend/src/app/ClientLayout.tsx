@@ -216,7 +216,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             
 
             if (data.profileImageUrl) {
-                console.log('프로필 이미지 URL 발견:', data.profileImageUrl);
+                
                 setLoginMember(data);
             }
             } catch (err) {
