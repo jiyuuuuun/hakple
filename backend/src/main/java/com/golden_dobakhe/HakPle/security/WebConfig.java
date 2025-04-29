@@ -46,7 +46,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins(frontUrl, "https://www.hakple.site")
+                .allowedOrigins(frontUrl)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS, PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true)
@@ -54,7 +54,7 @@ public class WebConfig implements WebMvcConfigurer {
 
         System.out.println("==================================");
         System.out.println("CORS 설정됨");
-        System.out.println("허용 오리진: " + frontUrl + ", https://www.hakple.site");
+        System.out.println("허용 오리진: " + frontUrl);
         System.out.println("==================================");
     }
 
