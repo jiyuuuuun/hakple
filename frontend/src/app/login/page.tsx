@@ -36,6 +36,9 @@ export default function LoginPage() {
             console.log('로그인 요청 시작')
             const response = await fetchApi('/api/v1/auth/login', {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({
                     username,
                     password,
