@@ -58,6 +58,7 @@ public class CommentResponseDto {
                 .creationTime(comment.getCreationTime())
                 .modificationTime(comment.getModificationTime())
                 .status(comment.getStatus())
+                .profileImageUrl(comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null )
                 .isLiked(isLiked)
                 .profileImageUrl(comment.getUser() != null && comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null)
                 .build();

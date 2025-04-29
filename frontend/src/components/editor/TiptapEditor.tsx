@@ -12,6 +12,7 @@ import type { Editor } from '@tiptap/react';
 import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { HTMLAttributes } from 'react';
 import { Plugin, PluginKey, NodeSelection } from 'prosemirror-state';
+import { fetchApi } from '@/utils/api';
 
 // --- 사용자 정의 이미지 속성 인터페이스 ---
 interface CustomImageAttributes extends HTMLAttributes<HTMLElement> {
@@ -414,9 +415,8 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
   // 추가: 백엔드 서버 상태 확인 함수
   const checkServerStatus = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/health`, {
+      const response = await fetchApi(`/api/v1/images/health`, {
         method: 'GET',
-        credentials: 'include'
       });
       return response.ok;
     } catch (error) {
@@ -474,10 +474,9 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         formData.append('file', file);
         formData.append('tempId', tempId);
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/upload_temp`, {
+        const response = await fetchApi(`/api/v1/images/upload_temp`, {
           method: 'POST',
           body: formData,
-          credentials: 'include'
         });
 
         if (!response.ok) {

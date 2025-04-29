@@ -60,10 +60,6 @@ export default function NoticePage() {
                 try {
                     const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
                     });
 
                     if (response.ok) {
@@ -170,6 +166,12 @@ export default function NoticePage() {
             }
 
             console.log('공지사항 API 요청 URL:', url);
+            const response = await fetchApi(url, {
+                method: 'GET',
+            });
+
+            console.log(response);
+
 
             const [postsResponse, likeStatusResponse] = await Promise.all([
                 fetchApi(url, {

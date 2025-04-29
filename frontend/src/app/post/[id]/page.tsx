@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
+import { fetchApi } from '@/utils/api';
 
 interface Post {
     id: number;
@@ -147,11 +148,8 @@ export default function PostDetailPage() {
                     url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
                 }
 
-                const response = await fetch(url, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
+                const response = await fetchApi(url, {
+                    method: 'GET',
                 });
 
                 if (!hasViewed) {
@@ -195,12 +193,8 @@ export default function PostDetailPage() {
 
                 if (isLogin) {
                     Promise.all([
-                        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}/like-status`, {
+                        fetchApi(`/api/v1/posts/${params.id}/like-status`, {
                             method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const likeData = await res.json();
@@ -213,12 +207,8 @@ export default function PostDetailPage() {
                             setIsLiked(false);
                         }),
 
-                        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/report-status`, {
+                        fetchApi(`/api/v1/posts/${postId}/report-status`, {
                             method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const reportData = await res.json();
@@ -231,12 +221,8 @@ export default function PostDetailPage() {
                             setIsReported(false);
                         }),
 
-                        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/is-owner`, {
+                        fetchApi(`/api/v1/posts/${postId}/is-owner`, {
                             method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const ownerData = await res.json();
@@ -288,12 +274,8 @@ export default function PostDetailPage() {
             }
 
 
-            const response = await fetch(url, {
+            const response = await fetchApi(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -376,9 +358,8 @@ export default function PostDetailPage() {
         if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}`, {
+            const response = await fetchApi(`/api/v1/posts/${post.id}`, {
                 method: 'DELETE',
-                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -425,12 +406,8 @@ export default function PostDetailPage() {
             }
 
 
-            const response = await fetch(url, {
+            const response = await fetchApi(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -468,12 +445,8 @@ export default function PostDetailPage() {
                     url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
                 }
 
-                const commentsResponse = await fetch(url, {
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
-                    },
+                const commentsResponse = await fetchApi(url, {
+                    method: 'GET',
                 });
 
                 if (!commentsResponse.ok) {
@@ -508,11 +481,8 @@ export default function PostDetailPage() {
 
                 const commentStatusPromises = commentsData.map(async (comment: Comment) => {
                     try {
-                        const reportStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/status`, {
-                            credentials: 'include',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                        const reportStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/status`, {
+                            method: 'GET',
                         });
 
                         if (reportStatusResponse.ok) {
@@ -522,11 +492,8 @@ export default function PostDetailPage() {
                             comment.isReported = false;
                         }
 
-                        const ownerStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/is-owner`, {
-                            credentials: 'include',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                        const ownerStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/is-owner`, {
+                            method: 'GET',
                         });
 
                         if (ownerStatusResponse.ok) {
@@ -572,12 +539,10 @@ export default function PostDetailPage() {
                 content: commentInput
             };
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments`, {
+            console.log('댓글 등록 요청 데이터:', commentData);
+
+            const response = await fetchApi(`/api/v1/comments`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
                 body: JSON.stringify(commentData)
             });
 
@@ -662,13 +627,9 @@ export default function PostDetailPage() {
 
             console.log('댓글 수정 요청 데이터:', commentData, 'commenterId:', editingCommentId);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/update`, {
+            const response = await fetchApi(`/api/v1/comments/update`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify(commentData),
-                credentials: 'include'
             });
 
             if (response.ok) {
@@ -709,12 +670,8 @@ export default function PostDetailPage() {
 
         try {
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${commentId}`, {
+            const response = await fetchApi(`/api/v1/comments/${commentId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
             });
 
             if (response.ok) {
@@ -761,12 +718,8 @@ export default function PostDetailPage() {
                     : c
             ));
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/likes/comments/${commentId}/toggle`, {
+            const response = await fetchApi(`/api/v1/likes/comments/${commentId}/toggle`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -818,12 +771,8 @@ export default function PostDetailPage() {
 
         try {
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${commentId}`, {
+            const response = await fetchApi(`/api/v1/comments/reports/${commentId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -981,12 +930,20 @@ export default function PostDetailPage() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                                {post.profileImageUrl && !postAuthorImgError ? (
+                                {post.profileImageUrl ? (
                                     <img
                                         src={post.profileImageUrl}
-                                        alt={`${post.nickname} 프로필 이미지`}
-                                        className="w-full h-full object-cover"
-                                        onError={() => setPostAuthorImgError(true)}
+                                        alt={`${post.nickname}의 프로필 이미지`}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.onerror = null; // 추가 오류 이벤트 방지
+                                            target.style.display = 'none'; // 이미지 숨기기
+                                            target.parentElement!.innerHTML = `
+                                                <span class="material-icons text-[#980ffa] text-2xl">account_circle</span>
+                                            `;
+                                        }}
+
                                     />
                                 ) : (
                                     <span className="material-icons text-[#980ffa] text-2xl">account_circle</span>
@@ -1218,13 +1175,21 @@ export default function PostDetailPage() {
                             >
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
-                                            {comment.profileImageUrl && !commentImgErrors[comment.id] ? (
+                                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                            {comment.profileImageUrl ? (
                                                 <img
                                                     src={comment.profileImageUrl}
-                                                    alt={`${comment.nickname} 프로필 이미지`}
-                                                    className="w-full h-full object-cover"
-                                                    onError={() => setCommentImgErrors(prev => ({ ...prev, [comment.id]: true }))}
+                                                    alt={`${comment.nickname}의 프로필 이미지`}
+                                                    className="h-full w-full object-cover"
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.onerror = null; // 추가 오류 이벤트 방지
+                                                        target.style.display = 'none'; // 이미지 숨기기
+                                                        target.parentElement!.innerHTML = `
+                                                            <span class="material-icons text-[#980ffa]">account_circle</span>
+                                                        `;
+                                                    }}
+
                                                 />
                                             ) : (
                                                 <span className="material-icons text-[#980ffa]">account_circle</span>

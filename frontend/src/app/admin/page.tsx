@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 // 아카데미 타입 정의
 interface Academy {
@@ -25,115 +26,91 @@ export default function AdminPage() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      try {
-        // 로컬 스토리지에서 액세스 토큰 가져오기
-        // const token = localStorage.getItem('accessToken');
-        // console.log('Token found:', !!token);
-        
-        // if (!token) {
-        //   console.log('No token found, redirecting to login');
-        //   setDebugInfo({ error: 'No token found' });
-        //   router.push('/login');
-        //   return;
-        // }
-        
-        console.log('Checking admin status, API URL:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`);
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            //'Authorization': `Bearer ${token}` // 인증 토큰 추가
-          },
-        });
+  try {
+    const apiUrl = '/api/v1/admin/check'; // BASE_URL은 fetchApi 안에서 붙는다고 가정
+    console.log('Checking admin status, API URL:', apiUrl);
 
-        console.log('Admin check response status:', response.status);
-        if (!response.ok) {
-          console.log('Admin check failed, status:', response.status);
-          setDebugInfo({ 
-            error: 'Admin check failed', 
-            status: response.status,
-            statusText: response.statusText 
-          });
-          router.push('/');
-          return;
-        }
+    const response = await fetchApi(apiUrl, {
+      method: 'GET',
+    });
 
-        // 응답 데이터 처리
-        const isAdminResult = await response.json();
-        console.log('Admin check result:', isAdminResult);
-        
-        // boolean 값을 확인하여 관리자 권한 설정
-        if (isAdminResult === true) {
-          console.log('User is admin, showing admin page');
-          setIsAdmin(true);
-          setDebugInfo({ isAdmin: true, message: 'Admin permissions confirmed' });
-          // 아카데미 목록 불러오기
-          fetchAcademies();
-        } else {
-          console.log('User is not admin, redirecting to home');
-          setDebugInfo({ isAdmin: false, message: 'Not an admin user' });
-          // 관리자가 아니면 홈으로 이동
-          router.push('/');
-        }
-      } catch (error) {
-        console.error('관리자 권한 확인 중 오류 발생:', error);
-        setDebugInfo({ error: 'Error checking admin status', details: error });
-        router.push('/');
-      } finally {
-        setLoading(false);
-      }
-    };
+    console.log('Admin check response status:', response.status);
+
+    if (!response.ok) {
+      console.log('Admin check failed, status:', response.status);
+      setDebugInfo({ 
+        error: 'Admin check failed', 
+        status: response.status,
+        statusText: response.statusText 
+      });
+      router.push('/');
+      return;
+    }
+
+    const isAdminResult = await response.json();
+    console.log('Admin check result:', isAdminResult);
+
+    if (isAdminResult === true) {
+      console.log('User is admin, showing admin page');
+      setIsAdmin(true);
+      setDebugInfo({ isAdmin: true, message: 'Admin permissions confirmed' });
+      fetchAcademies();
+    } else {
+      console.log('User is not admin, redirecting to home');
+      setDebugInfo({ isAdmin: false, message: 'Not an admin user' });
+      router.push('/');
+    }
+  } catch (error) {
+    console.error('관리자 권한 확인 중 오류 발생:', error);
+    setDebugInfo({ error: 'Error checking admin status', details: error });
+    router.push('/');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     checkAdmin();
   }, [router]);
 
   // 아카데미 목록 가져오기
   const fetchAcademies = async () => {
+  try {
+    const response = await fetchApi('/api/v1/admin/academies', {
+      method: 'GET',
+    });
+
+    if (!response.ok) {
+      console.error('아카데미 목록 조회 실패:', response.status);
+      setAcademies([]);
+      return;
+    }
+
+    const responseText = await response.text();
+    let data;
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/academies`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      data = JSON.parse(responseText);
+      console.log('파싱된 아카데미 데이터:', data);
 
-      if (!response.ok) {
-        console.error('아카데미 목록 조회 실패:', response.status);
-        setAcademies([]);
-        return;
-      }
-
-      // 응답 데이터 처리
-      const responseText = await response.text();
-      let data;
-      
-      try {
-        data = JSON.parse(responseText);
-        console.log('파싱된 아카데미 데이터:', data);
-        
-        // 페이지네이션 응답 형태인지 확인
-        if (data && Array.isArray(data.content)) {
-          // 페이지네이션 응답인 경우 content 배열 사용
-          setAcademies(data.content);
-        } else if (Array.isArray(data)) {
-          // 배열인 경우 그대로 사용
-          setAcademies(data);
-        } else {
-          // 그 외의 경우 빈 배열로 설정
-          console.error('유효한 아카데미 데이터 형식이 아닙니다:', data);
-          setAcademies([]);
-        }
-      } catch (error) {
-        console.error('아카데미 데이터 파싱 오류:', error);
+      if (data && Array.isArray(data.content)) {
+        setAcademies(data.content);
+      } else if (Array.isArray(data)) {
+        setAcademies(data);
+      } else {
+        console.error('유효한 아카데미 데이터 형식이 아닙니다:', data);
         setAcademies([]);
       }
     } catch (error) {
-      console.error('아카데미 목록 조회 중 오류:', error);
+      console.error('아카데미 데이터 파싱 오류:', error);
       setAcademies([]);
     }
-  };
+  } catch (error) {
+    console.error('아카데미 목록 조회 중 오류:', error);
+    setAcademies([]);
+  }
+};
+
 
   // 공지사항 페이지로 이동
   const handleMoveToNotice = () => {
@@ -185,7 +162,6 @@ export default function AdminPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">🔑 관리자 페이지</h1>
       
-     
       
       {/* 관리자 계정 관련 */}
       <div className="mb-8">

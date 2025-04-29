@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ArrowLeftIcon, UserIcon, CheckCircleIcon, CheckIcon, CameraIcon, KeyIcon } from '@heroicons/react/24/outline'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { fetchApi } from '@/utils/api'
 
 // 휴대폰 번호 형식화 함수 (하이픈 추가)
 const formatPhoneNumber = (phoneNum: string): string => {
@@ -67,9 +68,8 @@ export default function ProfileUpdatePage() {
         const fetchUserInfo = async () => {
             try {
                 console.log('사용자 정보 요청 시작')
-                const response = await fetch('/api/v1/myInfos', {
+                const response = await fetchApi('/api/v1/myInfos', {
                     method: 'GET',
-                    credentials: 'include', // 쿠키(JWT)를 포함하여 요청
                 })
 
                 console.log('사용자 정보 응답 상태:', response.status)
@@ -224,9 +224,8 @@ export default function ProfileUpdatePage() {
 
             // 백엔드에 실제 API 요청
             console.log('휴대폰 번호 중복 확인 API 요청:', newPhoneNumber)
-            const response = await fetch(`/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`, {
+            const response = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`, {
                 method: 'GET',
-                credentials: 'include',
             })
 
             // 응답 처리
@@ -318,12 +317,8 @@ export default function ProfileUpdatePage() {
             console.log('프로필 업데이트 요청 데이터:', updateData)
 
             // 백엔드에 업데이트 요청
-            const response = await fetch('/api/v1/myInfos/update', {
+            const response = await fetchApi('/api/v1/myInfos/update', {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
                 body: JSON.stringify(updateData),
             })
 

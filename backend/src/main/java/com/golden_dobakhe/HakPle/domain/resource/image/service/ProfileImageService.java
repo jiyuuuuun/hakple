@@ -115,6 +115,7 @@ public class ProfileImageService {
                 .contentType(contentType)
                 .size(multipartFile.getSize())
                 .isDeleted(false)
+                .isTemp(true) // 임시 파일 플래그
                 .user(user)
                 .build();
 
@@ -149,3 +150,4 @@ public class ProfileImageService {
         }
     }
 }
+

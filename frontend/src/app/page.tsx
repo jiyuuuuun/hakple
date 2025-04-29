@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import SafeImage from '@/components/SafeImage';
 import SafeHtmlImage from '@/components/SafeHtmlImage';
-
+import { fetchApi } from '@/utils/api';
 export default function Home() {
   const router = useRouter();
   // API 기본 URL
@@ -37,70 +37,60 @@ export default function Home() {
   useEffect(() => {
     // 관리자 권한 확인 함수를 useEffect 내부로 이동
     const checkAdminPermission = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/admin/check`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const isAdminResult = await response.json();
-          console.log('관리자 권한 확인:', isAdminResult);
-          
-          setIsAdmin(isAdminResult === true);
-          
-          // 관리자인 경우 관리자 페이지로 리다이렉트
-          if (isAdminResult === true) {
-            console.log('관리자로 로그인 - 관리자 페이지로 이동');
-            router.push('/admin');
-          }
-        } else {
-          console.log('관리자 권한 없음');
-          setIsAdmin(false);
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error('관리자 권한 확인 중 오류:', error);
-        setIsAdmin(false);
-        setIsLoading(false);
-      }
-    };
+    try {
+    const response = await fetchApi('/api/v1/admin/check', {
+      method: 'GET',
+    });
 
-    // API를 통한 로그인 상태 확인
-    const checkLoginStatus = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        console.log('로그인 상태 응답:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('로그인 상태 성공:', data);
-          setIsLoggedIn(true);
-          
-          // 관리자 권한 확인
-          await checkAdminPermission();
-        } else {
-          console.log('로그인 필요');
-          setIsLoggedIn(false);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error('로그인 상태 확인 중 오류:', error);
-        setIsLoggedIn(false);
-        setIsLoading(false);
+    if (response.ok) {
+      const isAdminResult = await response.json();
+      console.log('관리자 권한 확인:', isAdminResult);
+
+      setIsAdmin(isAdminResult === true);
+
+      // 관리자인 경우 관리자 페이지로 리다이렉트
+      if (isAdminResult === true) {
+        console.log('관리자로 로그인 - 관리자 페이지로 이동');
+        router.push('/admin');
       }
-    };
-    
+    } else {
+      console.log('관리자 권한 없음');
+      setIsAdmin(false);
+    }
+    setIsLoading(false);
+  } catch (error) {
+    console.error('관리자 권한 확인 중 오류:', error);
+    setIsAdmin(false);
+    setIsLoading(false);
+  }
+};
+
+const checkLoginStatus = async () => {
+  try {
+    const response = await fetchApi('/api/v1/auth/me', {
+      method: 'GET',
+    });
+
+    console.log('로그인 상태 응답:', response.status);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('로그인 상태 성공:', data);
+      setIsLoggedIn(true);
+
+      // 로그인 성공 → 관리자 권한 확인
+      await checkAdminPermission();
+    } else {
+      console.log('로그인 필요');
+      setIsLoggedIn(false);
+      setIsLoading(false);
+    }
+  } catch (error) {
+    console.error('로그인 상태 확인 중 오류:', error);
+    setIsLoggedIn(false);
+    setIsLoading(false);
+  }
+};
     checkLoginStatus();
   }, [API_BASE_URL, router]); // router도 의존성에 추가
 
