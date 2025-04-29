@@ -2,10 +2,15 @@ package com.golden_dobakhe.HakPle.security.service;
 //이 부분은 테스트를 위한 것이며 추후 어딘가에 병합이 될 수 있음
 
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.exception.ImageErrorCode;
 import com.golden_dobakhe.HakPle.domain.resource.image.exception.ProfileImageException;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
+import com.golden_dobakhe.HakPle.domain.resource.image.util.FileUtils;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
@@ -14,8 +19,11 @@ import com.golden_dobakhe.HakPle.security.dto.LoginDto;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -27,50 +35,51 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class AuthService {
+
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
+
     private final UserRepository userRepository;
     private final ImageRepository imageRepository;
     private final JwtTokenizer jwtTokenizer;
-    private static final String UPLOAD_DIR = "uploads/profile/";
+    private final AmazonS3 amazonS3;
 
-    @Transactional(readOnly = true)
     public Optional<User> findByIdWithRoles(Long id) {
         return userRepository.findByIdWithRoles(id);
     }
 
     //일단 간단하게 있는지 없는지 체크
-    @Transactional(readOnly = true)
     public User findByUserName(String userName) {
         return userRepository.findByUserName(userName).get();
     }
 
-    @Transactional(readOnly = true)
     public Optional<User> findById(Long userId) {
         return userRepository.findById(userId);
     }
 
-    @Transactional(readOnly = true)
     public String genAccessToken(User user) {
         return jwtTokenizer.createAccessToken(
-            user.getId(), 
-            user.getUserName(), 
-            user.getNickName(), 
-            user.getPhoneNum(), 
-            user.getStatus(), 
-            user.getRoles(),
-            user.getAcademyId()
+                user.getId(),
+                user.getUserName(),
+                user.getNickName(),
+                user.getPhoneNum(),
+                user.getStatus(),
+                user.getRoles(),
+                user.getAcademyId()
         );
     }
-    @Transactional(readOnly = true)
+
     public String genRefreshToken(User user) {
         return jwtTokenizer.createRefreshToken(
-            user.getId(), 
-            user.getUserName(), 
-            user.getNickName(), 
-            user.getPhoneNum(), 
-            user.getStatus(), 
-            user.getRoles(),
-            user.getAcademyId()
+                user.getId(),
+                user.getUserName(),
+                user.getNickName(),
+                user.getPhoneNum(),
+                user.getStatus(),
+                user.getRoles(),
+                user.getAcademyId()
         );
     }
 
@@ -86,8 +95,7 @@ public class AuthService {
 
         if (userRepository.existsByUserName(username)) {
             throw new RuntimeException("해당 username은 이미 사용중입니다.");
-        };
-
+        }
 
         Date currentDate = new Date();
         //전화번호 난수 추가
@@ -100,76 +108,121 @@ public class AuthService {
                 .nickName(nickname)
                 .socialProvider("kakao")
                 .roles(new HashSet<>(Set.of(Role.USER)))
-                .phoneNum("KA" + formattedDateTime + (int)(Math.random() * 1000) + 1)
+                .phoneNum("KA" + formattedDateTime + (int) (Math.random() * 1000) + 1)
                 .status(Status.ACTIVE)
                 .build();
 
         userRepository.save(user);
-        inputSocialProfileImg(user, profileImgUrl);
+        inputSocialProfileImage(user, profileImgUrl);
         return user;
     }
 
-    @Transactional
-    public String inputSocialProfileImg(User user, String profileImgUrl) {
-        // 1. 저장 경로 설정 (uploadProfileImage에서 쓰는 것과 동일)
-        String uploadPath = System.getProperty("user.dir") + File.separator + UPLOAD_DIR;
-        System.out.println(" 경로 : " + uploadPath);
-        File uploadFolder = new File(uploadPath);
-        if (!uploadFolder.exists()) {
-            uploadFolder.mkdirs();
-        }
-        //2. 파일명 지정
-        //확장자 떼먹기
-        String fileExtension = profileImgUrl.substring(profileImgUrl.lastIndexOf("."));
-        String filename = UUID.randomUUID() + "_" + user.getUserName() + fileExtension;
-        File destinationFile = new File(uploadFolder, filename);
+    private File downloadFileFromUrl(String fileUrl) throws IOException {
+        File tempFile = File.createTempFile("profile", ".tmp");
+        try (InputStream inputStream = new URL(fileUrl).openStream();
+             FileOutputStream outputStream = new FileOutputStream(tempFile)) {
 
-        //3. 이미지 다운로드 및 저장
-        try (InputStream in = new URL(profileImgUrl).openStream();
-             OutputStream out = new FileOutputStream(destinationFile)) {
-            byte[] buffer = new byte[2048];
-            int len;
-            while ((len = in.read(buffer)) != -1) {
-                out.write(buffer, 0, len);
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
             }
-        } catch (IOException e) {
-            //return new ProfileImageException(ImageErrorCode.UPLOAD_FAIL);
+            outputStream.flush();
         }
+        return tempFile;
+    }
 
-        //DB에 저장시킬 이미지 설정
-        String relativePath = "/" + UPLOAD_DIR + filename;
+    private void uploadFileToS3(File file, String s3Key, String contentType) throws IOException {
+        try (InputStream inputStream = new FileInputStream(file)) {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(contentType);
+            metadata.setContentLength(file.length());
 
-        Image existingImage = imageRepository.findByUser(user);
-
-        if (existingImage != null) {
-            String oldFilePath = System.getProperty("user.dir") + existingImage.getFilePath();
-            File oldFile = new File(oldFilePath);
-            if (oldFile.exists()) {
-                oldFile.delete();
-            }
-            existingImage.setFilePath(relativePath);
-            imageRepository.save(existingImage);
+            amazonS3.putObject(new PutObjectRequest(bucket, s3Key, inputStream, metadata)
+                    .withCannedAcl(CannedAccessControlList.PublicRead));
         }
-        // 등록
-        else {
-            Image newImage = Image.builder()
-                    .user(user)
-                    .filePath(relativePath)
-                    .build();
-            imageRepository.save(newImage);
-            user.setProfileImage(newImage);
-            userRepository.save(user);
-        }
-        return relativePath;
     }
 
     @Transactional
-    public User modifyOrJoin(String username, String nickname, String profileImgUrl){
+    public String inputSocialProfileImage(User user, String profileImgUrl) {
+        User userProfile = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사용자 없음"));
+
+        // 1. 원본 파일명에서 확장자 추출 (url에서 확장자 뽑기)
+        String originalFileName = profileImgUrl.substring(profileImgUrl.lastIndexOf("/") + 1); // 파일명만 추출
+        String fileExtension = FileUtils.extractFileExtension(originalFileName);
+        String contentType = FileUtils.determineContentType(fileExtension); // Content-Type 얻기
+        String fileName = FileUtils.createFileName(originalFileName); // UUID_형식으로 파일명 생성
+        String permanentS3Key = "kakoProfile/" + user.getId() + "/" + fileName;
+
+        // 2. 기존 이미지 삭제
+        Image existingImage = userProfile.getProfileImage();
+        if (existingImage != null) {
+            deleteS3Image(existingImage.getFilePath());
+            imageRepository.delete(existingImage);
+            userProfile.setProfileImage(null);
+        }
+
+        // 3. S3 업로드
+        Long imageSize;
+        File tempfile = null;
+        try {
+            tempfile = downloadFileFromUrl(profileImgUrl);
+
+            //파일이 없는건 프사가 없는거겠지
+            if (tempfile.length() == 0)
+                return null;
+//            if (tempfile.length() == 0) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "다운로드한 프로필 이미지가 비어 있습니다.");
+//            }
+            imageSize = tempfile.length();
+            uploadFileToS3(tempfile, permanentS3Key, contentType);
+
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "임시 파일 생성 실패", e);
+        } finally {
+            tempfile.delete();
+        }
+
+
+        // 4. S3 저장 URL 얻기
+        String kakaoProfileImageUrl = amazonS3.getUrl(bucket, permanentS3Key).toString();
+
+        // 5. DB 저장
+        Image newImage = Image.builder()
+                .filePath(kakaoProfileImageUrl)
+                .isTemp(false) // 임시 파일 플래그
+                .path(permanentS3Key)
+                .originalName(originalFileName)
+                .storedName(permanentS3Key)
+                .contentType(contentType)
+                .size(imageSize)
+                .isDeleted(false)
+                .user(userProfile)
+                .build();
+        imageRepository.save(newImage);
+        userProfile.setProfileImage(newImage);
+//        userRepository.save(userProfile);
+
+        return kakaoProfileImageUrl;
+    }
+
+    private void deleteS3Image(String fileName) {
+        try {
+            String key = fileName.contains(".com/") ? fileName.split(".com/")[1] : fileName;
+            amazonS3.deleteObject(bucket, key);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 이미지 삭제 실패");
+        }
+    }
+
+    @Transactional
+    public User modifyOrJoin(String username, String nickname, String profileImgUrl) {
         User user = userRepository.findByUserName(username).orElse(null);
 
         //만약에 있다면 수정
         if (user != null) {
-            inputSocialProfileImg(user, profileImgUrl);
+            inputSocialProfileImage(user, profileImgUrl);
             user.setNickName(nickname);
             return user;
         }
@@ -179,5 +232,4 @@ public class AuthService {
         //없으면 참가
         return join(username, "", nickname, profileImgUrl);
     }
-
 }
