@@ -37,7 +37,7 @@ export default function LoginPage() {
 
         try {
             console.log('로그인 요청 시작')
-            const response = await fetchApi('/api/v1/auth/login', {
+            const response = await fetchApi(`${API_BASE_URL}/api/v1/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
