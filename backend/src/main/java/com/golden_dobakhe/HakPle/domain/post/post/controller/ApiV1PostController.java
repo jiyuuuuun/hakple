@@ -5,7 +5,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TagResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
 import com.golden_dobakhe.HakPle.security.utils.SecurityUtil;
-import com.golden_dobakhe.HakPle.domain.post.dto.AdminStatusChangeRequestDto;
+import com.golden_dobakhe.HakPle.domain.post.post.dto.AdminStatusChangeRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.HashMap;
