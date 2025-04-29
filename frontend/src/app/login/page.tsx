@@ -7,8 +7,11 @@ import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { useRouter } from 'next/navigation'
 import { fetchApi } from '@/utils/api'
 
-const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao'
-const redirectUrlAfterSocialLogin = 'http://localhost:3000'
+// API 기본 URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
+
+const socialLoginForKakaoUrl = `${API_BASE_URL}/oauth2/authorization/kakao`
+const redirectUrlAfterSocialLogin = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'
 
 export default function LoginPage() {
     const { setLoginMember, checkAdminAndRedirect, isLogin } = useGlobalLoginMember()
@@ -47,15 +50,15 @@ export default function LoginPage() {
             })
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
+                const errorData = await response.json().catch(() => null)
                 if (errorData && errorData.message) {
-                    throw new Error(errorData.message);
+                    throw new Error(errorData.message)
                 } else if (response.status === 401) {
-                    throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+                    throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.')
                 } else if (response.status === 403) {
-                    throw new Error('접근이 거부되었습니다. 권한을 확인해주세요.');
+                    throw new Error('접근이 거부되었습니다. 권한을 확인해주세요.')
                 } else {
-                    throw new Error('로그인에 실패했습니다.');
+                    throw new Error('로그인에 실패했습니다.')
                 }
             }
 
@@ -74,7 +77,7 @@ export default function LoginPage() {
                 id: data.userId,
                 name: data.name,
                 accessToken: data.accessToken,
-                refreshToken: data.refreshToken
+                refreshToken: data.refreshToken,
             })
 
             // 관리자 권한 확인
@@ -90,7 +93,7 @@ export default function LoginPage() {
                 console.log('일반 사용자로 로그인 - 홈 페이지로 이동')
                 router.push('/home')
             }
-            
+
             // 로딩 상태 해제
             setIsLoading(false)
         } catch (error) {
@@ -176,11 +179,17 @@ export default function LoginPage() {
                             </label>
                         </div>
                         <div className="flex items-center mt-2 sm:mt-0">
-                            <Link href="/forgot-username" className="text-gray-600 hover:text-purple-600 hover:underline">
+                            <Link
+                                href="/forgot-username"
+                                className="text-gray-600 hover:text-purple-600 hover:underline"
+                            >
                                 아이디 찾기
                             </Link>
                             <span className="text-gray-300 mx-2">|</span>
-                            <Link href="/forgot-password" className="text-gray-600 hover:text-purple-600 hover:underline">
+                            <Link
+                                href="/forgot-password"
+                                className="text-gray-600 hover:text-purple-600 hover:underline"
+                            >
                                 비밀번호 찾기
                             </Link>
                         </div>
@@ -190,20 +199,38 @@ export default function LoginPage() {
                         type="submit"
                         disabled={isLoading}
                         className={`w-full py-4 text-lg ${
-                            isLoading 
-                                ? 'bg-purple-300 cursor-not-allowed' 
+                            isLoading
+                                ? 'bg-purple-300 cursor-not-allowed'
                                 : 'bg-[#9C50D4] hover:bg-[#8a45bc] transition-colors'
                         } text-white rounded-lg mb-1 flex items-center justify-center`}
                     >
                         {isLoading ? (
                             <>
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                <svg
+                                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
                                 </svg>
                                 로그인 중...
                             </>
-                        ) : '로그인'}
+                        ) : (
+                            '로그인'
+                        )}
                     </button>
 
                     <div className="flex items-center my-2">

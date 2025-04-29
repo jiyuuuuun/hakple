@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { fetchApi } from '@/utils/api'
 
 // API 기본 URL
-const API_BASE_URL = 'http://localhost:8090' // 실제 서버 URL로 변경 필요
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
 
 export default function ResetPasswordPage() {
     const router = useRouter()
