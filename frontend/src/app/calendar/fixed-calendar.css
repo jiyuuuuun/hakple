@@ -1,0 +1,177 @@
+/* 기본 글꼴 스타일 */
+.fc {
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    color: #333;
+    letter-spacing: 0px;
+}
+
+/* 툴바 타이틀 */
+.fc-toolbar-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+    letter-spacing: -0.5px;
+    text-shadow: none;
+}
+
+/* 버튼들 - 모던 스타일 */
+.fc .fc-button {
+    background-color: #ede9fe;
+    border: none;
+    border-radius: 9999px;
+    /* pill shape */
+    color: #6b21a8;
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.fc .fc-button:hover {
+    background-color: #d8b4fe;
+    color: #4c1d95;
+}
+
+.fc .fc-button.fc-button-active {
+    background-color: #ffffff !important;
+    color: #6b21a8 !important;
+    border: 2px solid #d8b4fe !important;
+    font-weight: 600;
+    border-radius: 9999px;
+    box-shadow: none;
+}
+
+/* 오늘 날짜 강조 */
+.fc-day-today {
+    background-color: #f5f0ff !important;
+    border: 1px solid #e2d8f3 !important;
+    border-radius: 0 !important;
+    position: relative;
+}
+
+.fc-day-today::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    background-color: #a78bfa;
+    border-radius: 50%;
+}
+
+/* 날짜 셀에 hover 효과 추가 */
+.fc .fc-daygrid-day-frame:hover::after {
+    content: '+';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.8rem;
+    color: #c7b8e6;
+    opacity: 0.7;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+/* 날짜 셀 호버 효과 */
+.fc .fc-daygrid-day-frame:hover {
+    background-color: #f9f7fc;
+}
+
+/* 이벤트 스타일 */
+.fc-event {
+    border-radius: 10px !important;
+    border: none !important;
+    font-size: 0.85rem !important;
+    padding: 6px 10px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.fc-event:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12) !important;
+    z-index: 5 !important;
+}
+
+/* 모든 기본 색상 재정의 */
+.fc .fc-event,
+.fc .fc-event-dot {
+    background-color: transparent !important; /* 기본 배경색 초기화 */
+}
+
+/* 카테고리별 스타일 - 심플하게 */
+.event-category-a855f7 {
+    background-color: #f1dffb !important;
+    border-left: none !important;
+    color: #4b3f6b !important;
+    border-radius: 10px !important;
+}
+
+.event-category-facc15 {
+    background-color: #fff2bd !important;
+    border-left: none !important;
+    color: #5c4d25 !important;
+    border-radius: 10px !important;
+}
+
+.event-category-4ade80 {
+    background-color: #e3f1cf !important;
+    border-left: none !important;
+    color: #2d5740 !important;
+    border-radius: 10px !important;
+}
+
+.event-category-f87171 {
+    background-color: #ffe0e0 !important;
+    border-left: none !important;
+    color: #6b3e3e !important;
+    border-radius: 10px !important;
+}
+
+.event-category-64748b {
+    background-color: #e5e7ec !important;
+    border-left: none !important;
+    color: #333340 !important;
+    border-radius: 10px !important;
+}
+
+/* FullCalendar 기본 칸 크기 늘리기 */
+.fc .fc-daygrid-day-frame {
+    min-height: 110px;
+    position: relative;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.15s ease;
+    margin: 0;
+    border-color: #f0f0f0;
+}
+
+/* 날짜 숫자 스타일링 */
+.fc .fc-daygrid-day-number {
+    font-size: 0.95rem;
+    color: #444;
+    font-weight: 500;
+    padding: 8px;
+}
+
+/* 요일 헤더 스타일링 */
+.fc .fc-col-header-cell-cushion {
+    font-size: 0.95rem;
+    color: #666;
+    font-weight: 600;
+    padding: 10px 4px;
+}
+
+/* 오늘 버튼 특별 스타일 */
+.fc .fc-today-button {
+    background-color: #ede5ff !important;
+    color: #5e42a6 !important;
+}
+
+.fc .fc-today-button:hover {
+    background-color: #dfd2f8 !important;
+    color: #4b3f6b !important;
+}

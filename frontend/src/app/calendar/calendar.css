@@ -1,0 +1,451 @@
+/* 공통 캘린더 스타일 */
+.calendar-page-container {
+    max-width: 90vw;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    min-height: 500px;
+    border: none;
+}
+
+/* 달력 래퍼 클래스 */
+.calendar-wrapper {
+    width: 100%;
+}
+
+/* 기본 글꼴 스타일 */
+.fc {
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    color: #333;
+    letter-spacing: 0px;
+}
+
+/* 툴바 타이틀 */
+.fc-toolbar-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+    letter-spacing: -0.5px;
+    text-shadow: none;
+}
+
+/* 버튼들 - 모던 스타일 */
+.fc .fc-button {
+    background-color: #ede9fe;
+    border: none;
+    border-radius: 9999px;
+    /* pill shape */
+    color: #6b21a8;
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.fc .fc-button:hover {
+    background-color: #d8b4fe;
+    color: #4c1d95;
+}
+
+.fc .fc-button.fc-button-active {
+    background-color: #ffffff !important;
+    color: #6b21a8 !important;
+    border: 2px solid #d8b4fe !important;
+    font-weight: 600;
+    border-radius: 9999px;
+    box-shadow: none;
+}
+
+/* 오늘 날짜 강조 */
+.fc-day-today {
+    background-color: #f5f0ff !important;
+    border: 1px solid #e2d8f3 !important;
+    border-radius: 0 !important;
+    position: relative;
+}
+
+.fc-day-today::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 8px;
+    height: 8px;
+    background-color: #a78bfa;
+    border-radius: 50%;
+}
+
+/* 날짜 셀에 hover 효과 추가 */
+.fc .fc-daygrid-day-frame:hover::after {
+    content: '+';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.8rem;
+    color: #c7b8e6;
+    opacity: 0.7;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+/* 날짜 셀 호버 효과 */
+.fc .fc-daygrid-day-frame:hover {
+    background-color: #f9f7fc;
+}
+
+/* 이벤트도 말랑하게 */
+.fc-event {
+    border-radius: 10px !important;
+    border: none !important;
+    font-size: 0.85rem !important;
+    padding: 6px 10px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.fc-event:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12) !important;
+    z-index: 5 !important;
+}
+
+/* 다크모드 이벤트 스타일 무시 */
+@media (prefers-color-scheme: dark) {
+    .fc-event {
+        background-color: transparent !important;
+    }
+}
+
+/* 모든 기본 색상 재정의 */
+.fc .fc-event,
+.fc .fc-event-dot {
+    background-color: transparent !important; /* 기본 배경색 초기화 */
+}
+
+/* 카테고리별 스타일 - 심플하게 */
+.event-category-a855f7 {
+    background-color: #f1dffb !important;
+    border-left: none !important;
+    color: #4b3f6b !important;
+    border-radius: 10px !important;
+}
+
+.event-category-facc15 {
+    background-color: #fff2bd !important;
+    border-left: none !important;
+    color: #5c4d25 !important;
+    border-radius: 10px !important;
+}
+
+.event-category-4ade80 {
+    background-color: #e3f1cf !important;
+    border-left: none !important;
+    color: #2d5740 !important;
+    border-radius: 10px !important;
+}
+
+.event-category-f87171 {
+    background-color: #ffe0e0 !important;
+    border-left: none !important;
+    color: #6b3e3e !important;
+    border-radius: 10px !important;
+}
+
+.event-category-64748b {
+    background-color: #e5e7ec !important;
+    border-left: none !important;
+    color: #333340 !important;
+    border-radius: 10px !important;
+}
+
+/* 강제 색상 적용 */
+[style*="background-color: rgb(168, 85, 247)"] {
+    background-color: #a855f7 !important;
+}
+
+[style*="background-color: rgb(250, 204, 21)"] {
+    background-color: #facc15 !important;
+}
+
+[style*="background-color: rgb(74, 222, 128)"] {
+    background-color: #4ade80 !important;
+}
+
+[style*="background-color: rgb(248, 113, 113)"] {
+    background-color: #f87171 !important;
+}
+
+[style*="background-color: rgb(100, 116, 139)"] {
+    background-color: #64748b !important;
+}
+
+/* FullCalendar 기본 칸 크기 늘리기 */
+.fc .fc-daygrid-day-frame {
+    min-height: 110px;
+    position: relative;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.15s ease;
+    margin: 0;
+    border-color: #f0f0f0;
+}
+
+.fc .fc-daygrid-day-frame:hover {
+    background-color: #fcfaff;
+}
+
+/* 날짜 숫자 스타일링 */
+.fc .fc-daygrid-day-number {
+    font-size: 0.95rem;
+    color: #444;
+    font-weight: 500;
+    padding: 8px;
+}
+
+/* 요일 헤더 스타일링 */
+.fc .fc-col-header-cell-cushion {
+    font-size: 0.95rem;
+    color: #666;
+    font-weight: 600;
+    padding: 10px 4px;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+    .calendar-wrapper {
+        padding: 15px;
+        border-radius: 12px;
+        margin: 20px auto;
+    }
+
+    .fc-toolbar-title {
+        font-size: 1.2rem;
+        text-align: center;
+    }
+
+    .fc .fc-button {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+
+    .fc .fc-button-group {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .fc .fc-daygrid-day-frame {
+        min-height: 60px;
+    }
+}
+
+/* ✅ 시스템 다크모드 무시: 밝은 테마 유지 (안정적인 방식) */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #ffffff;
+        color: #333;
+    }
+
+    .calendar-wrapper {
+        background-color: #ffffff;
+        color: #333;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .fc-toolbar-title {
+        color: #333;
+    }
+
+    .fc .fc-button {
+        background-color: #a78bfa;
+        color: white;
+    }
+
+    .fc .fc-button.fc-button-active {
+        background-color: #ffffff !important;
+        color: #6b21a8 !important;
+        border: 2px solid #d8b4fe !important;
+        font-weight: 600;
+        border-radius: 9999px;
+        box-shadow: none;
+    }
+
+    .fc .fc-today-button {
+        background-color: #ede5ff !important;
+        color: #5e42a6 !important;
+    }
+
+    .fc-day-today {
+        background-color: #f5f0ff !important;
+        border: 1px solid #e2d8f3 !important;
+    }
+    
+    .fc-day-today::after {
+        background-color: #a78bfa;
+    }
+    
+    .fc .fc-daygrid-day-frame:hover::after {
+        color: #c7b8e6;
+    }
+    
+    .fc .fc-daygrid-day-frame:hover {
+        background-color: #f9f7fc;
+    }
+
+    /* 이벤트 스타일 다크모드에서도 유지 */
+    .fc-event {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+    }
+}
+
+/* 버튼 활성화 상태 */
+.fc .fc-button.fc-button-active {
+    background-color: #c7b8e6 !important;
+    color: #4b3f6b !important;
+    border: none !important;
+    font-weight: 500;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(152, 128, 220, 0.3);
+    transform: none;
+    transition: all 0.2s ease;
+}
+
+/* 오늘 버튼 특별 스타일 */
+.fc .fc-today-button {
+    background-color: #ede5ff !important;
+    color: #5e42a6 !important;
+}
+
+.fc .fc-today-button:hover {
+    background-color: #dfd2f8 !important;
+    color: #4b3f6b !important;
+}
+
+/* 미니 캘린더 스타일 */
+.mini-calendar {
+    font-size: 0.75rem;
+    border-radius: 16px;
+    background-color: #faf5ff;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(156, 80, 212, 0.1);
+}
+
+.mini-calendar-container .fc {
+    background: transparent;
+}
+
+.mini-calendar-container .fc-toolbar-title {
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    color: #666 !important;
+}
+
+/* 미니 캘린더 헤더 버튼 */
+.mini-calendar-container .fc-button {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 4px 8px !important;
+    font-size: 0.7rem !important;
+    color: #666 !important;
+}
+
+.mini-calendar-container .fc-prev-button,
+.mini-calendar-container .fc-next-button {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    background: none !important;
+}
+
+.mini-calendar-container .fc-button:hover {
+    color: #9C50D4 !important;
+    background: none !important;
+}
+
+.mini-calendar-container .fc-button:focus,
+.mini-calendar-container .fc-button:active,
+.mini-calendar-container .fc-button-primary:not(:disabled):active {
+    box-shadow: none !important;
+    outline: none !important;
+    background: none !important;
+    border: none !important;
+}
+
+/* 미니 캘린더 날짜 */
+.mini-calendar-container .fc-daygrid-day-frame {
+    min-height: 28px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px !important;
+}
+
+.mini-calendar-container .fc-daygrid-day-top {
+    justify-content: center !important;
+    padding-top: 3px !important;
+}
+
+.mini-calendar-container .fc-daygrid-day-number {
+    font-size: 0.75rem !important;
+    padding: 3px !important;
+    color: #666 !important;
+    text-decoration: none !important;
+}
+
+/* 오늘 날짜 동그라미 스타일 수정 */
+.mini-calendar-container .fc-day-today {
+    background-color: rgba(156, 80, 212, 0.2) !important;
+    border-radius: 50% !important;
+    transform: scale(0.8) !important;
+    box-shadow: none;
+}
+
+.mini-calendar-container .fc-day-today .fc-daygrid-day-number {
+    color: #9C50D4 !important;
+    font-weight: bold !important;
+    font-size: 0.85rem !important;
+}
+
+/* 이벤트 숨기기 */
+.mini-calendar-container .fc-daygrid-event-harness,
+.mini-calendar-container .fc-daygrid-event,
+.mini-calendar-container .fc-event,
+.mini-calendar-container .fc-event-title,
+.mini-calendar-container .fc-daygrid-more,
+.mini-calendar-container .fc-daygrid-event-dot {
+    display: none !important;
+}
+
+/* 요일 헤더 스타일 */
+.mini-calendar-container .fc-col-header-cell-cushion {
+    font-size: 0.7rem !important;
+    color: #333 !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .mini-calendar {
+        padding: 8px;
+    }
+}
+
+.fc-event-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+input,
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
