@@ -49,6 +49,7 @@ export default function Header() {
     
     useEffect(() => {
         if (isLogin) {
+
             fetchApi('/api/v1/myInfos', {
                 method: 'GET',
             })
@@ -58,6 +59,7 @@ export default function Header() {
             })
             .then(data => {
                 if (data && data.profileImageUrl) {
+
                     setProfileImageUrl(data.profileImageUrl);
                 }
             })
@@ -98,13 +100,13 @@ export default function Header() {
             })
 
             if (response.status === 401 || response.status === 403) {
-                console.log(`인증 오류: 권한이 없음 (상태 코드: ${response.status})`)
+                
                 setIsAdmin(false)
                 return
             }
 
             if (!response.ok) {
-                console.error(`서버 오류: 관리자 권한 확인 실패 (상태 코드: ${response.status})`)
+                
                 setIsAdmin(false)
                 return
             }
@@ -165,6 +167,7 @@ export default function Header() {
 
     const markNotificationAsRead = async (notificationId: number) => {
 
+
         try {
             const response = await fetchApi(`/api/v1/notifications/my/${notificationId}/read`, {
                 method: 'PATCH',
@@ -177,12 +180,14 @@ export default function Header() {
             }
 
 
+
             setNotifications(prev => {
                 const newState = prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n);
                 return newState;
             });
             setNotificationCount(prev => {
                 const newCount = Math.max(0, prev - 1);
+
                 return newCount;
             });
 
@@ -192,6 +197,7 @@ export default function Header() {
     };
 
     const fetchNotifications = async (page = 0, size = 10, loadMore = false) => {
+
         if (!isLogin) return;
         setIsLoadingNotifications(true);
         try {
@@ -203,6 +209,7 @@ export default function Header() {
                 return;
             }
             const data: Page<Notification> = await response.json();
+
             setNotifications(data.content || []);
 
         } catch (error) {
@@ -215,12 +222,14 @@ export default function Header() {
     };
 
     const fetchUnreadCount = async () => {
+
         if (!isLogin) return;
         setIsLoadingCount(true);
         try {
             const response = await fetchApi('/api/v1/notifications/my/unread-count');
             if (!response.ok) throw new Error('Failed to fetch unread count');
             const data: { unreadCount: number } = await response.json();
+
 
             const newCount = data.unreadCount || 0;
 
@@ -235,8 +244,10 @@ export default function Header() {
     };
 
     useEffect(() => {
+
         if (isLogin) {
             const timer = setTimeout(() => {
+
                 fetchUnreadCount();
             }, 10);
             return () => clearTimeout(timer);
@@ -248,6 +259,7 @@ export default function Header() {
     }, [isLogin]);
 
     const handleRefresh = () => {
+
         fetchUnreadCount();
         if (isNotificationOpen) {
             fetchNotifications(0, 10);
@@ -403,7 +415,6 @@ export default function Header() {
                                 >
                                     <BellIcon className="h-6 w-6" />
                                     {/* notificationCount는 이제 읽지 않은 개수를 의미 */}
-                                    {((): null => { console.log('[Render Badge] notificationCount:', notificationCount); return null; })()}
                                     {notificationCount > 0 && (
                                         <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                                             {notificationCount > 99 ? '99+' : notificationCount}

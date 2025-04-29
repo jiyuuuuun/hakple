@@ -9,6 +9,11 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
 
 /**
+ * API 요청 타임아웃 시간 (밀리초)
+ */
+const API_TIMEOUT = Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 30000;
+
+/**
  * 기본 fetch 함수 래퍼
  * @param url API 엔드포인트 URL
  * @param options fetch 옵션
@@ -47,7 +52,7 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
   // API 요청 실행 및 타임아웃 설정
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30초 타임아웃
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT); // 환경 변수로 설정된 타임아웃
 
     const response = await fetch(fullUrl, {
       ...mergedOptions,
