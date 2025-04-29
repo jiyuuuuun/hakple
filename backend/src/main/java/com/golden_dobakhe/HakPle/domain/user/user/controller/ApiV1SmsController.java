@@ -1,7 +1,6 @@
 package com.golden_dobakhe.HakPle.domain.user.user.controller;
 
 import com.golden_dobakhe.HakPle.domain.user.user.service.SmsService;
-import com.golden_dobakhe.HakPle.domain.user.user.service.UserFindService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,8 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiV1SmsController {
 
     private final SmsService smsService;
-    private final UserFindService userFindService;
-
 
     @Operation(summary = "인증번호 전송", description = "사용자의 휴대폰 번호로 인증번호를 전송합니다.")
     @PostMapping("/send")
@@ -44,7 +41,10 @@ public class ApiV1SmsController {
             @RequestParam(name = "code") String code
     ) {
         boolean valid = smsService.verifyCode(phone, code);
-        if (valid) return ResponseEntity.ok("인증 성공");
-        else return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 실패");
+        if (valid) {
+            return ResponseEntity.ok("인증 성공");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 실패");
+        }
     }
 }

@@ -18,7 +18,6 @@ public class ChangePasswordRequest {
 
     @NotBlank(message = "새 비밀번호를 입력하세요.")
     @Schema(description = "새 비밀번호", example = "newPassword456!")
-
     private String newPassword;
 
     @NotBlank(message = "새 비밀번호 확인을 입력하세요.")

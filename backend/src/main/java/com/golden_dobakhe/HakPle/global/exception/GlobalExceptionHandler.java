@@ -5,16 +5,15 @@ import com.golden_dobakhe.HakPle.domain.resource.image.exception.ProfileImageExc
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.myInfo.exception.MyInfoException;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -47,7 +46,6 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(e.getErrorCode().getMessage()));
     }
 
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         return ResponseEntity
@@ -70,7 +68,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(responseBody);
     }
 
-
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity
@@ -81,8 +78,6 @@ public class GlobalExceptionHandler {
     public record ErrorResponse(String message) {
     }
 
-
-
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<String> handleNotFound(EntityNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
@@ -92,5 +87,4 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleAccessDenied(AccessDeniedException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body("접근이 거부되었습니다.");
     }
-
 }

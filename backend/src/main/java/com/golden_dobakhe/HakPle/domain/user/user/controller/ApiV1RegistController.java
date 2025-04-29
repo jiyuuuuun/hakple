@@ -6,7 +6,6 @@ import com.golden_dobakhe.HakPle.domain.user.user.dto.UserRegistRequestDTO;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.service.UserRegistService;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
-import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -14,7 +13,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,8 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiV1RegistController {
     private final UserRegistService userRegistService;
     private final UserRepository userRepository;
-    private final JwtTokenizer jwtTokenizer;
-    private final RedisTemplate<String, String> redisTemplate;
 
     // 회원 가입
     @Operation(summary = "회원가입 api", description = "유저 정보를 입력하여 회원가입을 진행합니다.")
@@ -58,7 +54,7 @@ public class ApiV1RegistController {
         return ResponseEntity.ok("회원가입이 성공적으로 완료되었습니다.");
     }
 
-    // 중복 확인
+    // 아이디 중복 확인
     @Operation(summary = "아이디 중복 확인", description = "아이디의 중복 여부를 확인합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "사용 가능"),
@@ -69,7 +65,7 @@ public class ApiV1RegistController {
         return ResponseEntity.ok(!userRepository.existsByUserName(userName));
     }
 
-    // 중복 확인
+    // 휴대폰 번호 중복 확인
     @Operation(summary = "휴대폰 번호 중복 확인", description = "휴대폰 번호 중복 여부를 확인합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "사용 가능"),

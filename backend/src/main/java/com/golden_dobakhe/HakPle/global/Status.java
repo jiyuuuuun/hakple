@@ -2,7 +2,6 @@ package com.golden_dobakhe.HakPle.global;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.util.Arrays;
 
 @Schema(description = "상태")
@@ -14,11 +13,11 @@ public enum Status {
     private final String value;
 
     Status(String value) {
-        this.value = value; 
+        this.value = value;
     }
 
     public String getValue() {
-        return value; 
+        return value;
     }
 
     @JsonCreator
@@ -29,4 +28,3 @@ public enum Status {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid status value: " + value));
     }
 }
-

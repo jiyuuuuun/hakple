@@ -1,9 +1,8 @@
 package com.golden_dobakhe.HakPle.domain.resource.image.util;
 
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.UUID;
 
 public class FileUtils {
 
