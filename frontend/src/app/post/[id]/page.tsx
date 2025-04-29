@@ -70,6 +70,7 @@ export default function PostDetailPage() {
 
     const [postAuthorImgError, setPostAuthorImgError] = useState(false);
     const [commentImgErrors, setCommentImgErrors] = useState<Record<number, boolean>>({});
+    const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -850,6 +851,30 @@ export default function PostDetailPage() {
         }
     };
 
+    // Add/remove scroll event listener
+    useEffect(() => {
+        const handleScroll = () => {
+          if (window.scrollY > 300) {
+            setShowScrollTopButton(true);
+          } else {
+            setShowScrollTopButton(false);
+          }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => {
+          window.removeEventListener('scroll', handleScroll);
+        };
+      }, []);
+
+    // Scroll to top function
+    const scrollToTop = () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    };
+
     if (loading) {
         return (
             <div className="container mx-auto p-4" style={{ width: '971px' }}>
@@ -1346,7 +1371,17 @@ export default function PostDetailPage() {
                     </button>
                 </div>
             </div>
-        </div>
 
+            {/* Scroll to Top Button */}
+            {showScrollTopButton && (
+              <button
+                onClick={scrollToTop}
+                 className="fixed bottom-[300px] right-4 md:right-10 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+                aria-label="맨 위로 스크롤"
+              >
+                <span className="material-icons">arrow_upward</span>
+              </button>
+            )}
+        </div>
     );
 }

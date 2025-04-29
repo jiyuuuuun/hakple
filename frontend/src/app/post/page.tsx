@@ -654,7 +654,7 @@ export default function PostPage() {
         {showScrollTopButton && (
           <button
             onClick={scrollToTop}
-            className="fixed bottom-100 right-100 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+            className="fixed bottom-[300px] right-4 md:right-10 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
             aria-label="맨 위로 스크롤"
           >
             <span className="material-icons">arrow_upward</span>

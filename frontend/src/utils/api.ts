@@ -18,26 +18,30 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
   // 전체 URL 생성 (상대 경로인 경우에만 BASE_URL 추가)
   const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`;
 
-  // 기본 옵션과 사용자 지정 옵션 병합
+  // 기본 옵션
   const defaultOptions: RequestInit = {
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
+    headers: {} // 초기 헤더는 비워둡니다.
   };
 
-  // 이미지 업로드 요청인 경우 Content-Type 헤더 제외
-  const isImageUpload = url.includes('/api/v1/profile-images/upload');
+  // 요청 본문이 FormData인지 확인
+  const isFormData = options.body instanceof FormData;
+
+  // Content-Type 설정: FormData가 아닐 경우에만 기본값 설정
+  if (!isFormData) {
+    (defaultOptions.headers as Record<string, string>)['Content-Type'] = 'application/json';
+    (defaultOptions.headers as Record<string, string>)['Accept'] = 'application/json';
+  }
+
+  // 기본 옵션과 사용자 지정 옵션 병합
   const mergedOptions: RequestInit = {
     ...defaultOptions,
     ...options,
-    headers: isImageUpload 
-      ? options.headers 
-      : {
-          ...defaultOptions.headers,
-          ...options.headers,
-        },
+    // 사용자 지정 헤더와 기본 헤더(필요한 경우) 병합
+    headers: {
+      ...defaultOptions.headers, // FormData가 아닐 때만 Content-Type 등이 포함됨
+      ...options.headers,
+    },
   };
 
   // API 요청 실행 및 타임아웃 설정
