@@ -93,13 +93,12 @@ export default function CalendarModal({
         onRefresh()
         onClose()
       } else {
-        const errorText = await res.text()
-        console.log('일정 저장 실패:', errorText)
-        alert('일정 저장에 실패했어요 😢')
+
+        alert('일정 저장에 실패했어요 ')
       }
     } catch (error) {
       console.error('일정 저장 중 오류:', error)
-      alert('일정 저장에 실패했어요 😢')
+      alert('일정 저장에 실패했어요 ')
     }
   }
 
@@ -114,13 +113,11 @@ export default function CalendarModal({
           onRefresh()
           onClose()
         } else {
-          const errorText = await res.text()
-          console.log('일정 삭제 실패:', errorText)
-          alert('삭제에 실패했어요 😢')
+          alert('삭제에 실패했어요 ')
         }
       } catch (error) {
         console.error('일정 삭제 중 오류:', error)
-        alert('삭제에 실패했어요 😢')
+        alert('삭제에 실패했어요 ')
       }
     }
   }

@@ -28,7 +28,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // 클라이언트 사이드에서만 실행
         if (typeof window !== 'undefined') {
-            console.log('DOM 오류 방지 기능 초기화');
+            
             initDOMErrorPrevention();
         }
     }, []);
@@ -68,14 +68,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     
     const checkLoginStatus = async () => {
     try {
-        console.log('로그인 상태 확인 시작')
+        
         const response = await fetchApi('/api/v1/admin/check')
 
-        console.log('로그인 상태 응답:', response.status)
+        
 
         if (response.ok) {
             const data = await response.json()
-            console.log('로그인 상태 성공', data)
+            
 
             const userInfoResponse = await fetchApi('/api/v1/myInfos')
 
@@ -97,7 +97,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
 
     useEffect(() => {
-        console.log('ClientLayout - 로그인 상태 확인 시작')
+        
 
         // 로그인이 필요없는 페이지 목록
         const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
@@ -111,8 +111,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         // 현재 경로가 보호된 경로인지 확인
         const isProtectedPath = protectedPaths.some((path) => pathname?.startsWith(path))
 
-        console.log('페이지 정보 - 현재 경로:', pathname, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage, '보호된 경로:', isProtectedPath)
-
+        
         // 로그인 페이지에서는 API 호출하지 않음
         if (pathname === '/login') {
             setNoLoginMember()
@@ -126,7 +125,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     method: 'GET',
                 })
 
-                console.log('로그인 상태 응답:', response.status)
+                
 
                 if (!response.ok) {
                     setNoLoginMember()
@@ -135,12 +134,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 }
 
                 const data = await response.json()
-                console.log('로그인 상태 성공', data)
+                
                 setLoginMember(data)
                 setIsLogin(true)
                 return true
             } catch (error) {
-                console.log('로그인 되어있지 않음', error)
+                
                 setNoLoginMember()
                 setIsLogin(false)
                 return false
@@ -152,7 +151,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             .then((isLoggedIn) => {
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 if ((!isPublicPage && !isSpecialPage && !isLoggedIn) || (isProtectedPath && !isLoggedIn)) {
-                    console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
+                    
                     if (pathname !== '/login') {  // 현재 페이지가 이미 로그인 페이지가 아닐 때만 리다이렉트
                         router.replace("/login")
                     }
@@ -160,7 +159,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 
                 // 로그인 페이지에 있을 경우 홈으로 리다이렉트
                 if (pathname === '/login' && isLoggedIn) {
-                    console.log('로그인 페이지에서 접속 - 홈으로 리다이렉트')
+                    
                     router.replace("/home")
                 }
 
@@ -179,11 +178,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                             const isAdmin = await response.json()
 
                             if (isAdmin === true) {
-                                console.log('관리자의 /myinfo 페이지 접근 - 관리자 페이지로 리다이렉트')
+                                
                                 router.replace("/admin")
                             }
                         } catch (error) {
-                            console.log('관리자 권한 확인 중 오류:', error)
+                            
                         }
                     }
 
@@ -191,20 +190,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 }
             })
             .finally(() => {
-                console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
+                
             })
     }, [pathname]) // pathname이 변경될 때마다 실행
 
 
     // ✅ 로그인 상태가 변경된 후 (렌더 기준) 로그 출력
     useEffect(() => {
-        console.log('✅ 렌더 기준 로그인 상태 변경됨');
-        console.log('🔐 isLogin:', isLogin);
-        console.log('👤 loginMember:', loginMember);
+        
         
         // 로그인 상태이고 프로필 이미지가 없는 경우 API에서 정보 다시 가져오기
         if (isLogin && !loginMember.profileImageUrl) {
-            console.log('프로필 이미지가 없어서 사용자 정보 다시 가져오기 시도');
 
             const fetchUserInfo = async () => {
             try {
@@ -217,14 +213,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             }
 
             const data = await response.json();
-            console.log('추가 사용자 정보 조회 결과:', data);
+            
 
             if (data.profileImageUrl) {
                 console.log('프로필 이미지 URL 발견:', data.profileImageUrl);
                 setLoginMember(data);
             }
             } catch (err) {
-            console.log('추가 사용자 정보 조회 실패:', err);
+            
             }
         };
 
