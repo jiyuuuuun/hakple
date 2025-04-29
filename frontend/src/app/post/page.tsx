@@ -554,7 +554,8 @@ export default function PostPage() {
                       id={post.id}
                       title={post.title}
                       nickname={post.nickname}
-                      time={formatDate(post.creationTime)}
+                      time={post.creationTime}
+                      modificationTime={post.modificationTime}
                       viewCount={post.viewCount}
                       commentCount={post.commentCount}
                       likeCount={post.likeCount}
@@ -576,7 +577,8 @@ export default function PostPage() {
                         id={post.id}
                         title={post.title}
                         nickname={post.nickname}
-                        time={formatDate(post.creationTime)}
+                        time={post.creationTime}
+                        modificationTime={post.modificationTime}
                         viewCount={post.viewCount}
                         commentCount={post.commentCount}
                         likeCount={post.likeCount}
@@ -760,7 +762,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
   );
 }
 
-function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
+function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl, modificationTime }: {
   id: number;
   title: string;
   nickname: string;
@@ -774,9 +776,8 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   likingPosts: Set<number>;
   hasImage: boolean;
   profileImageUrl?: string;
+  modificationTime?: string;
 }) {
-  const [imgError, setImgError] = useState(false);
-
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 group border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
       <div className="p-6">
@@ -791,23 +792,25 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.onerror = null;
-                    target.style.display = 'none';
-                    target.parentElement!.innerHTML = `
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-6 w-6 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-6 w-6 text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                           stroke-width="2"
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    `;
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      `;
+                    }
                   }}
                 />
               ) : (
@@ -817,11 +820,11 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  strokeWidth={2}
                 >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                   />
                 </svg>
@@ -829,7 +832,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             </div>
             <div>
               <p className="font-medium text-gray-900">{nickname}</p>
-              <p className="text-sm text-gray-500">{time}</p>
+              <p className="text-sm text-gray-500">{formatDate(time, modificationTime)}</p>
             </div>
           </div>
         </div>
@@ -930,7 +933,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   );
 }
 
-function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
+function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl, modificationTime }: {
   id: number;
   title: string;
   nickname: string;
@@ -944,9 +947,8 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   likingPosts: Set<number>;
   hasImage: boolean;
   profileImageUrl?: string;
+  modificationTime?: string;
 }) {
-  const [imgError, setImgError] = useState(false);
-
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
       <Link href={`/post/${id}`} className="block">
@@ -960,23 +962,25 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.onerror = null;
-                  target.style.display = 'none';
-                  target.parentElement!.innerHTML = `
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-6 w-6 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                         stroke-width="2"
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  `;
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    `;
+                  }
                 }}
               />
             ) : (
@@ -986,11 +990,11 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                strokeWidth={2}
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                 />
               </svg>
@@ -999,7 +1003,7 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900">{nickname}</span>
             <span className="text-gray-400">•</span>
-            <span className="text-gray-500">{time}</span>
+            <span className="text-gray-500">{formatDate(time, modificationTime)}</span>
           </div>
         </div>
 
@@ -1083,27 +1087,46 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   );
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+function formatDate(creationTimeString: string, modificationTimeString?: string): string {
+  const useModificationTime = modificationTimeString && modificationTimeString !== creationTimeString;
+  const dateStringToFormat = useModificationTime ? modificationTimeString : creationTimeString;
+
+  if (!dateStringToFormat) {
+    return '';
+  }
+
+  const date = new Date(dateStringToFormat);
+  if (isNaN(date.getTime())) {
+    console.warn('Invalid date string provided to formatDate:', dateStringToFormat);
+    return '';
+  }
+
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMinutes = Math.floor(diffMs / (60 * 1000));
   const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
   const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
 
-  if (diffMinutes < 60) {
-    return `${diffMinutes}분 전`;
+  let formattedDate: string;
+
+  if (diffMinutes < 1) {
+    formattedDate = '방금 전';
+  } else if (diffMinutes < 60) {
+    formattedDate = `${diffMinutes}분 전`;
   } else if (diffHours < 24) {
-    return `${diffHours}시간 전`;
+    formattedDate = `${diffHours}시간 전`;
   } else if (diffDays < 7) {
-    return `${diffDays}일 전`;
+    formattedDate = `${diffDays}일 전`;
   } else {
-    return new Intl.DateTimeFormat('ko-KR', {
+    formattedDate = new Intl.DateTimeFormat('ko-KR', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false
     }).format(date);
   }
+
+  return useModificationTime ? `${formattedDate} (수정됨)` : formattedDate;
 }
