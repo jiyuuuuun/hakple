@@ -29,7 +29,6 @@ public class BoardResponse {
     private LocalDateTime modificationTime;
     private String type;
     private boolean hasImage;
-    private String profileImageUrl;
     
     @Deprecated
     public String getBoardType() {
