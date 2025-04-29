@@ -68,6 +68,9 @@ export default function PostDetailPage() {
     const [commentLikingId, setCommentLikingId] = useState<number | null>(null);
     const editCommentRef = useRef<HTMLTextAreaElement>(null);
 
+    const [postAuthorImgError, setPostAuthorImgError] = useState(false);
+    const [commentImgErrors, setCommentImgErrors] = useState<Record<number, boolean>>({});
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Element;
@@ -891,6 +894,7 @@ export default function PostDetailPage() {
                                                 <span class="material-icons text-[#980ffa] text-2xl">account_circle</span>
                                             `;
                                         }}
+
                                     />
                                 ) : (
                                     <span className="material-icons text-[#980ffa] text-2xl">account_circle</span>
@@ -1131,6 +1135,7 @@ export default function PostDetailPage() {
                                                             <span class="material-icons text-[#980ffa]">account_circle</span>
                                                         `;
                                                     }}
+
                                                 />
                                             ) : (
                                                 <span className="material-icons text-[#980ffa]">account_circle</span>

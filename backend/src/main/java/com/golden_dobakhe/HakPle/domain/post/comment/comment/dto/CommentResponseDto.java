@@ -43,7 +43,7 @@ public class CommentResponseDto {
                 .modificationTime(comment.getModificationTime())
                 .status(comment.getStatus())
                 .isLiked(false)
-                .profileImageUrl(comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null )
+                .profileImageUrl(comment.getUser() != null && comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
     
@@ -60,6 +60,7 @@ public class CommentResponseDto {
                 .status(comment.getStatus())
                 .profileImageUrl(comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null )
                 .isLiked(isLiked)
+                .profileImageUrl(comment.getUser() != null && comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 }

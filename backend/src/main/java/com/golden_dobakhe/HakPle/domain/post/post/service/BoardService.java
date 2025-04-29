@@ -92,34 +92,17 @@ public interface BoardService {
 
     Page<BoardResponse> getLikedBoards(Long userId, Pageable pageable);
 
-    /**
-     * 공지사항 검색 조회
-     */
     Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, Pageable pageable);
-
-    /**
-     * 공지사항 검색 조회 (type 파라미터 포함)
-     */
+    
     Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, Pageable pageable);
 
-    /**
-     * 공지사항 검색 조회 (sortType 파라미터 포함)
-     */
+    
     Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, String sortType, Pageable pageable);
 
     List<Long> getLikedBoardIds(Long userId);
 
     Hashtag retryGetHashtag(String tagName, String academyCode);
 
-    /**
-     * 게시글 동적 검색을 위한 QueryDSL 메서드
-     * @param academyCode 학원 코드 (필수)
-     * @param searchType 검색 유형 (title, content, writer, tag, all)
-     * @param searchKeyword 검색 키워드
-     * @param type 게시글 타입 (notice, free, popular)
-     * @param pageable 페이징 정보
-     * @return 검색 결과 페이지
-     */
     Page<BoardResponse> searchBoardsDynamic(String academyCode, String searchType,
                                           String searchKeyword, String type, Pageable pageable);
 }
