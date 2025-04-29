@@ -5,7 +5,6 @@ import com.golden_dobakhe.HakPle.domain.post.post.dto.TotalBoardResponse;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.*;
 import com.golden_dobakhe.HakPle.domain.user.admin.service.AdminService;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
-import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
@@ -13,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,8 +25,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Parameter;
 
-import java.util.List;
 import java.util.Map;
 
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
@@ -142,21 +142,38 @@ public class ApiV1AdminController {
         return ResponseEntity.ok(academy);
     }
 
+    @Operation(summary = "사용자 목록 조회", description = "페이징 처리된 사용자 리스트를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공")
+    })
     @GetMapping("/users")
     public ResponseEntity<Page<UserListDto>> getUsers(
+            @Parameter(description = "페이지 번호 (1부터 시작)", example = "1")
             @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name="size",defaultValue = "10") int size
+
+            @Parameter(description = "페이지 당 데이터 수", example = "10")
+            @RequestParam(name = "size", defaultValue = "10") int size
     ) {
-        Pageable pageable = PageRequest.of(page-1, size);
+        Pageable pageable = PageRequest.of(page - 1, size);
         return ResponseEntity.ok(adminService.getUser(pageable));
     }
 
+    @Operation(summary = "사용자 상태 변경", description = "특정 사용자의 상태를 변경합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "변경 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 데이터")
+    })
     @PostMapping("/user/status")
-    public ResponseEntity<?> changeUserStatus(@RequestBody ChangeUserStateRequestDto changeUserStateRequestDto){
-        adminService.changeUserStatus(changeUserStateRequestDto.getId(),changeUserStateRequestDto.getState());
+    public ResponseEntity<?> changeUserStatus(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "변경할 사용자 ID와 상태 정보",
+                    required = true
+            )
+            @RequestBody ChangeUserStateRequestDto changeUserStateRequestDto
+    ) {
+        adminService.changeUserStatus(changeUserStateRequestDto.getId(), changeUserStateRequestDto.getState());
         return ResponseEntity.ok().build();
     }
-
 }
 
 

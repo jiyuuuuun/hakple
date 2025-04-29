@@ -26,8 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Set;
 
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;

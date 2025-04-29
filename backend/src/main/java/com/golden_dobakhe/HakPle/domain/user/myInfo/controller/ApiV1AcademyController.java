@@ -35,10 +35,6 @@ public class ApiV1AcademyController {
             @RequestBody AcademyCodeRequestDto dto, Authentication authentication
     ) {
         String userName = authentication.getName(); // JWT 필터에서 유저네임 꺼내옴
-//    public ResponseEntity<String> registerAcademy(
-//            @RequestParam("userName") String userName,
-//            @RequestParam("academyCode") String academyCode
-//    ) {
         String academyName = academyService.registerAcademy(userName, dto.getAcademyCode());
         return ResponseEntity.ok("학원이 등록되었습니다: " + academyName);
     }
