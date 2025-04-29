@@ -74,7 +74,7 @@ export default function Header() {
     // 컴포넌트 마운트 시 MyInfo API 호출하여 프로필 이미지 가져오기
     useEffect(() => {
         if (isLogin) {
-            console.log('Header - 프로필 이미지 정보 가져오기');
+            
             fetchApi('/api/v1/myInfos', {
                 method: 'GET',
             })
@@ -84,7 +84,7 @@ export default function Header() {
             })
             .then(data => {
                 if (data && data.profileImageUrl) {
-                    console.log('Header - 프로필 이미지 URL 발견:', data.profileImageUrl);
+                    
                     setProfileImageUrl(data.profileImageUrl);
                 }
             })
@@ -121,12 +121,6 @@ export default function Header() {
         }
     }, [pathname, isLogin, isAuthPage])
 
-    // 관리자인 경우 루트 페이지 접속 시 관리자 페이지로 리다이렉트
-    // useEffect(() => {
-    //     if (isAdmin && pathname === '/') {
-    //         router.push('/admin/admins')
-    //     }
-    // }, [isAdmin, pathname, router])
 
     // 관리자 권한 확인 함수
     const checkAdminPermission = async () => {
@@ -138,14 +132,14 @@ export default function Header() {
 
             // 인증/권한 오류도 일반 로그로 출력
             if (response.status === 401 || response.status === 403) {
-                console.log(`인증 오류: 권한이 없음 (상태 코드: ${response.status})`)
+                
                 setIsAdmin(false)
                 return
             }
 
             // 그 외 서버 오류는 중요한 에러이므로 error로 출력
             if (!response.ok) {
-                console.error(`서버 오류: 관리자 권한 확인 실패 (상태 코드: ${response.status})`)
+                
                 setIsAdmin(false)
                 return
             }
@@ -217,7 +211,7 @@ export default function Header() {
     }, [isNotificationOpen]);
 
     const markNotificationAsRead = async (notificationId: number) => {
-        console.log(`📬 알림 ${notificationId} 읽음 처리 시도`);
+        
 
         try {
             const response = await fetchApi(`/api/v1/notifications/my/${notificationId}/read`, {
@@ -230,16 +224,16 @@ export default function Header() {
                 return;
             }
 
-            console.log(`✅ API 호출 성공, 상태 업데이트 시도`);
+            
 
             setNotifications(prev => {
                 const newState = prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n);
-                console.log('🔔 알림 목록 상태 업데이트됨:', newState.find(n => n.id === notificationId));
+                
                 return newState;
             });
             setNotificationCount(prev => {
                 const newCount = Math.max(0, prev - 1);
-                console.log('🔢 알림 카운트 상태 업데이트됨:', newCount);
+                
                 return newCount;
             });
 
@@ -249,11 +243,11 @@ export default function Header() {
     };
 
     const fetchNotifications = async (page = 0, size = 10, loadMore = false) => {
-        console.log('[fetchNotifications] 함수 호출됨! page:', page); 
+        
         if (!isLogin) return;
         setIsLoadingNotifications(true);
         try {
-            console.log(`🔔 알림 목록 가져오기 API 호출 (page: ${page}, size: ${size})`);
+            
             const response = await fetchApi(`/api/v1/notifications/my?page=${page}&size=${size}&sort=creationTime,desc`);
             if (!response.ok) {
                 console.error('알림 목록 가져오기 실패:', response.status);
@@ -262,7 +256,7 @@ export default function Header() {
                 return;
             }
             const data: Page<Notification> = await response.json();
-            console.log('🔔 알림 목록 수신:', data);
+            
             setNotifications(data.content || []);
 
         } catch (error) {
@@ -275,7 +269,7 @@ export default function Header() {
     };
 
     const fetchUnreadCount = async () => {
-        console.log('[fetchUnreadCount] 함수 호출됨!');
+        
         if (!isLogin) return;
         setIsLoadingCount(true);
         try {
@@ -283,13 +277,13 @@ export default function Header() {
             if (!response.ok) throw new Error('Failed to fetch unread count');
             const data: { unreadCount: number } = await response.json();
 
-            console.log('[fetchUnreadCount] API 응답 데이터:', data);
+           
             const newCount = data.unreadCount || 0;
-            console.log('[fetchUnreadCount] setNotificationCount 호출 예정 값:', newCount);
+            
 
             setNotificationCount(newCount);
 
-            console.log('📊 읽지 않은 알림 개수 (상태 업데이트 후):', newCount);
+            
         } catch (error) {
             console.error('읽지 않은 알림 개수 가져오기 오류:', error);
             setNotificationCount(0);
@@ -299,7 +293,7 @@ export default function Header() {
     };
 
     useEffect(() => {
-        console.log('[useEffect isLogin] 실행됨, isLogin:', isLogin);
+        
         if (isLogin) {
             console.log('[useEffect isLogin] isLogin=true, fetchUnreadCount 호출 시도...');
             const timer = setTimeout(() => {
@@ -315,7 +309,7 @@ export default function Header() {
     }, [isLogin]);
 
     const handleRefresh = () => {
-        console.log('[handleRefresh] 새로고침 버튼 클릭됨, fetchUnreadCount 호출 시도...');
+        
         fetchUnreadCount();
         if (isNotificationOpen) {
             fetchNotifications(0, 10);
