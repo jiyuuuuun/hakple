@@ -11,6 +11,9 @@ import { handleLike } from '@/utils/likeHandler'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import '@/app/calendar/calendar.css' // ➕ 커스텀 스타일 적용할 파일
+import PostListSkeleton from '@/components/PostListSkeleton'
+import NoticeSkeleton from '@/components/NoticeSkeleton'
+import ProfileSkeleton from '@/components/ProfileSkeleton'
 
 // 스타일시트를 위한 import 추가 - CDN 방식으로 헤드에 추가는 layout에서 처리
 // 대신 SVG 아이콘 컴포넌트를 직접 사용합니다
@@ -46,6 +49,7 @@ interface Post {
     isReported?: boolean
     isLiked?: boolean
     profileImageUrl?: string
+    hasImage?: boolean
 }
 
 // API 응답 타입
@@ -733,7 +737,9 @@ export default function HomePage() {
                                 <h2 className="text-xl font-bold text-gray-800">공지사항</h2>
                             </div>
 
-                            {noticePosts.length > 0 ? (
+                            {loading ? (
+                                <NoticeSkeleton count={3} />
+                            ) : noticePosts.length > 0 ? (
                                 <ul className="space-y-3">
                                     {noticePosts.map((notice) => (
                                         <li key={notice.id}>
@@ -785,9 +791,7 @@ export default function HomePage() {
 
                         {/* 게시글 목록 */}
                         {loading ? (
-                            <div className="bg-white rounded-lg shadow p-10 text-center text-lg">
-                                <div className="animate-pulse text-gray-500">게시글을 불러오는 중...</div>
-                            </div>
+                            <PostListSkeleton count={5} />
                         ) : posts.length > 0 ? (
                             posts.map((post) => (
                                 <div
@@ -796,120 +800,67 @@ export default function HomePage() {
                                 >
                                     <div className="p-6">
                                         {/* 작성자 정보 - 한 줄로 정리 */}
-                                        <div className="flex justify-between items-center mb-5">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                                    {post.profileImageUrl ? (
-                                                        <img
-                                                            src={post.profileImageUrl}
-                                                            alt={`${post.nickname}의 프로필 이미지`}
-                                                            className="h-full w-full object-cover"
-                                                            onError={(e) => {
-                                                                const target = e.target as HTMLImageElement;
-                                                                target.onerror = null; // 추가 오류 이벤트 방지
-                                                                target.style.display = 'none'; // 이미지 숨기기
-                                                                target.parentElement!.innerHTML = `
-                                                                    <svg
-                                                                        xmlns="http://www.w3.org/2000/svg"
-                                                                        class="h-6 w-6 text-gray-400"
-                                                                        fill="none"
-                                                                        viewBox="0 0 24 24"
-                                                                        stroke="currentColor"
-                                                                    >
-                                                                        <path
-                                                                            stroke-linecap="round"
-                                                                            stroke-linejoin="round"
-                                                                            stroke-width="2"
-                                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                                                        />
-                                                                    </svg>
-                                                                `;
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <svg
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-6 w-6 text-gray-400"
-                                                            fill="none"
-                                                            viewBox="0 0 24 24"
-                                                            stroke="currentColor"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                                            />
-                                                        </svg>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium text-gray-900">{post.nickname}</span>
-                                                    <span className="text-gray-400">•</span>
-                                                    <span className="text-gray-500">
-                                                        {formatDate(post.creationTime)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <Link
-                                                href={`/post/${post.id}`}
-                                                className="flex items-center gap-2 text-gray-400 hover:text-[#9C50D4] transition-colors group"
-                                            >
-                                                <span className="text-sm">상세보기</span>
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5 group-hover:translate-x-1 transition-transform"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    stroke="currentColor"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                                {post.profileImageUrl ? (
+                                                    <img
+                                                        src={post.profileImageUrl}
+                                                        alt={`${post.nickname}의 프로필 이미지`}
+                                                        className="h-full w-full object-cover"
                                                     />
-                                                </svg>
-                                            </Link>
+                                                ) : (
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        className="h-6 w-6 text-gray-400"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        stroke="currentColor"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                        />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-900">{post.nickname}</p>
+                                                <p className="text-sm text-gray-500">{formatDate(post.creationTime)}</p>
+                                            </div>
                                         </div>
 
-                                        {/* 게시글 제목 및 내용 */}
-                                        <Link href={`/post/${post.id}`} className="block group">
-                                            <h3 className="text-xl font-semibold mb-3 group-hover:text-[#9C50D4] transition-colors">
+                                        <Link href={`/post/${post.id}`} className="block no-underline">
+                                            <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-[#9C50D4] transition-colors line-clamp-2">
                                                 {post.title}
+                                                {post.hasImage && (
+                                                    <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
+                                                )}
                                             </h3>
-                                            <p className="text-gray-600 mb-4 line-clamp-3">
-                                                {post.content.replace(/<[^>]*>?/gm, '')}
-                                            </p>
                                         </Link>
 
-                                        {/* 해시태그 */}
-                                        {/* {post.tags && post.tags.length > 0 && (
-                                            <div className="flex gap-2 mb-4 flex-wrap">
-                                                {post.tags.map((tag, idx) => (
+                                        <div className="flex flex-wrap gap-2 mb-4 min-h-[28px]">
+                                            {post.tags?.length > 0 ? (
+                                                post.tags.map((tag, index) => (
                                                     <span
-                                                        key={idx}
+                                                        key={index}
                                                         className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer"
                                                     >
                                                         #{tag}
                                                     </span>
-                                                ))}
-                                            </div>
-                                        )} */}
+                                                ))
+                                            ) : (
+                                                <span className="invisible inline-block px-2 py-1 text-xs">#태그자리</span>
+                                            )}
+                                        </div>
 
-                                        {/* 좋아요, 댓글, 조회수 카운트 */}
                                         <div className="flex items-center gap-6 text-gray-500">
-                                            <button
-                                                onClick={(e) => handleLikeClick(post, e)}
-                                                className={`flex items-center gap-2 group/like transition-all ${post.isLiked ? 'text-[#9C50D4]' : 'hover:text-[#9C50D4]'
-                                                    }`}
-                                                disabled={likingPosts.has(post.id)}
-                                            >
+                                            <div className="flex items-center gap-2 group/like hover:text-[#9C50D4] transition-all">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${likingPosts.has(post.id) ? 'animate-pulse' : ''
-                                                        }`}
-                                                    fill={post.isLiked ? 'currentColor' : 'none'}
+                                                    className="h-5 w-5 group-hover/like:scale-110 transition-transform"
+                                                    fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
                                                 >
@@ -920,15 +871,12 @@ export default function HomePage() {
                                                         d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                                                     />
                                                 </svg>
-                                                <span className="text-base">{post.likeCount}</span>
-                                            </button>
-                                            <Link
-                                                href={`/post/${post.id}`}
-                                                className="flex items-center gap-2 hover:text-[#9C50D4] transition-colors group"
-                                            >
+                                                <span className="text-sm group-hover/like:text-[#9C50D4]">{post.likeCount}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-7 w-7 group-hover:scale-110 transition-transform"
+                                                    className="h-5 w-5 group-hover/comment:scale-110 transition-transform"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -940,12 +888,12 @@ export default function HomePage() {
                                                         d="M8 12h.01M12 12h.01M16 12h.01M12 21a9 9 0 1 0-9-9c0 1.488.36 2.89 1 4.127L3 21l4.873-1C9.11 20.64 10.512 21 12 21z"
                                                     />
                                                 </svg>
-                                                <span className="text-base">{post.commentCount}</span>
-                                            </Link>
+                                                <span className="text-sm group-hover/comment:text-[#9C50D4]">{post.commentCount}</span>
+                                            </div>
                                             <div className="flex items-center gap-2 ml-auto">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-7 w-7"
+                                                    className="h-5 w-5"
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
@@ -963,7 +911,7 @@ export default function HomePage() {
                                                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                                                     />
                                                 </svg>
-                                                <span className="text-base">{post.viewCount}</span>
+                                                <span className="text-sm">{post.viewCount}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -992,155 +940,159 @@ export default function HomePage() {
                     {/* 오른쪽 사이드바 - 개인정보 및 캘린더 */}
                     <aside className="w-full md:w-80 shrink-0">
                         {/* 개인정보 섹션 */}
-                        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 mt-8">
-                            {/* 프로필 섹션 */}
-                            <div className="flex flex-col items-center pb-6 border-b border-gray-100">
-                                <div className="w-24 h-24 rounded-full bg-purple-50 flex items-center justify-center mb-4 ring-4 ring-purple-100">
-                                    {userInfo?.profileImageUrl ? (
-                                        <img
-                                            src={userInfo.profileImageUrl}
-                                            alt="프로필 이미지"
-                                            className="h-full w-full object-cover rounded-full"
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement
-                                                target.src = 'https://via.placeholder.com/96?text=사용자'
-                                            }}
-                                        />
-                                    ) : (
+                        {loading ? (
+                            <ProfileSkeleton />
+                        ) : (
+                            <div className="bg-white rounded-lg shadow-lg p-6 mb-6 mt-8">
+                                {/* 프로필 섹션 */}
+                                <div className="flex flex-col items-center pb-6 border-b border-gray-100">
+                                    <div className="w-24 h-24 rounded-full bg-purple-50 flex items-center justify-center mb-4 ring-4 ring-purple-100">
+                                        {userInfo?.profileImageUrl ? (
+                                            <img
+                                                src={userInfo.profileImageUrl}
+                                                alt="프로필 이미지"
+                                                className="h-full w-full object-cover rounded-full"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement
+                                                    target.src = 'https://via.placeholder.com/96?text=사용자'
+                                                }}
+                                            />
+                                        ) : (
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-12 w-12 text-[#9C50D4]"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                strokeWidth={1.5}
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                                />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                                        {userInfo?.nickName || '사용자'}
+                                    </h3>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="text-sm text-gray-500">
+                                            @{userInfo?.userName || '사용자 이름'}
+                                        </span>
+                                        <span className="h-1 w-1 rounded-full bg-gray-300"></span>
+                                        <span className="text-sm text-[#9C50D4]">일반회원</span>
+                                    </div>
+                                    <Link
+                                        href="/myinfo/update"
+                                        className="text-sm px-4 py-2 bg-purple-50 text-[#9C50D4] rounded-full hover:bg-purple-100 transition-colors flex items-center gap-2"
+                                    >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
-                                            className="h-12 w-12 text-[#9C50D4]"
-                                            viewBox="0 0 24 24"
+                                            className="h-4 w-4"
                                             fill="none"
-                                            strokeWidth={1.5}
+                                            viewBox="0 0 24 24"
                                             stroke="currentColor"
                                         >
                                             <path
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
-                                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                                                strokeWidth={2}
+                                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                                             />
                                         </svg>
-                                    )}
+                                        프로필 수정
+                                    </Link>
                                 </div>
-                                <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                                    {userInfo?.nickName || '사용자'}
-                                </h3>
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className="text-sm text-gray-500">
-                                        @{userInfo?.userName || '사용자 이름'}
-                                    </span>
-                                    <span className="h-1 w-1 rounded-full bg-gray-300"></span>
-                                    <span className="text-sm text-[#9C50D4]">일반회원</span>
+
+                                {/* 활동 통계 */}
+                                <div className="py-4 grid grid-cols-3 gap-4">
+                                    <Link href="/my-posts" className="text-center group">
+                                        <div className="font-semibold text-gray-900 group-hover:text-[#9C50D4] transition-colors">
+                                            게시글
+                                        </div>
+                                        <div className="text-2xl font-bold text-[#9C50D4] group-hover:scale-110 transition-transform">
+                                            {userInfo?.postCount || 0}
+                                        </div>
+                                    </Link>
+                                    <Link href="/my-comments" className="text-center group">
+                                        <div className="font-semibold text-gray-900 group-hover:text-[#9C50D4] transition-colors">
+                                            댓글
+                                        </div>
+                                        <div className="text-2xl font-bold text-[#9C50D4] group-hover:scale-110 transition-transform">
+                                            {userInfo?.commentCount || 0}
+                                        </div>
+                                    </Link>
+                                    <Link href="/my-likes" className="text-center group">
+                                        <div className="font-semibold text-gray-900 group-hover:text-[#9C50D4] transition-colors">
+                                            좋아요
+                                        </div>
+                                        <div className="text-2xl font-bold text-[#9C50D4] group-hover:scale-110 transition-transform">
+                                            {userInfo?.likeCount || 0}
+                                        </div>
+                                    </Link>
                                 </div>
-                                <Link
-                                    href="/myinfo/update"
-                                    className="text-sm px-4 py-2 bg-purple-50 text-[#9C50D4] rounded-full hover:bg-purple-100 transition-colors flex items-center gap-2"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-4 w-4"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
+
+                                {/* 빠른 링크 */}
+                                <div className="pt-4 border-t border-gray-100">
+                                    <Link
+                                        href="/calendar"
+                                        className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors"
                                     >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                        />
-                                    </svg>
-                                    프로필 수정
-                                </Link>
-                            </div>
-
-                            {/* 활동 통계 */}
-                            <div className="py-4 grid grid-cols-3 gap-4">
-                                <Link href="/my-posts" className="text-center group">
-                                    <div className="font-semibold text-gray-900 group-hover:text-[#9C50D4] transition-colors">
-                                        게시글
-                                    </div>
-                                    <div className="text-2xl font-bold text-[#9C50D4] group-hover:scale-110 transition-transform">
-                                        {userInfo?.postCount || 0}
-                                    </div>
-                                </Link>
-                                <Link href="/my-comments" className="text-center group">
-                                    <div className="font-semibold text-gray-900 group-hover:text-[#9C50D4] transition-colors">
-                                        댓글
-                                    </div>
-                                    <div className="text-2xl font-bold text-[#9C50D4] group-hover:scale-110 transition-transform">
-                                        {userInfo?.commentCount || 0}
-                                    </div>
-                                </Link>
-                                <Link href="/my-likes" className="text-center group">
-                                    <div className="font-semibold text-gray-900 group-hover:text-[#9C50D4] transition-colors">
-                                        좋아요
-                                    </div>
-                                    <div className="text-2xl font-bold text-[#9C50D4] group-hover:scale-110 transition-transform">
-                                        {userInfo?.likeCount || 0}
-                                    </div>
-                                </Link>
-                            </div>
-
-                            {/* 빠른 링크 */}
-                            <div className="pt-4 border-t border-gray-100">
-                                <Link
-                                    href="/calendar"
-                                    className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="h-5 w-5 text-[#9C50D4]"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                                />
-                                            </svg>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-5 w-5 text-[#9C50D4]"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                    />
+                                                </svg>
+                                            </div>
+                                            <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">
+                                                내 일정
+                                            </span>
                                         </div>
-                                        <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">
-                                            내 일정
-                                        </span>
-                                    </div>
-                                    <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#9C50D4]" />
-                                </Link>
-                                <Link
-                                    href="/myinfo"
-                                    className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                className="h-5 w-5 text-[#9C50D4]"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth={2}
-                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                                />
-                                            </svg>
+                                        <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#9C50D4]" />
+                                    </Link>
+                                    <Link
+                                        href="/myinfo"
+                                        className="flex items-center justify-between p-3 hover:bg-purple-50 rounded-lg group transition-colors"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-5 w-5 text-[#9C50D4]"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                    />
+                                                </svg>
+                                            </div>
+                                            <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">
+                                                내 정보 관리
+                                            </span>
                                         </div>
-                                        <span className="font-medium text-gray-700 group-hover:text-[#9C50D4]">
-                                            내 정보 관리
-                                        </span>
-                                    </div>
-                                    <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#9C50D4]" />
-                                </Link>
+                                        <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-[#9C50D4]" />
+                                    </Link>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* 캘린더 섹션 */}
                         <div className="bg-white rounded-lg shadow p-4 mb-6">
