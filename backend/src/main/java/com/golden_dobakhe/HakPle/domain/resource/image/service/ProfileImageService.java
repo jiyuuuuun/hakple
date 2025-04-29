@@ -6,6 +6,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
+import com.golden_dobakhe.HakPle.domain.resource.image.util.FileUtils;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import java.io.IOException;
@@ -31,50 +32,6 @@ public class ProfileImageService {
 
     private final AmazonS3 amazonS3;
 
-    // 파일명을 난수화
-    public String createFileName(String originalFileName) {
-        String extension = extractFileExtension(originalFileName);
-        return UUID.randomUUID().toString().concat(extension);
-    }
-
-    // 파일 확장자 추출 (e.g., ".png")
-    private String extractFileExtension(String fileName) {
-        try {
-            int lastDotIndex = fileName.lastIndexOf(".");
-            if (lastDotIndex < 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "파일 확장자가 없는 파일입니다: " + fileName);
-            }
-            return fileName.substring(lastDotIndex); // "." 포함하여 반환
-        } catch (StringIndexOutOfBoundsException e) {
-            // 이 예외는 lastIndexOf 로직상 거의 발생하지 않지만, 혹시 모를 경우를 대비
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "파일 이름 분석 중 오류 발생: " + fileName);
-        }
-    }
-
-    // 확장자를 기반으로 Content-Type 결정
-    private String determineContentType(String extension) {
-        String ext = extension.startsWith(".") ? extension.substring(1).toLowerCase() : extension.toLowerCase();
-        switch (ext) {
-            case "jpeg":
-            case "jpg":
-                return "image/jpeg";
-            case "png":
-                return "image/png";
-            case "gif":
-                return "image/gif";
-            case "bmp":
-                return "image/bmp";
-            case "txt":
-                return "text/plain";
-            case "csv":
-                return "text/csv";
-            // 필요한 다른 타입 추가 가능
-            default:
-                // 기본값 또는 알 수 없는 타입 처리
-                return "application/octet-stream"; // S3 기본값과 동일하게 설정하거나, 예외 발생 가능
-        }
-    }
-
     @Transactional
     public String uploadProfileImage(String userName, MultipartFile multipartFile) {
         User user = userRepository.findByUserName(userName)
@@ -88,10 +45,11 @@ public class ProfileImageService {
             user.setProfileImage(null);
         }
 
-        String originalFilename = multipartFile.getOriginalFilename();
-        String fileExtension = extractFileExtension(originalFilename);
-        String contentType = determineContentType(fileExtension);
-        String fileName = createFileName(originalFilename);
+        String originalFileName = multipartFile.getOriginalFilename();
+        String fileExtension = FileUtils.extractFileExtension(originalFileName);
+        String contentType = FileUtils.determineContentType(fileExtension);
+        String fileName = FileUtils.createFileName(originalFileName);
+        String permanentS3Key = "profile/" + user.getId() + "/" + fileName;
 
         try {
             ObjectMetadata objectMetadata = new ObjectMetadata();
@@ -99,19 +57,21 @@ public class ProfileImageService {
             objectMetadata.setContentType(contentType);
 
             //S3에 파일 업로드
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName, multipartFile.getInputStream(), objectMetadata)
-                    .withCannedAcl(CannedAccessControlList.PublicRead));
+            amazonS3.putObject(
+                    new PutObjectRequest(bucket, permanentS3Key, multipartFile.getInputStream(), objectMetadata)
+                            .withCannedAcl(CannedAccessControlList.PublicRead));
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드에 실패했습니다.");
         }
 
         //db에 새 이미지 저장
-        String profileImageUrl = amazonS3.getUrl(bucket, fileName).toString();
+        String profileImageUrl = amazonS3.getUrl(bucket, permanentS3Key).toString();
         Image newImage = Image.builder()
                 .filePath(profileImageUrl)
-                .path(fileName)
-                .originalName(originalFilename)
-                .storedName(fileName)
+                .isTemp(false) // 임시 파일 플래그
+                .path(permanentS3Key)
+                .originalName(originalFileName)
+                .storedName(permanentS3Key)
                 .contentType(contentType)
                 .size(multipartFile.getSize())
                 .isDeleted(false)
@@ -120,6 +80,7 @@ public class ProfileImageService {
 
         imageRepository.save(newImage);
         user.setProfileImage(newImage);
+//        userRepository.save(user);
 
         return profileImageUrl;
     }
