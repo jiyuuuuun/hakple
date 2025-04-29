@@ -20,9 +20,6 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
 
   // 기본 옵션과 사용자 지정 옵션 병합
   const defaultOptions: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-    },
     credentials: 'include',
   };
 
@@ -141,6 +138,10 @@ export function post<T>(url: string, data: any, options?: RequestInit): Promise<
   return fetchJson<T>(url, {
     ...options,
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
     body: JSON.stringify(data),
   });
 }
@@ -152,6 +153,10 @@ export function put<T>(url: string, data: any, options?: RequestInit): Promise<T
   return fetchJson<T>(url, {
     ...options,
     method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
     body: JSON.stringify(data),
   });
 }
@@ -163,6 +168,10 @@ export function patch<T>(url: string, data: any, options?: RequestInit): Promise
   return fetchJson<T>(url, {
     ...options,
     method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
     body: JSON.stringify(data),
   });
 }
