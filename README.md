@@ -49,7 +49,7 @@
 ### Backend (Spring Boot)
 ```bash
 # 1. 프로젝트 클론
-git clone https://github.com/your-repo/hakple.git
+git clone https://github.com/golden-dobakhe/hakple.git
 cd hakple/backend
 
 # 2. 환경변수 설정
