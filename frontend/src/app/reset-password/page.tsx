@@ -6,9 +6,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { fetchApi } from '@/utils/api'
 
-// API 기본 URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
-
 export default function ResetPasswordPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -60,7 +57,7 @@ export default function ResetPasswordPage() {
         setPasswordError('')
 
         try {
-            const response = await fetchApi(`${API_BASE_URL}/api/v1/usernames/reset-password`, {
+            const response = await fetchApi('/api/v1/usernames/reset-password', {
                 method: 'POST',
                 body: JSON.stringify({
                     newPassword: password,

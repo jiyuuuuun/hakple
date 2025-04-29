@@ -1,16 +1,11 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import SafeImage from '@/components/SafeImage'
-import SafeHtmlImage from '@/components/SafeHtmlImage'
 import { fetchApi } from '@/utils/api'
+
 export default function Home() {
     const router = useRouter()
-    // API 기본 URL
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
     // 타이핑 애니메이션을 위한 상태
     const [typedText, setTypedText] = useState('')
     const [currentTextIndex, setCurrentTextIndex] = useState(0)
@@ -67,7 +62,7 @@ export default function Home() {
 
         const checkLoginStatus = async () => {
             try {
-                const response = await fetchApi(`${API_BASE_URL}/api/v1/auth/me`, {
+                const response = await fetchApi('/api/v1/auth/me', {
                     method: 'GET',
                 })
 

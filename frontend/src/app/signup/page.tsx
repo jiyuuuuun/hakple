@@ -6,6 +6,8 @@ import Image from 'next/image'
 import { fetchApi } from '@/utils/api'
 import { useRouter } from 'next/navigation'
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
+
 export default function Signup() {
     const router = useRouter()
     const [formData, setFormData] = useState({
@@ -60,9 +62,6 @@ export default function Signup() {
         setErrorMessage('')
 
         try {
-            // API 기본 URL 설정
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
-
             // 백엔드 API 호출 (직접 fetch 사용)
             const response = await fetchApi(`${API_BASE_URL}/api/v1/users/check-username?userName=${fieldValue}`, {
                 method: 'GET',
@@ -109,9 +108,6 @@ export default function Signup() {
         setErrorMessage('')
 
         try {
-            // API 기본 URL 설정
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
-
             // 먼저 휴대폰 번호 중복 확인
             let duplicateCheckResponse
             try {
@@ -144,7 +140,7 @@ export default function Signup() {
 
             // 인증번호 요청 - isAvailable이 true일 때만 실행 (사용 가능한 번호)
             try {
-                const smsResponse = await fetchApi(`${API_BASE_URL}/api/v1/sms/send?phone=${phone}`, {
+                const smsResponse = await fetchApi('/api/v1/sms/send?phone=${phone}', {
                     method: 'POST',
                 })
 
@@ -179,16 +175,10 @@ export default function Signup() {
         setErrorMessage('')
 
         try {
-            // API 기본 URL 설정
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
-
             // 인증번호 확인 API 호출
-            const response = await fetchApi(
-                `${API_BASE_URL}/api/v1/sms/verify?phone=${phone}&code=${verificationCode}`,
-                {
-                    method: 'POST',
-                },
-            )
+            const response = await fetchApi('/api/v1/sms/verify?phone=${phone}&code=${verificationCode}', {
+                method: 'POST',
+            })
 
             if (!response.ok) {
                 if (response.status === 401) {
@@ -263,7 +253,7 @@ export default function Signup() {
                 phoneNum: formData.phone,
             }
 
-            const response = await fetchApi(`${API_BASE_URL}/api/v1/users/userreg`, {
+            const response = await fetchApi('/api/v1/users/userreg', {
                 method: 'POST',
                 body: JSON.stringify(requestData),
             })
