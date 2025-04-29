@@ -46,9 +46,8 @@ export default function Header() {
     useEffect(() => {
         if (isLogin) {
             console.log('Header - 프로필 이미지 정보 가져오기');
-            fetch('/api/v1/myInfos', {
+            fetchApi('/api/v1/myInfos', {
                 method: 'GET',
-                credentials: 'include'
             })
             .then(res => {
                 if (!res.ok) return null;
@@ -106,10 +105,6 @@ export default function Header() {
             // fetchApi 사용으로 변경
             const response = await fetchApi('/api/v1/admin/check', {
                 method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
             })
 
             // 인증/권한 오류도 일반 로그로 출력

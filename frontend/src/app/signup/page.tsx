@@ -3,7 +3,7 @@
 import { useState, ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { get, post } from "@/utils/api";
+import { fetchApi, get, post } from "@/utils/api";
 import { useRouter } from "next/navigation";
 
 export default function Signup() {
@@ -64,9 +64,8 @@ export default function Signup() {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
       
       // 백엔드 API 호출 (직접 fetch 사용)
-      const response = await fetch(`${API_BASE_URL}/api/v1/users/check-username?userName=${fieldValue}`, {
+      const response = await fetchApi(`/api/v1/users/check-username?userName=${fieldValue}`, {
         method: 'GET',
-        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -113,12 +112,12 @@ export default function Signup() {
       // API 기본 URL 설정
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
       
-      // 먼저 휴대폰 번호 중복 확인 (직접 fetch 사용)
+      // 먼저 휴대폰 번호 중복 확인 
       let duplicateCheckResponse;
       try {
-        duplicateCheckResponse = await fetch(`${API_BASE_URL}/api/v1/users/check-phonenum?phoneNum=${phone}`, {
+        duplicateCheckResponse = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${phone}`, {
           method: 'GET',
-          credentials: 'include',
+
         });
         
         if (!duplicateCheckResponse.ok) {
@@ -144,12 +143,8 @@ export default function Signup() {
       
       // 인증번호 요청 - isAvailable이 true일 때만 실행 (사용 가능한 번호)
       try {
-        const smsResponse = await fetch(`${API_BASE_URL}/api/v1/sms/send?phone=${phone}`, {
+        const smsResponse = await fetchApi(`/api/v1/sms/send?phone=${phone}`, {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
         });
 
         if (!smsResponse.ok) {
@@ -187,12 +182,8 @@ export default function Signup() {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
       
       // 인증번호 확인 API 호출
-      const response = await fetch(`${API_BASE_URL}/api/v1/sms/verify?phone=${phone}&code=${verificationCode}`, {
+      const response = await fetchApi(`/api/v1/sms/verify?phone=${phone}&code=${verificationCode}`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
       });
 
       if (!response.ok) {
@@ -268,13 +259,8 @@ export default function Signup() {
         phoneNum: formData.phone
       };
       
-      // post 유틸 대신 직접 fetch 호출
-      const response = await fetch(`${API_BASE_URL}/api/v1/users/userreg`, {
+      const response = await fetchApi(`/api/v1/users/userreg`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify(requestData)
       });
       

@@ -6,6 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import './fixed-calendar.css'
 import CalendarModal from './CalendarModal'
+import { fetchApi } from '@/utils/api'
 
 interface EventItem {
   id: string
@@ -62,8 +63,8 @@ export default function CalendarPage() {
   const fetchEvents = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/v1/schedules', {
-        credentials: 'include',
+      const res = await fetchApi('/api/v1/schedules', {
+        method: 'GET',
       })
       if (!res.ok) return
 

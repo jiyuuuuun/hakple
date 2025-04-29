@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 export default function AcademyRegisterPage() {
   const router = useRouter();
@@ -30,13 +31,10 @@ export default function AcademyRegisterPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+        const response = await fetchApi('/api/v1/admin/check', {
           method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         });
+
 
         if (!response.ok) {
           router.push('/');
@@ -118,14 +116,11 @@ export default function AcademyRegisterPage() {
     try {
       
       // API 요청
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/academies/register`, {
+      const response = await fetchApi('/api/v1/admin/academies/register', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
+
       
       if (!response.ok) {
         // 오류 응답 처리

@@ -133,10 +133,8 @@ export default function HomePage() {
     // 백엔드에서 사용자의 학원 정보 확인
     const verifyAcademyInfo = async () => {
         try {
-            // fetch 대신 fetchApi 유틸리티 함수 사용
             const response = await fetchApi('/api/v1/myInfos', {
                 method: 'GET',
-                credentials: 'include',
             })
 
             if (response.ok) {
@@ -172,7 +170,6 @@ export default function HomePage() {
             // 사용자 기본 정보 가져오기
             const infoResponse = await fetchApi('/api/v1/myInfos', {
                 method: 'GET',
-                credentials: 'include',
             })
 
             if (infoResponse.ok) {
@@ -282,11 +279,7 @@ export default function HomePage() {
 
             // API 유틸리티 함수 사용
             const response = await fetchApi(url, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                },
-                credentials: 'include',
+                method: 'GET',
             })
 
             if (!response.ok) {
@@ -339,7 +332,7 @@ export default function HomePage() {
     const fetchEvents = async () => {
         try {
             const res = await fetchApi('/api/v1/schedules', {
-                credentials: 'include',
+                method: 'GET',
             })
             if (!res.ok) return
 
@@ -375,11 +368,7 @@ export default function HomePage() {
             const url = `/api/v1/posts?page=1&size=5&sortType=좋아요순&minLikes=10`
 
             const response = await fetchApi(url, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                },
-                credentials: 'include',
+                method: 'GET',
             })
 
             if (!response.ok) {
@@ -403,11 +392,7 @@ export default function HomePage() {
     const fetchPopularTags = async () => {
         try {
             const response = await fetchApi('/api/v1/posts/tags/popular', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                },
-                credentials: 'include',
+                method: 'GET',            
             })
 
             if (!response.ok) {
@@ -461,12 +446,8 @@ export default function HomePage() {
         setIsReporting(true)
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/report`, {
+            const response = await fetchApi(`/api/v1/posts/${postId}/report`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
             })
 
             if (!response.ok) {
@@ -541,7 +522,7 @@ export default function HomePage() {
 
             // sortType을 백엔드가 처리할 수 있는 값으로 변경 (등록일순 -> creationTime)
             const response = await fetchApi(`/api/v1/posts/notice?page=1&size=3&sortType=creationTime&type=notice&academyCode=${storedAcademyCode}`, {
-                credentials: 'include',
+                method: 'GET',
             })
 
         

@@ -80,7 +80,7 @@ export default function MyCommentsPage() {
             const response = await fetchApi(
                 `/api/v1/comments/my?page=${page}&size=${pageSize}&sort=creationTime,desc`,
                 {
-                    credentials: 'include',
+                    method: 'GET',
                 },
             )
 

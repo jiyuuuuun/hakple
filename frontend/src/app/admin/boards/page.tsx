@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 // 게시글 상태 타입
 type Status = 'ACTIVE' | 'INACTIVE' | 'PENDING';
@@ -42,13 +43,10 @@ export default function AdminBoardsPage() {
   // 관리자 권한 확인
   const checkAdmin = async () => {
     try {
-      const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
+      const response = await fetchApi('/api/v1/admin/check', {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
       });
+
 
       if (!response.ok) {
         router.push('/'); // 권한이 없으면 홈으로 리다이렉트
@@ -88,16 +86,10 @@ export default function AdminBoardsPage() {
         params.append('academyCode', academyCodeFilter);
       }
       
-      const response = await fetch(
-        `http://localhost:8090/api/v1/admin/boards?${params.toString()}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
+      const response = await fetchApi(`/api/v1/admin/boards?${params.toString()}`, {
+        method: 'GET',
+      });
+
 
       if (!response.ok) {
         throw new Error('데이터를 불러오는데 실패했습니다');

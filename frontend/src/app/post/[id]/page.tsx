@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
+import { fetchApi } from '@/utils/api';
 
 interface Post {
     id: number;
@@ -121,11 +122,8 @@ export default function PostDetailPage() {
                     url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
                 }
 
-                const response = await fetch(url, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
+                const response = await fetchApi(url, {
+                    method: 'GET',
                 });
 
                 if (!hasViewed) {
@@ -169,12 +167,8 @@ export default function PostDetailPage() {
 
                 if (isLogin) {
                     Promise.all([
-                        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${params.id}/like-status`, {
+                        fetchApi(`/api/v1/posts/${params.id}/like-status`, {
                             method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const likeData = await res.json();
@@ -188,12 +182,8 @@ export default function PostDetailPage() {
                             setIsLiked(false);
                         }),
 
-                        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/report-status`, {
+                        fetchApi(`/api/v1/posts/${postId}/report-status`, {
                             method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const reportData = await res.json();
@@ -207,12 +197,8 @@ export default function PostDetailPage() {
                             setIsReported(false);
                         }),
 
-                        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}/is-owner`, {
+                        fetchApi(`/api/v1/posts/${postId}/is-owner`, {
                             method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            credentials: 'include',
                         }).then(async res => {
                             if (res.ok) {
                                 const ownerData = await res.json();
@@ -267,12 +253,8 @@ export default function PostDetailPage() {
 
             console.log('좋아요 API 요청 URL:', url);
 
-            const response = await fetch(url, {
+            const response = await fetchApi(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -361,9 +343,8 @@ export default function PostDetailPage() {
         }
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}`, {
+            const response = await fetchApi(`/api/v1/posts/${post.id}`, {
                 method: 'DELETE',
-                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -411,12 +392,8 @@ export default function PostDetailPage() {
 
             console.log('게시글 신고 요청:', id);
 
-            const response = await fetch(url, {
+            const response = await fetchApi(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -456,12 +433,8 @@ export default function PostDetailPage() {
                     url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
                 }
 
-                const commentsResponse = await fetch(url, {
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
-                    },
+                const commentsResponse = await fetchApi(url, {
+                    method: 'GET',
                 });
 
                 if (!commentsResponse.ok) {
@@ -498,11 +471,8 @@ export default function PostDetailPage() {
 
                 const commentStatusPromises = commentsData.map(async (comment: Comment) => {
                     try {
-                        const reportStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/status`, {
-                            credentials: 'include',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                        const reportStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/status`, {
+                            method: 'GET',
                         });
 
                         if (reportStatusResponse.ok) {
@@ -512,11 +482,8 @@ export default function PostDetailPage() {
                             comment.isReported = false;
                         }
 
-                        const ownerStatusResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${comment.id}/is-owner`, {
-                            credentials: 'include',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
+                        const ownerStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/is-owner`, {
+                            method: 'GET',
                         });
 
                         if (ownerStatusResponse.ok) {
@@ -565,12 +532,8 @@ export default function PostDetailPage() {
 
             console.log('댓글 등록 요청 데이터:', commentData);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments`, {
+            const response = await fetchApi(`/api/v1/comments`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
                 body: JSON.stringify(commentData)
             });
 
@@ -658,13 +621,9 @@ export default function PostDetailPage() {
 
             console.log('댓글 수정 요청 데이터:', commentData, 'commenterId:', editingCommentId);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/update`, {
+            const response = await fetchApi(`/api/v1/comments/update`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify(commentData),
-                credentials: 'include'
             });
 
             if (response.ok) {
@@ -708,12 +667,8 @@ export default function PostDetailPage() {
         try {
             console.log('댓글 삭제 요청:', commentId);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${commentId}`, {
+            const response = await fetchApi(`/api/v1/comments/${commentId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
             });
 
             if (response.ok) {
@@ -761,12 +716,8 @@ export default function PostDetailPage() {
                     : c
             ));
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/likes/comments/${commentId}/toggle`, {
+            const response = await fetchApi(`/api/v1/likes/comments/${commentId}/toggle`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
             });
 
             if (!response.ok) {
@@ -820,12 +771,8 @@ export default function PostDetailPage() {
         try {
             console.log('댓글 신고 요청:', commentId);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/reports/${commentId}`, {
+            const response = await fetchApi(`/api/v1/comments/reports/${commentId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
             });
 
             if (!response.ok) {

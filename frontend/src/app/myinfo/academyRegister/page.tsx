@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import Link from 'next/link'
 import { ArrowLeftIcon, AcademicCapIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
+import { fetchApi } from '@/utils/api'
 
 // 백엔드 응답 타입 정의
 interface AcademyResponse {
@@ -37,13 +38,9 @@ export default function AcademyRegister() {
                 academyCode: academyCode,
             })
 
-            // 학원 등록 API 요청 - JWT에서 자동으로 사용자 정보 추출
-            const response = await fetch(`/api/v1/academies/register`, {
+            // 학원 등록 API 요청 
+            const response = await fetchApi(`/api/v1/academies/register`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include', // 쿠키 포함하여 요청
                 body: JSON.stringify({
                     academyCode: academyCode,
                 }),

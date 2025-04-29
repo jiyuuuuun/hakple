@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 interface ReportedPost {
   reportId: number;
@@ -42,12 +43,8 @@ export default function ReportedPostsPage() {
 
   const checkAdmin = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        const response = await fetchApi('/api/v1/admin/check', {
+          method: 'GET',
       });
 
       if (!response.ok) {
@@ -72,16 +69,9 @@ export default function ReportedPostsPage() {
   const fetchPosts = async (page: number) => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/report/boards?page=${page}&size=${PAGE_SIZE}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetchApi(`/api/v1/admin/report/boards?page=${page}&size=${PAGE_SIZE}`, {
+        method: 'GET',
+      });
 
       if (!response.ok) {
         throw new Error('데이터를 불러오는데 실패했습니다');
@@ -111,17 +101,9 @@ export default function ReportedPostsPage() {
     setProcessingIds(prev => [...prev, boardId]);
     
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/boards/${boardId}/pending`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-        }
-      );
+      const response = await fetchApi(`/api/v1/admin/boards/${boardId}/pending`, {
+        method: 'POST',
+      });
 
       if (!response.ok) {
         throw new Error('게시글 삭제 처리 중 오류가 발생했습니다');

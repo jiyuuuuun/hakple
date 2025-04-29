@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
+import { fetchApi } from '@/utils/api';
 
 interface Academy {
   id?: number;             // 백엔드에서 제공할 수도 있음
@@ -51,13 +52,10 @@ export default function AcademyListPage() {
           return
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+        const response = await fetchApi('/api/v1/admin/check', {
           method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         });
+
 
         if (!response.ok) {
           router.push('/');
@@ -90,17 +88,12 @@ export default function AcademyListPage() {
       console.log('학원 목록 조회 API 요청 시작');
       
       // 페이지네이션이 적용된 API 엔드포인트
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/academies?page=${currentPage}&size=${pageSize}`;
+      const apiUrl = `/api/v1/admin/academies?page=${currentPage}&size=${pageSize}`;
       console.log('요청 URL:', apiUrl);
-      
-      const response = await fetch(apiUrl, {
+
+      const response = await fetchApi(apiUrl, {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
-      
       console.log('응답 상태:', response.status, response.statusText);
       
       if (!response.ok) {

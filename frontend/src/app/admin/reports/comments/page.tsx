@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 interface ReportedComment {
   reportId: number;
@@ -46,12 +47,8 @@ export default function ReportedCommentsPage() {
 
   const checkAdmin = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+      const response = await fetchApi('/api/v1/admin/check', {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -79,16 +76,9 @@ export default function ReportedCommentsPage() {
   const fetchComments = async (page: number) => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/report/comments?page=${page}&size=${PAGE_SIZE}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetchApi(`/api/v1/admin/report/comments?page=${page}&size=${PAGE_SIZE}`, {
+        method: 'GET',
+      });
 
       if (!response.ok) {
         throw new Error('데이터를 불러오는데 실패했습니다');
@@ -118,17 +108,9 @@ export default function ReportedCommentsPage() {
     setProcessingIds(prev => [...prev, commentId]);
     
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/comments/${commentId}/pending`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-        }
-      );
+      const response = await fetchApi(`/api/v1/admin/comments/${commentId}/pending`, {
+        method: 'POST',
+      });
 
       if (!response.ok) {
         throw new Error('댓글 삭제 처리 중 오류가 발생했습니다');

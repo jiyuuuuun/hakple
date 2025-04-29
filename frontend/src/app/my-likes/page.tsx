@@ -82,11 +82,7 @@ export default function MyLikesPage() {
             const response = await fetchApi(
                 `/api/v1/posts/my/likes?page=${page}&size=${pageSize}&sort=creationTime,desc`,
                 {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                    },
-                    credentials: 'include',
+                    method: 'GET',
                 },
             )
 

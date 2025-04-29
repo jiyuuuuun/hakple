@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { useRouter } from 'next/navigation'
+import { fetchApi } from '@/utils/api'
 
 const socialLoginForKakaoUrl = 'http://localhost:8090/oauth2/authorization/kakao'
 const redirectUrlAfterSocialLogin = 'http://localhost:3000'
@@ -33,17 +34,13 @@ export default function LoginPage() {
 
         try {
             console.log('로그인 요청 시작')
-            const response = await fetch('http://localhost:8090/api/v1/auth/login', {
+            const response = await fetchApi('/api/v1/auth/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     username,
                     password,
                     rememberMe,
                 }),
-                credentials: 'include',
             })
 
             if (!response.ok) {

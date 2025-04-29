@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
+import { fetchApi } from '@/utils/api';
 
 const TiptapEditor = dynamic(() => import('@/components/editor/TiptapEditor'), { ssr: false });
 
@@ -120,10 +121,8 @@ const NewPostPage = () => {
         const checkAdmin = async () => {
             if (isLogin && loginMember) {
                 try {
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                    const response = await fetchApi(`/api/v1/admin/check`, {
                         method: 'GET',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
                     });
                     const isAdminResult = await response.json();
                     setIsAdmin(isAdminResult === true);
@@ -182,11 +181,9 @@ const NewPostPage = () => {
             };
             console.log('요청 데이터:', postData);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
+            const response = await fetchApi(`/api/v1/posts`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(postData),
-                credentials: 'include',
             });
 
             if (!response.ok) {

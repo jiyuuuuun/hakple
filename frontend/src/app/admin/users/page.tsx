@@ -5,6 +5,7 @@ import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { fetchApi } from '@/utils/api';
 
 // 백엔드 API로부터 받는 사용자 정보 인터페이스
 interface User {
@@ -50,6 +51,7 @@ export default function AdminUsersPage() {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [newState, setNewState] = useState<string>('')
   const [error, setError] = useState<string>('')
+
   
   // 페이지네이션 관련 상태 추가
   const [currentPage, setCurrentPage] = useState(1)
@@ -65,12 +67,8 @@ export default function AdminUsersPage() {
           return
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+        const response = await fetchApi('/api/v1/admin/check', {
           method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         })
 
         if (!response.ok) {
@@ -92,12 +90,8 @@ export default function AdminUsersPage() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/users?page=${currentPage}&size=${pageSize}`, {
+      const response = await fetchApi(`/api/v1/admin/users?page=${currentPage}&size=${pageSize}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
       })
 
       if (!response.ok) {
@@ -145,12 +139,8 @@ export default function AdminUsersPage() {
 
   const changeUserStatus = async (id: number, state: string) => {
     try {
-      const response = await fetch('http://localhost:8090/api/v1/admin/user/status', {
+      const response = await fetchApi('/api/v1/admin/user/status', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
         body: JSON.stringify({
           id,
           state

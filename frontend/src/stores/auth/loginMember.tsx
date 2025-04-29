@@ -1,5 +1,6 @@
 import { createContext, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { fetchApi } from '@/utils/api';
 
 //이 부분은 나중에 DTO에 맞게 변경할거임
 export interface User {
@@ -167,9 +168,8 @@ export function useLoginMember() {
 
 
     const logout = (callback: () => void) => {
-        fetch('http://localhost:8090/api/v1/auth/logout', {
+        fetchApi(`/api/v1/auth/logout`, {
             method: 'DELETE',
-            credentials: 'include',
         }).then(() => {
             _setLoginMember(createEmptyMember())
             setIsLogin(false)
@@ -185,12 +185,8 @@ export function useLoginMember() {
     // 관리자 권한 확인 함수
     const checkAdminAndRedirect = async () => {
         try {
-            const response = await fetch(`http://localhost:8090/api/v1/admin/check`, {
+            const response = await fetchApi(`/api/v1/admin/check`, {
                 method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
             })
 
             if (!response.ok) {

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import { fetchApi } from '@/utils/api'
 
 // TiptapEditor를 동적으로 불러오기 (SSR 비활성화)
 const TiptapEditor = dynamic(() => import('@/components/editor/TiptapEditor'), { ssr: false })
@@ -232,12 +233,8 @@ const EditPostPage = () => {
         const checkAdminPermission = async () => {
             if (isLogin && loginMember) {
                 try {
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                    const response = await fetchApi(`/api/v1/admin/check`, {
                         method: 'GET',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
                     });
                     
                     if (response.ok) {
@@ -285,11 +282,8 @@ const EditPostPage = () => {
             setError('');
 
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
+                const response = await fetchApi(`/api/v1/posts/${postId}`, {
+                    method: 'GET',
                 })
 
                 if (!response.ok) {
@@ -472,13 +466,9 @@ const EditPostPage = () => {
             console.log('수정 요청 데이터:', postData)
 
             // 게시글 수정 요청
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}`, {
+            const response = await fetchApi(`/api/v1/posts/${postId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(postData),
-                credentials: 'include', // 쿠키 포함하여 요청
             })
 
             if (!response.ok) {

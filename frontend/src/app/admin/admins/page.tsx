@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 interface Admin {
   id: number;
@@ -41,12 +42,8 @@ export default function AdminListPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+        const response = await fetchApi('/api/v1/admin/check', {
           method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         });
 
         if (!response.ok) {
@@ -79,13 +76,10 @@ export default function AdminListPage() {
     try {
       console.log('관리자 목록 조회 API 요청 시작');
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/admins?page=${page}&size=${size}`, {
+      const response = await fetchApi(`/api/v1/admin/admins?page=${page}&size=${size}`, {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
+
       
       if (!response.ok) {
         console.error('관리자 목록 조회 실패:', response.status, response.statusText);
