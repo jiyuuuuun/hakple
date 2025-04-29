@@ -20,19 +20,24 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
 
   // 기본 옵션과 사용자 지정 옵션 병합
   const defaultOptions: RequestInit = {
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-    },
-    credentials: 'include',
+      'Accept': 'application/json'
+    }
   };
 
+  // 이미지 업로드 요청인 경우 Content-Type 헤더 제외
+  const isImageUpload = url.includes('/api/v1/profile-images/upload');
   const mergedOptions: RequestInit = {
     ...defaultOptions,
     ...options,
-    headers: {
-      ...defaultOptions.headers,
-      ...options.headers,
-    },
+    headers: isImageUpload 
+      ? options.headers 
+      : {
+          ...defaultOptions.headers,
+          ...options.headers,
+        },
   };
 
   // API 요청 실행 및 타임아웃 설정
@@ -141,6 +146,10 @@ export function post<T>(url: string, data: any, options?: RequestInit): Promise<
   return fetchJson<T>(url, {
     ...options,
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
     body: JSON.stringify(data),
   });
 }
@@ -152,6 +161,10 @@ export function put<T>(url: string, data: any, options?: RequestInit): Promise<T
   return fetchJson<T>(url, {
     ...options,
     method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
     body: JSON.stringify(data),
   });
 }
@@ -163,6 +176,10 @@ export function patch<T>(url: string, data: any, options?: RequestInit): Promise
   return fetchJson<T>(url, {
     ...options,
     method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
     body: JSON.stringify(data),
   });
 }
@@ -180,10 +197,9 @@ export const uploadImage = async (file: File): Promise<ImageUploadResponse> => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/images/upload`, {
+  const response = await fetchApi('/api/v1/images/upload', {
     method: 'POST',
     body: formData,
-    credentials: 'include',
   });
 
   if (!response.ok) {

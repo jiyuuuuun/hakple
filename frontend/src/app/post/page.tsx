@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
+import PostSkeleton from '@/components/PostSkeleton';
 
 interface Post {
   id: number;
@@ -550,17 +551,36 @@ export default function PostPage() {
 
         {/* 게시물 목록 */}
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9C50D4]"></div>
-          </div>
+          <PostSkeleton count={10} />
         ) : (
           <>
             {posts.length > 0 ? (
-              <>
-                {viewMode === 'card' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              viewMode === 'card' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                  {posts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      id={post.id}
+                      title={post.title}
+                      nickname={post.nickname}
+                      time={formatDate(post.creationTime)}
+                      viewCount={post.viewCount}
+                      commentCount={post.commentCount}
+                      likeCount={post.likeCount}
+                      tags={post.tags}
+                      isLiked={post.isLiked}
+                      onLikeClick={(e) => handleLikeClick(post, e)}
+                      likingPosts={likingPosts}
+                      hasImage={post.hasImage || false}
+                      profileImageUrl={post.profileImageUrl}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow">
+                  <div className="space-y-4">
                     {posts.map((post) => (
-                      <PostCard
+                      <PostListItem
                         key={post.id}
                         id={post.id}
                         title={post.title}
@@ -578,36 +598,11 @@ export default function PostPage() {
                       />
                     ))}
                   </div>
-                ) : (
-                  <div className="bg-white rounded-lg shadow">
-                    {posts.map((post, index) => (
-                      <div key={post.id}>
-                        <PostListItem
-                          id={post.id}
-                          title={post.title}
-                          nickname={post.nickname}
-                          time={formatDate(post.creationTime)}
-                          viewCount={post.viewCount}
-                          commentCount={post.commentCount}
-                          likeCount={post.likeCount}
-                          tags={post.tags}
-                          isLiked={post.isLiked}
-                          onLikeClick={(e) => handleLikeClick(post, e)}
-                          likingPosts={likingPosts}
-                          hasImage={post.hasImage || false}
-                          profileImageUrl={post.profileImageUrl}
-                        />
-                        {index < posts.length - 1 && (
-                          <div className="mx-6 border-b border-gray-200"></div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
+                </div>
+              )
             ) : (
               <div className="bg-white rounded-lg shadow p-16 text-center">
-                <p className="text-gray-500 text-lg mb-1">게시물이 없습니다</p>
+                <p className="text-gray-500 text-lg mb-1">게시글이 없습니다</p>
                 {searchKeyword && (
                   <p className="text-gray-400 text-sm">
                     &apos;{searchKeyword}&apos; 검색어를 변경하여 다시 시도해보세요
@@ -616,7 +611,6 @@ export default function PostPage() {
               </div>
             )}
 
-            {/* 페이지네이션 */}
             {posts.length > 0 && (
               <div className="bg-white rounded-lg shadow p-4 mt-6">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -793,12 +787,11 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-200 border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
+    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-200 group border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
       <div className="p-6">
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-
               {profileImageUrl ? (
                 <img
                   src={profileImageUrl}
@@ -806,8 +799,8 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
                   className="h-full w-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.onerror = null; // 추가 오류 이벤트 방지
-                    target.style.display = 'none'; // 이미지 숨기기
+                    target.onerror = null;
+                    target.style.display = 'none';
                     target.parentElement!.innerHTML = `
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -896,7 +889,6 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             <span className="text-sm">{likeCount}</span>
           </button>
 
-          {/* 댓글 버튼 */}
           <Link
             href={`/post/${id}`}
             className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all"
@@ -943,7 +935,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
           </div>
         </div>
       </div>
-    </div >
+    </div>
   );
 }
 

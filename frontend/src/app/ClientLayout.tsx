@@ -113,34 +113,39 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
         console.log('페이지 정보 - 현재 경로:', pathname, '공개 페이지:', isPublicPage, '특별 페이지:', isSpecialPage, '보호된 경로:', isProtectedPath)
 
-        const checkLoginStatus = async () => {
-        try {
-        const response = await fetchApi('/api/v1/auth/me', {
-            method: 'GET',
-        })
-
-        console.log('로그인 상태 응답:', response.status)
-
-        if (!response.ok) {
+        // 로그인 페이지에서는 API 호출하지 않음
+        if (pathname === '/login') {
             setNoLoginMember()
             setIsLogin(false)
-            throw new Error('인증 필요')
+            return
         }
 
-        const data = await response.json()
+        const checkLoginStatus = async () => {
+            try {
+                const response = await fetchApi('/api/v1/auth/me', {
+                    method: 'GET',
+                })
 
-        console.log('로그인 상태 성공', data)
-        setLoginMember(data)
-        setIsLogin(true)
-        return true
-    } catch (error) {
-        console.log('로그인 되어있지 않음', error)
-        setNoLoginMember()
-        setIsLogin(false)
-        return false
-    }
-}
+                console.log('로그인 상태 응답:', response.status)
 
+                if (!response.ok) {
+                    setNoLoginMember()
+                    setIsLogin(false)
+                    return false
+                }
+
+                const data = await response.json()
+                console.log('로그인 상태 성공', data)
+                setLoginMember(data)
+                setIsLogin(true)
+                return true
+            } catch (error) {
+                console.log('로그인 되어있지 않음', error)
+                setNoLoginMember()
+                setIsLogin(false)
+                return false
+            }
+        }
 
         // 로그인 상태 확인 및 리다이렉트 처리
         checkLoginStatus()
@@ -148,7 +153,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 if ((!isPublicPage && !isSpecialPage && !isLoggedIn) || (isProtectedPath && !isLoggedIn)) {
                     console.log('로그인 필요 페이지 접속 - 로그인으로 리다이렉트')
-                    router.replace("/login")
+                    if (pathname !== '/login') {  // 현재 페이지가 이미 로그인 페이지가 아닐 때만 리다이렉트
+                        router.replace("/login")
+                    }
                 }
                 
                 // 로그인 페이지에 있을 경우 홈으로 리다이렉트
@@ -162,32 +169,30 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     const checkAdminAndRedirect = async () => {
                         try {
                             const response = await fetchApi('/api/v1/admin/check', {
-                            method: 'GET',
-                        })
+                                method: 'GET',
+                            })
 
-                        if (!response.ok) {
-                            return false
-                        }
+                            if (!response.ok) {
+                                return false
+                            }
 
-                        const isAdmin = await response.json()
+                            const isAdmin = await response.json()
 
-                        if (isAdmin === true) {
-                        console.log('관리자의 /myinfo 페이지 접근 - 관리자 페이지로 리다이렉트')
-                        router.replace("/admin")
-                        }
+                            if (isAdmin === true) {
+                                console.log('관리자의 /myinfo 페이지 접근 - 관리자 페이지로 리다이렉트')
+                                router.replace("/admin")
+                            }
                         } catch (error) {
-                        console.log('관리자 권한 확인 중 오류:', error)
-            }
-    }
+                            console.log('관리자 권한 확인 중 오류:', error)
+                        }
+                    }
 
-    checkAdminAndRedirect()
-}
-
+                    checkAdminAndRedirect()
+                }
             })
             .finally(() => {
                 console.log('✔️ 로그인 상태 확인 완료 - API 호출 완료됨 (상태 반영은 이후 렌더링에서 확인)');
             })
-
     }, [pathname]) // pathname이 변경될 때마다 실행
 
 
