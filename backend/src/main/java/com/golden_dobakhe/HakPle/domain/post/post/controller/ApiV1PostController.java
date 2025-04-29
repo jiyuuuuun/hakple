@@ -5,6 +5,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TagResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
 import com.golden_dobakhe.HakPle.security.utils.SecurityUtil;
+import com.golden_dobakhe.HakPle.domain.post.post.dto.AdminStatusChangeRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -64,7 +66,6 @@ public class ApiV1PostController {
             @PathVariable(name = "id") Long id,
             @RequestParam(name = "postView", required = false, defaultValue = "true") Boolean postView,
             @RequestParam(name = "academyCode", required = false) String academyCode) {
-        // 로그인 여부와 관계없이 게시글 조회 가능
         return ResponseEntity.ok(boardService.getBoard(id, postView, academyCode));
     }
 
@@ -81,9 +82,6 @@ public class ApiV1PostController {
             @RequestParam(name = "academyCode", required = false) String academyCode
     ) {
         Long userId = getCurrentUserId();
-
-        System.out.println("왜왜왜");
-
 
         if (academyCode == null || academyCode.isEmpty()) {
             academyCode = boardService.getAcademyCodeByUserId(userId);
@@ -103,7 +101,6 @@ public class ApiV1PostController {
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
             default:
-                log.warn("Invalid sortType: {}. Falling back to creationTime.", sortType);
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
         }
@@ -114,7 +111,6 @@ public class ApiV1PostController {
          }
 
         if (page < 1) {
-            log.warn("Invalid page number: {}. Setting to 1.", page);
             page = 1;
         }
         Pageable adjustedPageable = PageRequest.of(page - 1, size, sort);
@@ -136,6 +132,7 @@ public class ApiV1PostController {
         return ResponseEntity.ok(boardService.updateBoard(id, request, userId, academyCode));
     }
 
+    @Operation(summary = "게시물 삭제 (사용자)", description = "자신이 작성한 게시물을 삭제 상태(INACTIVE)로 변경합니다.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBoard(
             @PathVariable("id") Long id,
@@ -153,15 +150,12 @@ public class ApiV1PostController {
             @RequestParam(name = "academyCode", required = false) String academyCode
     ) {
 
-        log.info("❤️ 좋아요 요청: postId = {}", id);
         Long userId = getCurrentUserId();
-        log.info("👤 요청자 ID: {}", userId);
 
         try{
             boardService.toggleLike(id, userId, academyCode);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("🔥 좋아요 처리 실패", e);
             return ResponseEntity.status(500).body(Map.of("message", "서버 내부 오류", "error", e.getMessage()));
         }
 
@@ -188,7 +182,6 @@ public class ApiV1PostController {
             type = "free";
         }
 
-        log.debug("태그별 게시물 조회 - tag: {}, sortType: {}, type: {}", tag, sortType, type);
 
         return ResponseEntity.ok(
                 boardService.getBoardsByTagAndUserId(userId, tag, sortType, minLikes, type, adjustedPageable));
@@ -262,23 +255,18 @@ public class ApiV1PostController {
             @RequestParam(name = "type", required = false) String typeParam
     ) {
         Long userId = getCurrentUserId();
-        String actualType = "free"; // 기본값은 free
-        Integer actualMinLikes = null; // 기본값은 null
+        String actualType = "free"; 
+        Integer actualMinLikes = null; 
 
         if ("popular".equalsIgnoreCase(typeParam)) {
-            // type이 popular이면, 실제 조회할 타입은 free로 설정하고 minLikes는 10으로 강제
             actualMinLikes = 10;
         } else if (typeParam != null && !typeParam.isEmpty()) {
-            // type이 popular가 아니면서 값이 있으면 해당 값 사용
             actualType = typeParam;
-            actualMinLikes = minLikesParam; // 전달된 minLikes 파라미터 사용
+            actualMinLikes = minLikesParam; 
         } else {
-            // type이 없으면 기본값 free 사용, 전달된 minLikes 파라미터 사용
             actualMinLikes = minLikesParam;
         }
 
-        log.debug("인기 태그 조회 - 요청 type: {}, 요청 minLikes: {}, 실제 type: {}, 실제 minLikes: {}",
-                  typeParam, minLikesParam, actualType, actualMinLikes);
 
         if (actualMinLikes != null) {
             return ResponseEntity.ok(boardService.getPopularTagsByUserId(userId, actualMinLikes, actualType));
@@ -374,13 +362,10 @@ public class ApiV1PostController {
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
             default:
-                log.warn("Invalid sortType: {}. Falling back to creationTime.", sortType);
                 sort = Sort.by(Sort.Direction.DESC, "creationTime");
                 break;
         }
 
-        log.debug("게시글 동적 검색 - academyCode: {}, searchType: {}, searchKeyword: {}, type: {}, sortType: {}",
-                academyCode, searchType, searchKeyword, type, sortType);
 
         Pageable pageable = PageRequest.of(page - 1, size, sort);
 
@@ -392,11 +377,23 @@ public class ApiV1PostController {
     @GetMapping("/my/like-status")
     @Operation(summary = "내가 좋아요한 게시글 ID 목록 조회")
     public ResponseEntity<List<Long>> getLikedPostIds() {
-        Long userId = getCurrentUserId(); // 현재 로그인 유저 ID 가져오기
-        List<Long> likedIds = boardService.getLikedBoardIds(userId); // 서비스에서 ID만 추출
+        Long userId = getCurrentUserId(); 
+        List<Long> likedIds = boardService.getLikedBoardIds(userId); 
         return ResponseEntity.ok(likedIds);
     }
 
-
+    @Operation(summary = "게시물 상태 변경 (관리자)", description = "관리자가 특정 게시물의 상태를 변경합니다.")
+    @PostMapping("/{id}/admin-status-change")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> adminChangeBoardStatus(
+            @PathVariable("id") Long id,
+            @RequestBody AdminStatusChangeRequestDto requestDto
+    ) {
+        if (requestDto == null || requestDto.getStatus() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        boardService.adminChangeBoardStatus(id, requestDto.getStatus());
+        return ResponseEntity.ok().build();
+    }
 
 }

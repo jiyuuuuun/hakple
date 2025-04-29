@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { fetchApi } from '@/utils/api'
 
-// API 기본 URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
 
 export default function ForgotPasswordPage() {
     const router = useRouter()
@@ -97,9 +96,8 @@ export default function ForgotPasswordPage() {
 
         try {
             // 먼저 휴대폰 번호 존재 여부 확인
-            const phoneCheckResponse = await fetch(`${API_BASE_URL}/api/v1/users/check-phonenum?phoneNum=${formData.phoneNumber}`, {
+            const phoneCheckResponse = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${formData.phoneNumber}`, {
                 method: 'GET',
-                credentials: 'include',
             });
             
             if (!phoneCheckResponse.ok) {
@@ -119,12 +117,8 @@ export default function ForgotPasswordPage() {
             setPhoneExists(true);
             
             // 인증번호 요청 - 휴대폰 번호가 이미 존재할 때만 실행 (isAvailable이 false일 때)
-            const response = await fetch(`${API_BASE_URL}/api/v1/sms/send?phone=${formData.phoneNumber}`, {
+            const response = await fetchApi(`/api/v1/sms/send?phone=${formData.phoneNumber}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include'
             })
 
             if (!response.ok) {
@@ -174,14 +168,10 @@ export default function ForgotPasswordPage() {
         setSuccessMessage('')
 
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/sms/verify?phone=${formData.phoneNumber}&code=${formData.verificationCode}`,
+            const response = await fetchApi(
+                `/api/v1/sms/verify?phone=${formData.phoneNumber}&code=${formData.verificationCode}`,
                 {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include'
                 },
             )
 

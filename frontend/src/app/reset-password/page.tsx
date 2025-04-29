@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { fetchApi } from '@/utils/api'
 
 // API 기본 URL
 const API_BASE_URL = 'http://localhost:8090' // 실제 서버 URL로 변경 필요
@@ -59,11 +60,8 @@ export default function ResetPasswordPage() {
         setPasswordError('')
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/usernames/reset-password`, {
+            const response = await fetchApi(`/api/v1/usernames/reset-password`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     newPassword: password,
                     newPasswordConfirm: confirmPassword,

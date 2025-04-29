@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
+import { handleLike } from '@/utils/likeHandler';
 
 interface LoginMember {
     id: number;
@@ -22,7 +23,9 @@ interface Post {
     commentCount: number;
     likeCount: number;
     tags: string[];
-    hasImage?: boolean;  // 이미지 첨부 여부
+    hasImage?: boolean;
+    isLiked?: boolean;
+    profileImageUrl?: string;
 }
 
 export default function NoticePage() {
@@ -46,6 +49,8 @@ export default function NoticePage() {
     const [academyName] = useState<string>('');
     const [postType, setPostType] = useState<string | null>(null);
     const [isAdminState, setIsAdminState] = useState(false);
+    const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
+    const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
     const isAdmin = () => isAdminState || (loginMember && !!loginMember.isAdmin);
 
@@ -55,10 +60,6 @@ export default function NoticePage() {
                 try {
                     const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
                     });
 
                     if (response.ok) {
@@ -167,28 +168,64 @@ export default function NoticePage() {
             console.log('공지사항 API 요청 URL:', url);
             const response = await fetchApi(url, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                credentials: 'include'
             });
 
             console.log(response);
 
-            if (!response.ok) {
-                throw new Error('공지사항을 불러오는데 실패했습니다.');
+
+            const [postsResponse, likeStatusResponse] = await Promise.all([
+                fetchApi(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                }),
+                fetchApi('/api/v1/posts/my/like-status', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                }),
+            ]);
+
+
+            if (!postsResponse.ok || !likeStatusResponse.ok) {
+                let errorMessage = '공지사항 또는 좋아요 상태를 불러오지 못했습니다.';
+                if (!postsResponse.ok) {
+                    try {
+                        const errData = await postsResponse.json();
+                        errorMessage = errData.message || errorMessage;
+                    } catch (jsonParseError) {
+                        console.warn('Failed to parse posts error response JSON:', jsonParseError);
+                    }
+                } else {
+                    try {
+                        const errData = await likeStatusResponse.json();
+                        errorMessage = errData.message || errorMessage;
+                    } catch (jsonParseError) {
+                        console.warn('Failed to parse like status error response JSON:', jsonParseError);
+                    }
+                }
+                throw new Error(errorMessage);
             }
 
-            const data = await response.json();
-            if (data && Array.isArray(data.content)) {
-                setPosts(data.content.map((post: Post) => ({
+            const postData = await postsResponse.json();
+            const likedPostIds: number[] = await likeStatusResponse.json();
+
+            if (postData && Array.isArray(postData.content)) {
+                const processedPosts = postData.content.map((post: Post) => ({
                     ...post,
                     hasImage: post.hasImage || false,
-                    commentCount: post.commentCount || 0
-                })));
-                setTotalPages(data.totalPages || 1);
-                setSearchCount(data.totalElements || 0);
+                    commentCount: post.commentCount || 0,
+                    isLiked: likedPostIds.includes(post.id),
+                    profileImageUrl: post.profileImageUrl
+                }));
+                setPosts(processedPosts);
+                setTotalPages(postData.totalPages || 1);
+                setSearchCount(postData.totalElements || 0);
             } else {
                 setPosts([]);
                 setTotalPages(1);
@@ -196,6 +233,13 @@ export default function NoticePage() {
             }
         } catch (error) {
             console.error('공지사항을 불러오는데 실패했습니다:', error);
+            let message = 'Unknown error';
+            if (error instanceof Error) {
+                message = error.message;
+            } else if (typeof error === 'string') {
+                message = error;
+            }
+            console.error('Error details:', message);
             setPosts([]);
             setTotalPages(1);
             setSearchCount(0);
@@ -211,10 +255,8 @@ export default function NoticePage() {
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newSortType = e.target.value;
-        console.log(`정렬 방식 변경: ${newSortType}`);
         setSortType(newSortType);
         setCurrentPage(1);
-        fetchNoticeBoards();
     };
 
     const handleSearch = (keyword: string) => {
@@ -225,7 +267,6 @@ export default function NoticePage() {
 
     const handleFilterChange = (type: string) => {
         if (type !== filterType) {
-            console.log(`필터 유형 변경: ${filterType} -> ${type}`);
             setFilterType(type);
         }
     };
@@ -280,6 +321,78 @@ export default function NoticePage() {
         }
         return formatRelativeTime(creationTime);
     }
+
+    const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (likingPosts.has(post.id)) return;
+
+        const currentIsLiked = post.isLiked || false;
+
+        setLikingPosts(prev => new Set([...prev, post.id]));
+
+        try {
+            await handleLike({
+                post,
+                isLiked: currentIsLiked,
+                isLogin,
+                setIsLiked: (newLiked: boolean) => {
+                    setPosts(prevPosts =>
+                        prevPosts.map(p =>
+                            p.id === post.id ? { ...p, isLiked: newLiked } : p
+                        )
+                    );
+                },
+                setPost: (updateFn: (prev: Post) => Post) => {
+                    setPosts(prevPosts =>
+                        prevPosts.map(p =>
+                            p.id === post.id ? updateFn(p) : p
+                        )
+                    );
+                },
+                setIsLiking: () => {
+                    setLikingPosts(prev => {
+                        const next = new Set(prev);
+                        next.delete(post.id);
+                        return next;
+                    });
+                },
+            });
+        } catch (error) {
+            console.error('좋아요 처리 중 오류:', error);
+            setLikingPosts(prev => {
+                const next = new Set(prev);
+                next.delete(post.id);
+                return next;
+            });
+        }
+    };
+
+    // Scroll event handler
+  const handleScroll = () => {
+    if (window.scrollY > 300) {
+      setShowScrollTopButton(true);
+    } else {
+      setShowScrollTopButton(false);
+    }
+  };
+
+  // Add/remove scroll event listener
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
     if (!isLogin) {
         return (
@@ -401,21 +514,33 @@ export default function NoticePage() {
                                             onClick={() => router.push(`/post/${post.id}`)}
                                         >
                                             <div className="flex items-center gap-4 mb-2">
-                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-6 w-6 text-gray-400"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                                                    {post.profileImageUrl ? (
+                                                      <>
+                                                        <img
+                                                          src={post.profileImageUrl}
+                                                          alt={`${post.nickname} 프로필 이미지`}
+                                                          className="w-full h-full object-cover"
+                                                          onError={(e) => {
+                                                            const img = e.target as HTMLImageElement;
+                                                            img.onerror = null; // 무한 루프 방지
+                                                            img.style.display = 'none'; // 이미지 숨김
+                                                            // 아이콘 표시 (형제 요소로 추가 또는 클래스 토글)
+                                                            const icon = img.nextElementSibling;
+                                                            if (icon) {
+                                                              icon.classList.remove('hidden');
+                                                            }
+                                                          }}
                                                         />
-                                                    </svg>
+                                                        {/* Fallback Icon (initially hidden) */}
+                                                        <span className="material-icons text-gray-400 text-2xl absolute inset-0 flex items-center justify-center hidden">
+                                                          account_circle
+                                                        </span>
+                                                      </>
+                                                    ) : (
+                                                      // 기본 아이콘
+                                                      <span className="material-icons text-gray-400 text-2xl">account_circle</span>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-medium text-gray-900">{post.nickname}</span>
@@ -433,21 +558,16 @@ export default function NoticePage() {
 
                                             <div className="flex items-center gap-6 text-gray-500">
                                                 <div className="flex items-center gap-2">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-5 w-5"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
+                                                    <button
+                                                        onClick={(e) => handleLikeClick(post, e)}
+                                                        className={`flex items-center gap-1 group/like transition-all p-1 rounded-full hover:bg-gray-100 ${post.isLiked ? 'text-[#980ffa]' : 'text-[#999999] hover:text-[#980ffa]'}`}
+                                                        disabled={likingPosts.has(post.id)}
                                                     >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={1.5}
-                                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                                        />
-                                                    </svg>
-                                                    <span className="text-sm">{post.likeCount}</span>
+                                                        <span className={`material-icons text-base ${likingPosts.has(post.id) ? 'animate-pulse' : ''}`}>
+                                                            {post.isLiked ? 'favorite' : 'favorite_border'}
+                                                        </span>
+                                                    </button>
+                                                    <span className="text-sm text-[#999999]">{post.likeCount}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <svg
@@ -563,9 +683,17 @@ export default function NoticePage() {
                         )}
                     </>
                 )}
+                 {/* Scroll to Top Button */}
+        {showScrollTopButton && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-100 right-100 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+            aria-label="맨 위로 스크롤"
+          >
+            <span className="material-icons">arrow_upward</span>
+          </button>
+        )}
             </div>
         </main>
     );
 }
-
-

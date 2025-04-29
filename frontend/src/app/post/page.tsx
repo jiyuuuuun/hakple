@@ -22,6 +22,7 @@ interface Post {
   boardComments?: number;
   hasImage?: boolean;
   isLiked?: boolean;
+  profileImageUrl?: string;
 }
 
 interface Tag {
@@ -66,6 +67,7 @@ export default function PostPage() {
   const academyAlertRef = useRef(false);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
+  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -132,7 +134,6 @@ export default function PostPage() {
         url += `&tag=${encodeURIComponent(tag)}`;
       }
 
-      console.log('게시글 목록 요청 URL:', url);
 
       const [postsResponse, likeStatusResponse] = await Promise.all([
         fetchApi(url, {
@@ -172,18 +173,18 @@ export default function PostPage() {
           isLiked: likedPostIds.includes(post.id),
           commentCount: post.commentCount || (post.boardComments ? post.boardComments : 0),
           likeCount: post.likeCount || (post.boardLikes ? post.boardLikes : 0),
-          hasImage: post.hasImage || false
+          hasImage: post.hasImage || false,
+          profileImageUrl: post.profileImageUrl
         })));
         setTotalPages(postData.totalPages || 1);
         setSearchCount(postData.totalElements || 0);
       } else {
-        console.log('예상과 다른 API 응답 형식:', postData);
         setPosts([]);
         setTotalPages(1);
         setSearchCount(0);
       }
-    } catch (error: any) {
-      console.log('게시물을 가져오는 중 오류가 발생했습니다:', error.message);
+    } catch (fetchError) {
+      console.error('게시물을 가져오는 중 오류:', fetchError instanceof Error ? fetchError.message : String(fetchError));
       setPosts([]);
       setTotalPages(1);
       setSearchCount(0);
@@ -210,24 +211,23 @@ export default function PostPage() {
       });
 
       if (!response.ok) {
+        let errorMessage = `인기 태그 로딩 실패 (상태: ${response.status})`;
         try {
           const errorData = await response.json();
-          const errorMessage = errorData.message || '인기 태그를 불러오는데 실패했습니다.';
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          console.warn("인기 태그 에러 응답 파싱 실패:", parseError);
+        }
 
-          if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
+        if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
             errorMessage.includes('먼저 학원을 등록해주세요')) {
             showAcademyAlert();
             return;
-          }
-
-          throw new Error(errorMessage);
-        } catch (error) {
-          throw new Error('인기 태그를 불러오는데 실패했습니다.');
         }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log('인기 태그 데이터:', data);
 
       if (Array.isArray(data)) {
         setPopularTags((data as {name:string; count:number}[]).map(tag => ({
@@ -244,8 +244,8 @@ export default function PostPage() {
       } else {
         setPopularTags([]);
       }
-    } catch (error: any) {
-      console.log('인기 태그를 가져오는 중 오류가 발생했습니다:', error.message);
+    } catch (fetchTagsError) {
+      console.error('인기 태그 로딩 중 오류:', fetchTagsError instanceof Error ? fetchTagsError.message : String(fetchTagsError));
       setPopularTags([]);
     } finally {
       setTagsLoading(false);
@@ -287,7 +287,7 @@ export default function PostPage() {
     setSortType(newSortType);
     setCurrentPage(1);
 
-    fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
+    // fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
   };
 
   const handleSearch = (keyword: string) => {
@@ -375,6 +375,31 @@ export default function PostPage() {
     }
   };
 
+  // Scroll event handler
+  const handleScroll = () => {
+    if (window.scrollY > 300) {
+      setShowScrollTopButton(true);
+    } else {
+      setShowScrollTopButton(false);
+    }
+  };
+
+  // Add/remove scroll event listener
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
+
   if (!isMounted) {
     return (
       <main className="bg-[#f9fafc] min-h-screen pb-8">
@@ -400,24 +425,32 @@ export default function PostPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="max-w-[1600px] mx-auto px-4 py-6">
-        {/* 인기 게시판 / 자유 게시판 탭 UI */}
-        <div className="flex space-x-4 mb-6">
-          <button 
-            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              searchParams.get('type') === 'popular' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200'
-            }`}
-            onClick={() => router.push('/post?type=free')}
-          >
-            자유게시판
-          </button>
-          <button 
-            className={`py-2 px-4 text-lg font-semibold rounded-t-lg transition-colors ${
-              postType === 'popular' ? 'bg-white text-[#9C50D4] border-t border-l border-r border-gray-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-            onClick={() => router.push('/post?type=popular')}
-          >
-            인기글
-          </button>
+        {/* 인기 게시판 / 자유 게시판 탭 UI 개선 */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white rounded-full shadow-md p-1.5 flex space-x-1">
+            <Link
+              href="/post?type=free"
+              className={`py-2.5 px-8 rounded-full transition-all duration-300 font-semibold text-base flex items-center gap-2 ${
+                postType === 'free' 
+                  ? 'bg-[#9C50D4] text-white shadow-lg transform scale-105' 
+                  : 'text-gray-600 hover:bg-purple-50'
+              }`}
+            >
+              <span className="material-icons text-[20px]">forum</span>
+              자유게시판
+            </Link>
+            <Link
+              href="/post?type=popular"
+              className={`py-2.5 px-8 rounded-full transition-all duration-300 font-semibold text-base flex items-center gap-2 ${
+                postType === 'popular' 
+                  ? 'bg-[#9C50D4] text-white shadow-lg transform scale-105' 
+                  : 'text-gray-600 hover:bg-purple-50'
+              }`}
+            >
+              <span className="material-icons text-[20px]">trending_up</span>
+              인기글
+            </Link>
+          </div>
         </div>
 
         {/* 타이틀 + 새 글쓰기 + 뷰모드 토글 */}
@@ -541,6 +574,7 @@ export default function PostPage() {
                         onLikeClick={(e) => handleLikeClick(post, e)}
                         likingPosts={likingPosts}
                         hasImage={post.hasImage || false}
+                        profileImageUrl={post.profileImageUrl}
                       />
                     ))}
                   </div>
@@ -561,6 +595,7 @@ export default function PostPage() {
                           onLikeClick={(e) => handleLikeClick(post, e)}
                           likingPosts={likingPosts}
                           hasImage={post.hasImage || false}
+                          profileImageUrl={post.profileImageUrl}
                         />
                         {index < posts.length - 1 && (
                           <div className="mx-6 border-b border-gray-200"></div>
@@ -619,6 +654,17 @@ export default function PostPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Scroll to Top Button */}
+        {showScrollTopButton && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-100 right-100 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+            aria-label="맨 위로 스크롤"
+          >
+            <span className="material-icons">arrow_upward</span>
+          </button>
         )}
       </div>
     </main>
@@ -729,7 +775,7 @@ function PageButton({ text, active = false, disabled = false, onClick }: { text:
   );
 }
 
-function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
+function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
   id: number;
   title: string;
   nickname: string;
@@ -742,27 +788,60 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
   hasImage: boolean;
+  profileImageUrl?: string;
 }) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden hover:shadow-lg transition-all duration-200 border-b-4 border-transparent hover:border-b-4 hover:border-b-[#9C50D4]">
       <div className="p-6">
         <div className="flex justify-between items-center mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={`${nickname}의 프로필 이미지`}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null; // 추가 오류 이벤트 방지
+                    target.style.display = 'none'; // 이미지 숨기기
+                    target.parentElement!.innerHTML = `
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-6 w-6 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    `;
+                  }}
                 />
-              </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
             </div>
             <div>
               <p className="font-medium text-gray-900">{nickname}</p>
@@ -794,8 +873,6 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
             <span className="invisible inline-block px-2 py-1 text-xs">#태그자리</span>
           )}
         </div>
-
-
 
         <div className="flex items-center gap-6 text-gray-500">
           <button
@@ -870,7 +947,7 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
   );
 }
 
-function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage }: {
+function PostListItem({ id, title, nickname, time, viewCount, commentCount, likeCount, tags, isLiked, onLikeClick, likingPosts, hasImage, profileImageUrl }: {
   id: number;
   title: string;
   nickname: string;
@@ -883,26 +960,58 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   onLikeClick?: (e: React.MouseEvent) => void;
   likingPosts: Set<number>;
   hasImage: boolean;
+  profileImageUrl?: string;
 }) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
       <Link href={`/post/${id}`} className="block">
         <div className="flex items-center gap-4 mb-2">
           <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            {profileImageUrl ? (
+              <img
+                src={profileImageUrl}
+                alt={`${nickname}의 프로필 이미지`}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null; // 추가 오류 이벤트 방지
+                  target.style.display = 'none'; // 이미지 숨기기
+                  target.parentElement!.innerHTML = `
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-6 w-6 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  `;
+                }}
               />
-            </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <span className="font-medium text-gray-900">{nickname}</span>
@@ -923,8 +1032,6 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
             <span key={index} className="text-sm text-[#9C50D4] bg-purple-50 px-3 py-1 rounded-full hover:bg-purple-100 transition-colors cursor-pointer">#{tag}</span>
           ))}
         </div>
-
-
 
         <div className="flex items-center gap-6 text-gray-500">
           <button
@@ -993,50 +1100,6 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   );
 }
 
-// 시간을 상대적으로 표시하는 함수
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-
-  // 1분 미만
-  if (diffMs < 60 * 1000) {
-    return '방금 전';
-  }
-
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}분 전`;
-  } else if (diffHours < 24) {
-    const minutes = diffMinutes % 60;
-    if (minutes === 0) {
-      return `${diffHours}시간 전`;
-    }
-    return `${diffHours}시간 ${minutes}분 전`;
-  } else if (diffDays < 7) {
-    return `${diffDays}일 전`;
-  } else {
-    const year = date.getFullYear();
-    const currentYear = now.getFullYear();
-
-    if (year === currentYear) {
-      return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-    } else {
-      return `${year}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-    }
-  }
-}
-
-function getFormattedTime(creationTime: string, modificationTime?: string): string {
-  if (modificationTime) {
-    return `${formatRelativeTime(modificationTime)} (수정)`;
-  }
-  return formatRelativeTime(creationTime);
-}
-
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -1060,10 +1123,4 @@ function formatDate(dateString: string): string {
       minute: '2-digit'
     }).format(date);
   }
-}
-
-function summarizeContent(content: string): string {
-  const textContent = content.replace(/<[^>]+>/g, '');
-  const trimmedContent = textContent.replace(/\s+/g, ' ').trim();
-  return trimmedContent.length > 100 ? `${trimmedContent.slice(0, 100)}...` : trimmedContent;
 }

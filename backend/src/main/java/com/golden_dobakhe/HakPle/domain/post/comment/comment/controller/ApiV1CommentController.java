@@ -24,6 +24,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.golden_dobakhe.HakPle.domain.post.post.dto.AdminStatusChangeRequestDto;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -103,7 +106,7 @@ public class ApiV1CommentController {
         }
     }
 
-    @Operation(summary = "댓글 삭제", description = "댓글 ID로 댓글을 삭제합니다.")
+    @Operation(summary = "댓글 삭제 (사용자)", description = "자신이 작성한 댓글을 삭제 상태(INACTIVE)로 변경합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "댓글 삭제 완료"),
             @ApiResponse(responseCode = "400", description = "유저 또는 댓글 없음"),
@@ -113,7 +116,10 @@ public class ApiV1CommentController {
     @DeleteMapping("/{commentId}")
     public ResponseEntity<String> deleteComment(@PathVariable(name = "commentId") Long commentId,
                                                 @AuthenticationPrincipal CustomUserDetails principal) {
-        CommentResult result = commentService.commentDelete(commentId,principal.getUser().getId());
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        CommentResult result = commentService.commentDelete(commentId, principal.getUser().getId());
 
         switch (result) {
             case USER_NOT_FOUND:
@@ -128,6 +134,21 @@ public class ApiV1CommentController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("댓글 삭제 실패 : 서버 오류");
         }
     }
+
+    @Operation(summary = "댓글 상태 변경 (관리자)", description = "관리자가 특정 댓글의 상태를 변경합니다.")
+    @PostMapping("/{commentId}/admin-status-change")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> adminChangeCommentStatus(
+            @PathVariable("commentId") Long commentId,
+            @RequestBody AdminStatusChangeRequestDto requestDto
+    ) {
+        if (requestDto == null || requestDto.getStatus() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        commentService.adminChangeCommentStatus(commentId, requestDto.getStatus());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/my")
     @Operation(summary = "내 댓글 목록 조회")
     public ResponseEntity<Page<CommentResponseDto>> getMyComments(
@@ -137,7 +158,7 @@ public class ApiV1CommentController {
         Page<CommentResponseDto> comments = commentService.findMyComments(userName, pageable);
 
         if (comments.isEmpty()) {
-            return ResponseEntity.ok(Page.empty()); // 빈 Page 객체 반환
+            return ResponseEntity.ok(Page.empty()); 
         }
         return ResponseEntity.ok(comments);
     }

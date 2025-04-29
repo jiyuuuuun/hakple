@@ -25,11 +25,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) {
-        log.info("loadUserByUsername: {}", username);
         User user = userRepository.findByUserNameWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        log.info("✅ User loaded: " + user.getUserName() + ", roles = " + user.getRoles());
         return new com.golden_dobakhe.HakPle.security.CustomUserDetails(user); // 이 시점에 roles가 null이면 안 됨!
     }
 

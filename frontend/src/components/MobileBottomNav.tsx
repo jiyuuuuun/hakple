@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { useEffect, useState } from 'react'
-
+import { fetchApi } from '@/utils/api'
 const MobileBottomNav = () => {
     const pathname = usePathname()
     const { isLogin } = useGlobalLoginMember()
@@ -18,12 +18,8 @@ const MobileBottomNav = () => {
             return
         }
 
-        fetch(`http://localhost:8090/api/v1/admin/check`, {
+        fetchApi(`/api/v1/admin/check`, {
             method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json'
-            },
         })
         .then(response => {
             if (!response.ok) return false

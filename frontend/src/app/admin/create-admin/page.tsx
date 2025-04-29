@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 export default function CreateAdminPage() {
   const router = useRouter();
@@ -31,12 +32,8 @@ export default function CreateAdminPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+        const response = await fetchApi('/api/v1/admin/check', {
           method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         });
 
         if (!response.ok) {
@@ -134,11 +131,8 @@ export default function CreateAdminPage() {
     try {
       
       // API 요청
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/register`, {
+      const response = await fetchApi('/api/v1/admin/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData)
       });
       

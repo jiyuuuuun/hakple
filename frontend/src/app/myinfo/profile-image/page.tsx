@@ -205,9 +205,8 @@ export default function ProfileImagePage() {
 
             console.log('프로필 이미지 업로드 요청 시작')
             
-            const response = await fetch('http://localhost:8090/api/v1/profile-images/upload', {
+            const response = await fetchApi('/api/v1/profile-images/upload', {
                 method: 'POST',
-                credentials: 'include',
                 body: formData
             })
 
@@ -300,10 +299,6 @@ export default function ProfileImagePage() {
         try {
             const response = await fetchApi('/api/v1/profile-images/delete', {
                 method: 'DELETE',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
             })
 
             if (!response.ok) {

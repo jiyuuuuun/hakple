@@ -63,7 +63,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                     case "all":
                         return ALL;
                     default:
-                        log.warn("유효하지 않은 검색 유형: {}", value);
                         return null;
                 }
             }
@@ -82,7 +81,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                 if ("free".equalsIgnoreCase(value) || "notice".equalsIgnoreCase(value)) {
                     return valueOf(value.toUpperCase());
                 }
-                log.warn("유효하지 않은 게시글 유형: {}", value);
                 return null;
             }
         }
@@ -201,7 +199,6 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                             break;
                     }
                 } catch (IllegalArgumentException e) {
-                    log.warn("유효하지 않은 정렬 속성: {}. 기본값(작성일 내림차순)으로 대체합니다.", property);
                     orderSpecifiers.add(new OrderSpecifier<>(Order.DESC, board.creationTime));
                 }
             }
@@ -238,7 +235,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                     whereCondition.and(board.title.containsIgnoreCase(searchKeyword));
                     break;
                 case CONTENT:
-                    whereCondition.and(board.content.containsIgnoreCase(searchKeyword));
+                    whereCondition.and(board.contentText.contains(searchKeyword));
                     break;
                 case NICKNAME:
                     whereCondition.and(board.user.nickName.containsIgnoreCase(searchKeyword));
@@ -258,12 +255,13 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                     }
                     break;
                 case ALL:
-                    BooleanBuilder searchBuilder = new BooleanBuilder();
-                    searchBuilder.or(board.title.containsIgnoreCase(searchKeyword));
-                    searchBuilder.or(board.content.containsIgnoreCase(searchKeyword));
-                    searchBuilder.or(board.user.nickName.containsIgnoreCase(searchKeyword));
+                    BooleanBuilder allCondition = new BooleanBuilder();
+                    allCondition.or(board.title.containsIgnoreCase(searchKeyword));
+                    allCondition.or(board.contentText.contains(searchKeyword));
+                    allCondition.or(board.user.nickName.containsIgnoreCase(searchKeyword));
+
                     if (boardType != BoardType.NOTICE) {
-                        searchBuilder.or(
+                        allCondition.or(
                                 JPAExpressions.selectOne()
                                         .from(tagMapping)
                                         .join(tagMapping.hashtag, hashtag)
@@ -274,7 +272,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom {
                                         .exists()
                         );
                     }
-                    whereCondition.and(searchBuilder);
+                    whereCondition.and(allCondition);
                     break;
             }
         }

@@ -84,11 +84,7 @@ export default function MyPostsPage() {
         try {
             const url = `/api/v1/posts/my?page=${page}&size=10&sort=creationTime,desc`
             const response = await fetchApi(url, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                },
-                credentials: 'include',
+                method: 'GET',
             })
 
             if (response.ok) {

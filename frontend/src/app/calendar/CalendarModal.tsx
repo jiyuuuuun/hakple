@@ -85,10 +85,6 @@ export default function CalendarModal({
           : `/api/v1/schedules/${event.id}`,
         {
           method: mode === 'create' ? 'POST' : 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
           body: JSON.stringify(payload),
         }
       )
@@ -112,7 +108,6 @@ export default function CalendarModal({
       try {
         const res = await fetchApi(`/api/v1/schedules/${event.id}`, {
           method: 'DELETE',
-          credentials: 'include',
         })
 
         if (res.ok) {

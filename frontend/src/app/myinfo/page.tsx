@@ -209,8 +209,8 @@ export default function MyInfoPage() {
     // 카운트 데이터 가져오기 공통 함수
     const fetchCount = async (endpoint: string, setter: (count: number) => void) => {
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}?page=0&size=1`, {
-                credentials: 'include',
+            const response = await fetchApi(`${endpoint}?page=0&size=1`, {
+                method: 'GET',
             })
 
             if (response.ok) {
@@ -265,11 +265,6 @@ export default function MyInfoPage() {
                     // fetchApi 유틸리티 함수 사용으로 변경
                     const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            //Authorization: `Bearer ${accessToken}`,
-                        },
                         signal: controller.signal,
                     })
 
@@ -314,7 +309,6 @@ export default function MyInfoPage() {
         // fetch 대신 fetchApi 사용
         fetchApi('/api/v1/myInfos', {
             method: 'GET',
-            credentials: 'include', // 쿠키(JWT)를 포함하여 요청
         })
             .then((res) => {
                 if (!res.ok) {

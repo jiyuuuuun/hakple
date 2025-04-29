@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { fetchApi } from '@/utils/api';
 
 interface ReportedComment {
   reportId: number;
@@ -26,7 +27,7 @@ export default function ReportedCommentsPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [processingIds, setProcessingIds] = useState<number[]>([]);
-  const [token, setToken] = useState<string | null>(null);
+  // const [token, setToken] = useState<string | null>(null);
   
   // 검색 및 정렬 관련 상태
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,17 +42,18 @@ export default function ReportedCommentsPage() {
   const PAGE_SIZE = 10;
 
   useEffect(() => {
+    // // localStorage에서 토큰 가져오기
+    // const storedToken = localStorage.getItem('accessToken'); // 'accessToken'은 예시 키입니다. 실제 사용하는 키로 변경하세요.
+    // if (storedToken) {
+    //   setToken(storedToken);
+    // }
     checkAdmin();
   }, [router]);
 
   const checkAdmin = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+      const response = await fetchApi('/api/v1/admin/check', {
         method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
@@ -79,16 +81,9 @@ export default function ReportedCommentsPage() {
   const fetchComments = async (page: number) => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/report/comments?page=${page}&size=${PAGE_SIZE}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetchApi(`/api/v1/admin/report/comments?page=${page}&size=${PAGE_SIZE}`, {
+        method: 'GET',
+      });
 
       if (!response.ok) {
         throw new Error('데이터를 불러오는데 실패했습니다');
@@ -113,22 +108,17 @@ export default function ReportedCommentsPage() {
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (processingIds.includes(commentId) || !token) return;
+    // token 관련 조건 주석 처리
+    // if (processingIds.includes(commentId) || !token) return;
+    if (processingIds.includes(commentId)) return;
     
     setProcessingIds(prev => [...prev, commentId]);
     
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/comments/${commentId}/pending`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-        }
-      );
+      const response = await fetchApi(`/api/v1/admin/comments/${commentId}/pending`, {
+        method: 'POST',
+      });
+
 
       if (!response.ok) {
         throw new Error('댓글 삭제 처리 중 오류가 발생했습니다');
@@ -219,7 +209,8 @@ export default function ReportedCommentsPage() {
     return null;
   }
 
-  const displayPage = currentPage + 1;
+  // 사용하지 않는 변수 주석 처리
+  // const displayPage = currentPage + 1;
   const displayTotalPages = totalPages;
 
   return (

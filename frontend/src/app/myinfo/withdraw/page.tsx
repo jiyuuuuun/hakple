@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeftIcon, ShieldExclamationIcon, KeyIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { fetchApi } from '@/utils/api'
 
 export default function Withdraw() {
     const router = useRouter()
@@ -41,19 +42,14 @@ export default function Withdraw() {
             const accessTokenCookie = cookies.find(cookie => cookie.trim().startsWith('accessToken='));
             const accessToken = accessTokenCookie ? accessTokenCookie.split('=')[1].trim() : '';
 
-            const response = await fetch('http://localhost:8090/api/v1/users/withdraw', {
+            const response = await fetchApi('/api/v1/users/withdraw', {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                //이게 있어야지 인증이 된다
-                credentials: 'include',
                 body: JSON.stringify({
                     password: password
                 })
             });
 
-            if (!response.ok) {
+                if (!response.ok) {
                 throw new Error('탈퇴 처리 중 오류가 발생했습니다.');
             }
 

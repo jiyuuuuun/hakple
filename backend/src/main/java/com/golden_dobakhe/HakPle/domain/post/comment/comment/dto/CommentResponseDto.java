@@ -26,6 +26,7 @@ public class CommentResponseDto {
     private LocalDateTime creationTime;
     private LocalDateTime modificationTime;
     private Status status;
+    private String profileImageUrl;
     
     @JsonProperty("isLiked")
     private boolean isLiked;
@@ -42,6 +43,7 @@ public class CommentResponseDto {
                 .modificationTime(comment.getModificationTime())
                 .status(comment.getStatus())
                 .isLiked(false)
+                .profileImageUrl(comment.getUser() != null && comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
     
@@ -56,7 +58,9 @@ public class CommentResponseDto {
                 .creationTime(comment.getCreationTime())
                 .modificationTime(comment.getModificationTime())
                 .status(comment.getStatus())
+                .profileImageUrl(comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null )
                 .isLiked(isLiked)
+                .profileImageUrl(comment.getUser() != null && comment.getUser().getProfileImage() != null ? comment.getUser().getProfileImage().getFilePath() : null)
                 .build();
     }
 }

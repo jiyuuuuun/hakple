@@ -33,6 +33,8 @@ import java.util.Set;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.entity.CommentLike;
 import org.springframework.util.StringUtils;
+import com.golden_dobakhe.HakPle.domain.notification.entity.NotificationType;
+import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService;
 
 @Service
 @Transactional // 모든 public 메서드가 트랜잭션 범위 안에서 실행
@@ -46,8 +48,8 @@ public class CommentService {
     public final BoardRepository boardRepository;
     public final UserRepository userRepository;
     public final LikeRepository likeRepository;
+    public final NotificationService notificationService;
 
-    // 게시글 ID로 댓글 목록 조회 (좋아요 상태 포함)
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getCommentsByBoardId(Long boardId) {
         
@@ -62,74 +64,55 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
-    // 게시글 ID로 댓글 목록 조회 (로그인 한 사용자의 좋아요 상태 포함)
     @Transactional(readOnly = true)
     public List<CommentResponseDto> getCommentsByBoardId(Long boardId, Long userId) {
-        log.info("게시글 ID: {}, 사용자 ID: {}로 댓글 목록을 조회합니다.", boardId, userId);
         
-        // 게시글 존재 여부 확인
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new RuntimeException("게시글이 존재하지 않습니다."));
 
-        // 게시글에 연결된 활성 상태인 댓글만 조회
         List<Comment> comments = board.getComments().stream()
                 .filter(comment -> comment.getStatus() == Status.ACTIVE)
                 .collect(Collectors.toList());
         
-        log.info("조회된 댓글 수: {}", comments.size());
         
         if (comments.isEmpty()) {
             return List.of();
         }
         
-        // 효율적인 좋아요 상태 확인을 위해 한 번의 쿼리로 모든 좋아요 정보 조회
         List<Long> commentIds = comments.stream()
                 .map(Comment::getId)
                 .collect(Collectors.toList());
         
-        log.info("사용자 {}의 좋아요 상태를 조회할 댓글 ID 목록: {}", userId, commentIds);
         
-        // 사용자가 좋아요한 댓글 목록을 한 번에 조회
         List<CommentLike> likes = likeRepository.findByCommentIdInAndUserId(commentIds, userId);
         
-        log.info("사용자 {}가 좋아요 한 댓글 수: {}", userId, likes.size());
         
-        // 좋아요한 댓글 ID 세트 생성 (빠른 조회용)
         Set<Long> likedCommentIds = likes.stream()
                 .map(like -> like.getComment().getId())
                 .collect(Collectors.toSet());
         
-        log.info("좋아요한 댓글 ID 목록: {}", likedCommentIds);
         
-        // 댓글 DTO 변환 시 좋아요 상태 확인
         List<CommentResponseDto> result = comments.stream()
                 .map(comment -> {
                     boolean isLiked = likedCommentIds.contains(comment.getId());
-                    log.info("댓글 ID: {}, 작성자: {}, 좋아요 상태: {}", 
-                            comment.getId(), comment.getUser().getNickName(), isLiked);
                     
                     CommentResponseDto dto = CommentResponseDto.fromEntity(comment, isLiked);
-                    log.info("변환된 DTO - 댓글 ID: {}, isLiked 필드값: {}", dto.getId(), dto.isLiked());
                     return dto;
                 })
                 .collect(Collectors.toList());
         
-        log.info("최종 결과물 개수: {}, 첫 번째 댓글의 isLiked: {}", 
-            result.size(), result.isEmpty() ? "없음" : result.get(0).isLiked());
         
         return result;
     }
 
     //댓글 저장
     public Comment commentSave(CommentRequestDto commentRequestDto,Long userId) {
-       Board board=boardRepository.findById(commentRequestDto.getBoardId()).orElse(null);
-       if(board==null){ 
-           throw  new CommentException(CommentResult.BOARD_NOT_FOUND);
-       }
-       User user=userRepository.findById(userId).orElse(null);
-       if(user==null){ 
-           throw  new CommentException(CommentResult.USER_NOT_FOUND);
-       }
+       Board board = boardRepository.findById(commentRequestDto.getBoardId())
+           .orElseThrow(() -> new CommentException(CommentResult.BOARD_NOT_FOUND));
+
+       User user = userRepository.findById(userId)
+           .orElseThrow(() -> new CommentException(CommentResult.USER_NOT_FOUND));
+
         String content = commentRequestDto.getContent();
 
         if (!StringUtils.hasText(content)) {
@@ -144,12 +127,24 @@ public class CommentService {
 
         Comment comment= Comment.builder()
                .board(board)
-               .content(commentRequestDto.getContent())
+               .content(content)
                .user(user)
                .status(Status.ACTIVE)
                .build();
-       log.info(comment.toString());
+
        commentRepository.save(comment);
+
+       if (!board.getUser().getId().equals(userId)) {
+           String message = String.format("회원님이 작성한 글 '%s'에 댓글이 달렸습니다.", board.getTitle());
+           String link = "/post/" + board.getId();
+           notificationService.createNotification(
+                   board.getUser(),
+                   NotificationType.POST_COMMENT,
+                   message,
+                   link
+           );
+       }
+
      return comment;
     }
 
@@ -171,13 +166,11 @@ public class CommentService {
             return CommentResult.COMMENT_NOT_FOUND;
         }
         
-        
+        // 관리자 수정 권한 복원
         boolean isAdmin = user.getRoles().contains(Role.ADMIN);
-        
        
-        if(comment.getUser().getId() == userId || isAdmin) {
+        if(comment.getUser().getId() == userId || isAdmin) { 
             comment.setContent(commentRequestDto.getContent());
-            log.info(comment.toString());
             return CommentResult.SUCCESS;
         } else{
             return CommentResult.UNAUTHORIZED;
@@ -196,16 +189,32 @@ public class CommentService {
             return CommentResult.COMMENT_NOT_FOUND;
         }
         
+        // 관리자 삭제 권한 복원
         boolean isAdmin = user.getRoles().contains(Role.ADMIN);
         
         if(comment.getUser().getId() == userId || isAdmin) {
             comment.setStatus(Status.INACTIVE);
-            log.info(comment.toString());
             return CommentResult.SUCCESS;
         } else {
             return CommentResult.UNAUTHORIZED;
         }
     }
+
+    
+    @Transactional
+    public void adminChangeCommentStatus(Long commentId, Status status) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
+        
+        if (status != Status.ACTIVE && status != Status.PENDING && status != Status.INACTIVE) {
+             throw CommentException.invalidRequest("허용되지 않는 상태 값입니다: " + status);
+        }
+
+        comment.setStatus(status);
+        commentRepository.save(comment);
+        log.info("관리자에 의해 댓글 상태 변경됨: commentId={}, newStatus={}", commentId, status);
+    }
+
     public Page<CommentResponseDto> findMyComments(String userName, Pageable pageable) {
         User user = userRepository.findByUserName(userName)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
