@@ -1,8 +1,8 @@
 package com.golden_dobakhe.HakPle.domain.user.user.controller;
 
 import com.golden_dobakhe.HakPle.domain.user.user.dto.ChangePasswordRequest;
-import com.golden_dobakhe.HakPle.domain.user.user.dto.FindUsernameRequest;
-import com.golden_dobakhe.HakPle.domain.user.user.dto.FindUsernameResponse;
+import com.golden_dobakhe.HakPle.domain.user.user.dto.FindUserNameRequest;
+import com.golden_dobakhe.HakPle.domain.user.user.dto.FindUserNameResponse;
 import com.golden_dobakhe.HakPle.domain.user.user.dto.ResetPasswordRequest;
 import com.golden_dobakhe.HakPle.domain.user.user.service.UserFindService;
 import com.golden_dobakhe.HakPle.security.CustomUserDetails;
@@ -13,11 +13,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,9 +28,9 @@ public class ApiV1UserFindController {
     // 아이디 찾기
     @Operation(summary = "아이디 찾기", description = "전화번호로 사용자의 아이디를 찾습니다.")
     @PostMapping("/find-username")
-    public ResponseEntity<FindUsernameResponse> findUserName(@RequestBody @Valid FindUsernameRequest request) {
+    public ResponseEntity<FindUserNameResponse> findUserName(@RequestBody @Valid FindUserNameRequest request) {
         String userName = userFindService.findUserNameByPhoneNum(request.getPhoneNum());
-        FindUsernameResponse response = new FindUsernameResponse(userName);
+        FindUserNameResponse response = new FindUserNameResponse(userName);
         return ResponseEntity.ok(response);
     }
 

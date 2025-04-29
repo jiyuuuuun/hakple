@@ -10,7 +10,6 @@ import com.golden_dobakhe.HakPle.domain.resource.image.util.FileUtils;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import java.io.IOException;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -111,4 +110,3 @@ public class ProfileImageService {
         }
     }
 }
-

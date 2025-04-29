@@ -26,9 +26,8 @@ public enum UserErrorCode {
     @Schema(description = "닉네임을 이미 사용 중입니다.")
     NICKNAME_DUPLICATE("닉네임을 이미 사용 중입니다.", HttpStatus.CONFLICT),
 
-
     @Schema(description = "전화번호를 이미 사용 중입니다.")
-    PHONENUM_DUPLICATE("전화번호를 이미 사용 중입니다.",HttpStatus.CONFLICT),
+    PHONENUM_DUPLICATE("전화번호를 이미 사용 중입니다.", HttpStatus.CONFLICT),
 
     @Schema(description = "Access Token 블랙리스트 등록 실패")
     ACCESS_TOKEN_BLACKLIST_FAIL("Access Token 블랙리스트 등록 실패", HttpStatus.INTERNAL_SERVER_ERROR),
@@ -37,7 +36,7 @@ public enum UserErrorCode {
     REFRESH_TOKEN_DELETE_FAIL("Refresh 토큰 삭제 중 오류 발생", HttpStatus.INTERNAL_SERVER_ERROR),
 
     @Schema(description = "ADMIN 접근 권한이 없습니다")
-    FORBIDDEN("접근 권한이 없습니다.",HttpStatus.UNAUTHORIZED),
+    FORBIDDEN("접근 권한이 없습니다.", HttpStatus.UNAUTHORIZED),
 
     @Schema(description = "인증되지 않은 사용자")
     UNAUTHORIZED("로그인이 필요합니다.", HttpStatus.UNAUTHORIZED);

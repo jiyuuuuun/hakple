@@ -9,16 +9,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import jakarta.persistence.*;
-import lombok.Builder;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -28,7 +25,7 @@ import java.time.LocalDateTime;
 @SuperBuilder
 @ToString
 public class Image extends BaseEntity {
-   
+
     @ManyToOne(optional = true) // 게시글과 연결된 이미지 (nullable 가능)
     @JoinColumn(name = "board_id")
     private Board board;
@@ -38,7 +35,7 @@ public class Image extends BaseEntity {
 
     @Lob // 대용량 데이터를 매핑할 때 사용됩니다. 주로 텍스트나 바이너리 데이터를 저장할 때 사용 , TEXT 타입
     private String filePath; // 이미지 경로 (TEXT 타입)
-    
+
     @Column(name = "temp_id", length = 100)
     private String tempId; // 임시 이미지 식별자
 
@@ -63,17 +60,17 @@ public class Image extends BaseEntity {
     @Column(nullable = false)
     private String contentType;
 
-
     @Column(nullable = false)
-    private boolean isTemporary;  
+    private boolean isTemporary;
 
     @Column
-    private LocalDateTime expiresAt;  
+    private LocalDateTime expiresAt;
 
     @Column
     private String s3Key;
 
-    public Image(String originalName, String storedName, String path, Long size, String contentType, boolean isTemporary, String tempId, String s3Key) {
+    public Image(String originalName, String storedName, String path, Long size, String contentType,
+                 boolean isTemporary, String tempId, String s3Key) {
         this.originalName = originalName;
         this.storedName = storedName;
         this.path = path;
@@ -83,25 +80,8 @@ public class Image extends BaseEntity {
         this.tempId = tempId;
         this.s3Key = s3Key;
         if (isTemporary) {
-            this.expiresAt = LocalDateTime.now().plusHours(24); 
+            this.expiresAt = LocalDateTime.now().plusHours(24);
         }
-    }
-
-    public void markAsPermanent(String newPath) {
-        this.isTemporary = false;
-        this.path = newPath;
-        this.tempId = null;
-        this.expiresAt = null;
-    }
-
-    public boolean isExpired() {
-        return isTemporary && LocalDateTime.now().isAfter(expiresAt);
-    }
-
-    public void makePermanent(String permanentS3Key) {
-        this.s3Key = permanentS3Key;
-        this.isTemp = false;
-        this.expiresAt = null;
     }
 
     public String getS3Key() {

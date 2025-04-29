@@ -16,7 +16,7 @@ public class MyInfoResponseDto { //사용자 정보 조회용
     @Schema(description = "사용자 아이디", example = "라이온")
     private String userName;
 
-    @Schema(description = "사용자 전화번호", example = "01012345678")
+    @Schema(description = "사용자 전화번호", example = "010-1234-5678")
     private String phoneNum;
 
     @Schema(description = "계정 생성 시각")
@@ -25,7 +25,7 @@ public class MyInfoResponseDto { //사용자 정보 조회용
     @Schema(description = "등록된 학원 코드", example = "LLN1234XYZ")
     private String academyCode;
 
-    @Schema(description = "등록된 학원 이름", example = "ㅇㅇ학원")
+    @Schema(description = "등록된 학원 이름", example = "멋쟁이사자처럼")
     private String academyName;
 
     @Schema(description = "프로필 이미지 url")

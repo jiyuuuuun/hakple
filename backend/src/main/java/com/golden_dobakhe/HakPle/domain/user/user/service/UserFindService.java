@@ -55,7 +55,4 @@ public class UserFindService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
-    public boolean findUserByPhoneNum(String phoneNum) {
-        return userRepository.existsByPhoneNum(phoneNum);
-    }
 }

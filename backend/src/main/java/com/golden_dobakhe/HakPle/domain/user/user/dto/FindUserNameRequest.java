@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "아이디 찾기 요청 DTO")
-public class FindUsernameRequest {
-    @NotBlank
+public class FindUserNameRequest {
+    @NotBlank(message = "회원가입시 등록했던 전화번호를 입력하세요.")
+    @Schema(description = "전화번호 입력", example = "010-1234-5678")
     private String phoneNum;
-
 }
