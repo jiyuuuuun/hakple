@@ -180,7 +180,6 @@ const NewPostPage = () => {
                 academyCode: academyCode,
                 boardType: boardType,
             };
-            console.log('요청 데이터:', postData);
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts`, {
                 method: 'POST',
@@ -201,7 +200,6 @@ const NewPostPage = () => {
             }
 
             const responseData = await response.json();
-            console.log('서버 응답:', responseData);
 
             const redirectUrl = boardType === 'notice'
                 ? `/post/notice?${academyCode ? `academyCode=${academyCode}&` : ''}type=notice`

@@ -26,7 +26,7 @@ export default function ReportedCommentsPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [processingIds, setProcessingIds] = useState<number[]>([]);
-  const [token, setToken] = useState<string | null>(null);
+  // const [token, setToken] = useState<string | null>(null);
   
   // 검색 및 정렬 관련 상태
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,6 +41,11 @@ export default function ReportedCommentsPage() {
   const PAGE_SIZE = 10;
 
   useEffect(() => {
+    // // localStorage에서 토큰 가져오기
+    // const storedToken = localStorage.getItem('accessToken'); // 'accessToken'은 예시 키입니다. 실제 사용하는 키로 변경하세요.
+    // if (storedToken) {
+    //   setToken(storedToken);
+    // }
     checkAdmin();
   }, [router]);
 
@@ -113,7 +118,9 @@ export default function ReportedCommentsPage() {
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (processingIds.includes(commentId) || !token) return;
+    // token 관련 조건 주석 처리
+    // if (processingIds.includes(commentId) || !token) return;
+    if (processingIds.includes(commentId)) return;
     
     setProcessingIds(prev => [...prev, commentId]);
     
@@ -122,10 +129,11 @@ export default function ReportedCommentsPage() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/comments/${commentId}/pending`,
         {
           method: 'POST',
-          credentials: 'include',
+          credentials: 'include', // 쿠키 전송을 위해 이 옵션은 유지
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            // Authorization 헤더 주석 처리
+            // 'Authorization': `Bearer ${token}`
           },
         }
       );
@@ -219,7 +227,8 @@ export default function ReportedCommentsPage() {
     return null;
   }
 
-  const displayPage = currentPage + 1;
+  // 사용하지 않는 변수 주석 처리
+  // const displayPage = currentPage + 1;
   const displayTotalPages = totalPages;
 
   return (

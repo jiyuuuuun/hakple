@@ -21,9 +21,6 @@ import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
-import com.golden_dobakhe.HakPle.domain.user.user.entity.Role;
-import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
-import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.domain.notification.entity.NotificationType;
 import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService;
@@ -56,10 +53,14 @@ import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
 import java.util.Map;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
+import lombok.extern.slf4j.Slf4j;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class BoardServiceImpl implements BoardService {
 
     private static final int MAX_CONTENT_LENGTH = 10000;
@@ -74,7 +75,6 @@ public class BoardServiceImpl implements BoardService {
     private final CommentRepository commentRepository;
     private final FileService fileService;
     private final NotificationService notificationService;
-    private static final Logger log = LoggerFactory.getLogger(BoardServiceImpl.class);
 
     @Override
     @Transactional
@@ -292,20 +292,11 @@ public class BoardServiceImpl implements BoardService {
         Board board = boardRepository.findById(id)
                 .orElseThrow(() -> BoardException.notFound());
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> BoardException.notFound());
-        if (academyCode != null && !academyCode.isEmpty() && !academyCode.equals(board.getAcademyCode())) {
-        }
+        board.validateUser(userId);
 
-        boolean isAdmin = user.getRoles().contains(Role.ADMIN);
-
-        if (!isAdmin) {
-            board.validateUser(userId);
-        }
-
-        board.validateStatus();
         board.setStatus(Status.INACTIVE);
         boardRepository.save(board);
+        log.info("사용자에 의해 게시글 상태 INACTIVE로 변경됨: boardId={}, userId={}", id, userId);
     }
 
     @Override
@@ -881,6 +872,21 @@ public class BoardServiceImpl implements BoardService {
             case "creationTime" -> "등록일순";
             default -> "등록일순";
         };
+    }
+
+    @Override
+    @Transactional
+    public void adminChangeBoardStatus(Long id, Status status) {
+        Board board = boardRepository.findById(id)
+                .orElseThrow(() -> BoardException.notFound());
+
+        if (status != Status.PENDING && status != Status.INACTIVE) {
+            throw BoardException.invalidRequest("허용되지 않는 상태 값입니다: " + status);
+        }
+
+        board.setStatus(status);
+        boardRepository.save(board);
+        log.info("관리자에 의해 게시글 상태 변경됨: boardId={}, newStatus={}", id, status);
     }
 
 }

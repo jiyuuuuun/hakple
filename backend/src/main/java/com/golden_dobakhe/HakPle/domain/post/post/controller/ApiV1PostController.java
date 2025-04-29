@@ -5,6 +5,7 @@ import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TagResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
 import com.golden_dobakhe.HakPle.security.utils.SecurityUtil;
+import com.golden_dobakhe.HakPle.domain.post.dto.AdminStatusChangeRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -130,6 +132,7 @@ public class ApiV1PostController {
         return ResponseEntity.ok(boardService.updateBoard(id, request, userId, academyCode));
     }
 
+    @Operation(summary = "게시물 삭제 (사용자)", description = "자신이 작성한 게시물을 삭제 상태(INACTIVE)로 변경합니다.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBoard(
             @PathVariable("id") Long id,
@@ -377,6 +380,20 @@ public class ApiV1PostController {
         Long userId = getCurrentUserId(); 
         List<Long> likedIds = boardService.getLikedBoardIds(userId); 
         return ResponseEntity.ok(likedIds);
+    }
+
+    @Operation(summary = "게시물 상태 변경 (관리자)", description = "관리자가 특정 게시물의 상태를 변경합니다.")
+    @PostMapping("/{id}/admin-status-change")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> adminChangeBoardStatus(
+            @PathVariable("id") Long id,
+            @RequestBody AdminStatusChangeRequestDto requestDto
+    ) {
+        if (requestDto == null || requestDto.getStatus() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        boardService.adminChangeBoardStatus(id, requestDto.getStatus());
+        return ResponseEntity.ok().build();
     }
 
 }
