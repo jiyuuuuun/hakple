@@ -192,7 +192,7 @@ export default function PostDetailPage() {
 
                 if (isLogin) {
                     Promise.all([
-                        fetchApi(`${API_BASE_URL}/api/v1/posts/${params.id}/like-status`, {
+                        fetchApi(`/api/v1/posts/${params.id}/like-status`, {
                             method: 'GET',
                         })
                             .then(async (res) => {
@@ -208,7 +208,7 @@ export default function PostDetailPage() {
                                 setIsLiked(false)
                             }),
 
-                        fetchApi(`${API_BASE_URL}/api/v1/posts/${postId}/report-status`, {
+                        fetchApi(`/api/v1/posts/${postId}/report-status`, {
                             method: 'GET',
                         })
                             .then(async (res) => {
@@ -224,7 +224,7 @@ export default function PostDetailPage() {
                                 setIsReported(false)
                             }),
 
-                        fetchApi(`${API_BASE_URL}/api/v1/posts/${postId}/is-owner`, {
+                        fetchApi(`/api/v1/posts/${postId}/is-owner`, {
                             method: 'GET',
                         })
                             .then(async (res) => {

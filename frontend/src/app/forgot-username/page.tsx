@@ -6,8 +6,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { fetchApi } from '@/utils/api'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
-
 export default function ForgotUsername() {
     const router = useRouter()
     const [formData, setFormData] = useState({
@@ -60,8 +58,7 @@ export default function ForgotUsername() {
         setErrorMessage('')
 
         try {
-            // 휴대폰 번호 존재 여부 확인
-            const phoneCheckResponse = await fetchApi(`${API_BASE_URL}/api/v1/users/check-phonenum?phoneNum=${phone}`, {
+            const phoneCheckResponse = await fetchApi('/api/v1/users/check-phonenum?phoneNum=${phone}', {
                 method: 'GET',
             })
 
@@ -83,7 +80,7 @@ export default function ForgotUsername() {
 
             // 인증번호 요청 - 휴대폰 번호가 이미 존재할 때만 실행 (isAvailable이 false일 때)
             try {
-                const smsResponse = await fetchApi(`${API_BASE_URL}/api/v1/sms/send?phone=${phone}`, {
+                const smsResponse = await fetchApi('/api/v1/sms/send?phone=${phone}', {
                     method: 'POST',
                 })
 
@@ -119,13 +116,9 @@ export default function ForgotUsername() {
         setErrorMessage('')
 
         try {
-            // 인증번호 확인 API 호출
-            const response = await fetchApi(
-                `${API_BASE_URL}/api/v1/sms/verify?phone=${phone}&code=${verificationCode}`,
-                {
-                    method: 'POST',
-                },
-            )
+            const response = await fetchApi('/api/v1/sms/verify?phone=${phone}&code=${verificationCode}', {
+                method: 'POST',
+            })
 
             if (!response.ok) {
                 if (response.status === 401) {
@@ -166,8 +159,7 @@ export default function ForgotUsername() {
         setErrorMessage('')
 
         try {
-            // API 요청 (휴대폰 번호만으로 아이디 찾기)
-            const response = await fetchApi(`${API_BASE_URL}/api/v1/usernames/find-username`, {
+            const response = await fetchApi('/api/v1/usernames/find-username', {
                 method: 'POST',
                 body: JSON.stringify({
                     phoneNum: formData.phone,
