@@ -82,7 +82,6 @@ export default function PostPage() {
 
   useEffect(() => {
     if (isMounted && isLogin && !academyAlertRef.current) {
-      console.log('게시판 - 사용자 로그인됨, ID:', loginMember?.userName);
     }
   }, [isLogin, isMounted, loginMember, academyAlertRef]);
 
@@ -201,8 +200,6 @@ export default function PostPage() {
     try {
       const url = `/api/v1/posts/tags/popular?type=${postType}`;
 
-      console.log('인기 태그 요청 URL:', url);
-
       const response = await fetchApi(url, {
         headers: {
           'Content-Type': 'application/json',
@@ -284,11 +281,9 @@ export default function PostPage() {
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newSortType = e.target.value;
-    console.log(`정렬 방식 변경: ${newSortType}`);
     setSortType(newSortType);
     setCurrentPage(1);
 
-    // fetchPosts(1, pageSize, newSortType, searchKeyword, selectedTag || undefined);
   };
 
   const handleSearch = (keyword: string) => {
@@ -306,7 +301,6 @@ export default function PostPage() {
 
   const handleFilterChange = (type: string) => {
     if (type !== filterType) {
-      console.log(`필터 유형 변경: ${filterType} -> ${type}`);
       setFilterType(type);
     }
   };
@@ -376,7 +370,6 @@ export default function PostPage() {
     }
   };
 
-  // Scroll event handler
   const handleScroll = () => {
     if (window.scrollY > 300) {
       setShowScrollTopButton(true);
@@ -385,7 +378,6 @@ export default function PostPage() {
     }
   };
 
-  // Add/remove scroll event listener
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);
     return () => {
@@ -393,7 +385,6 @@ export default function PostPage() {
     };
   }, []);
 
-  // Scroll to top function
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
@@ -968,8 +959,8 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
                 className="h-full w-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.onerror = null; // 추가 오류 이벤트 방지
-                  target.style.display = 'none'; // 이미지 숨기기
+                  target.onerror = null;
+                  target.style.display = 'none';
                   target.parentElement!.innerHTML = `
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

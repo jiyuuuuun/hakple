@@ -66,7 +66,6 @@ public class FileService {
                     .withCannedAcl(CannedAccessControlList.PublicRead));
 
             String fileUrl = amazonS3.getUrl(bucketName, s3Key).toString();
-            log.info("Uploaded temp file to S3: {}", fileUrl);
 
             Long imageId = null; 
             if (saveEntity) {
@@ -90,13 +89,11 @@ public class FileService {
                     if (boardOpt.isPresent()) {
                         image.setBoard(boardOpt.get());
                     } else {
-                        log.warn("Board not found for ID: {}, image will not be associated.", boardId);
                     }
                 }
 
                 Image savedImage = imageRepository.save(image);
                 imageId = savedImage.getId();
-                log.info("Saved temp image entity to DB with ID: {}", imageId);
             }
 
             Map<String, Object> result = new HashMap<>();
@@ -109,10 +106,8 @@ public class FileService {
 
             return result;
         } catch (IOException e) { 
-            log.error("Failed to save file to S3 (IOException): {}", e.getMessage(), e);
             throw new RuntimeException("파일 저장 실패 (I/O): " + e.getMessage(), e);
         } catch (Exception e) { 
-            log.error("Unexpected error during file save: {}", e.getMessage(), e);
             throw new RuntimeException("서버 처리 중 오류가 발생했습니다: " + e.getMessage(), e); 
         }
     }
@@ -149,8 +144,6 @@ public class FileService {
                 image.setIsTemp(false);
 
             } catch (Exception e) {
-                log.error("S3 이미지 이동/삭제 또는 DB 업데이트 실패 (tempId: {}, boardId: {}): {}", 
-                          image.getTempId(), boardId, e.getMessage());
             }
         }
         
@@ -167,9 +160,7 @@ public class FileService {
             String s3Key = extractS3KeyFromUrl(img.getFilePath());
             if (s3Key != null && s3Key.startsWith("temp/")) { 
                 amazonS3.deleteObject(new DeleteObjectRequest(bucketName, s3Key));
-                log.info("Deleted temp S3 object: {}", s3Key);
             } else {
-                log.warn("Skipping delete for non-temp or invalid S3 key: {}", s3Key);
             }
             imageRepository.delete(img);
         }
@@ -184,7 +175,6 @@ public class FileService {
             try {
                 usedUrlsSet.add(URLDecoder.decode(url, StandardCharsets.UTF_8));
             } catch (IllegalArgumentException e) {
-                log.warn("Failed to decode URL, using raw: {}", url, e);
                 usedUrlsSet.add(url); 
             }
         }
@@ -196,8 +186,6 @@ public class FileService {
             try {
                 decodedDbUrl = URLDecoder.decode(img.getFilePath(), StandardCharsets.UTF_8);
             } catch (IllegalArgumentException e) {
-                log.warn("Failed to decode DB URL, using raw: {}", img.getFilePath(), e);
-                decodedDbUrl = img.getFilePath(); 
             }
 
             if (!usedUrlsSet.contains(decodedDbUrl)) {
@@ -205,19 +193,15 @@ public class FileService {
                 if (s3Key != null) {
                     try {
                         amazonS3.deleteObject(new DeleteObjectRequest(bucketName, s3Key));
-                        log.info("Deleted unused S3 object for board {}: {}", boardId, s3Key);
                     } catch (Exception e) {
-                        log.error("Failed to delete unused S3 object for board {}: {}", boardId, s3Key, e);
                         continue; 
                     }
                 } else {
-                    log.warn("Could not extract S3 key for unused image URL: {}", img.getFilePath());
                 }
                 try {
                     imageRepository.delete(img);
-                    log.info("Deleted unused image entity for board {}: ID {}", boardId, img.getId());
                 } catch (Exception e) {
-                    log.error("Failed to delete unused image entity: ID={}. Error: {}", img.getId(), e.getMessage(), e);
+                    throw new RuntimeException("Error deleting image from repository: " + e.getMessage(), e);
                 }
             }
         }
@@ -227,36 +211,27 @@ public class FileService {
     @Transactional
     public void cleanupExpiredTemporaryImages() {
         LocalDateTime now = LocalDateTime.now();
-        log.info("Starting cleanupExpiredTemporaryImages job at {}", now);
 
         List<Image> expiredImages = imageRepository.findByIsTemporaryTrueAndExpiresAtBefore(now);
-        log.info("Found {} expired temporary images to clean up.", expiredImages.size());
 
         for (Image image : expiredImages) {
-            log.debug("Processing expired image: ID={}, S3Key={}, ExpiresAt={}",
-                      image.getId(), image.getS3Key(), image.getExpiresAt());
 
             String s3Key = image.getS3Key(); 
             if (s3Key != null && s3Key.startsWith("temp/")) { 
                 try {
                     amazonS3.deleteObject(new DeleteObjectRequest(bucketName, s3Key));
-                    log.info("Successfully deleted expired S3 object: {}", s3Key);
                 } catch (Exception e) {
-                    log.error("Failed to delete expired S3 object: {}. Error: {}", s3Key, e.getMessage(), e);
                     continue;
                 }
             } else {
-                log.warn("Skipping S3 delete for expired image ID {}: Invalid or non-temporary S3 key '{}'", image.getId(), s3Key);
             }
 
             try {
                 imageRepository.delete(image);
-                log.info("Successfully deleted expired image entity: ID={}", image.getId());
             } catch (Exception e) {
-                log.error("Failed to delete expired image entity: ID={}. Error: {}", image.getId(), e.getMessage(), e);
+                throw new RuntimeException("Error deleting image from repository: " + e.getMessage(), e);
             }
         }
-        log.info("Finished cleanupExpiredTemporaryImages job.");
     }
 
     @Transactional
@@ -269,7 +244,6 @@ public class FileService {
                 try {
                     usedUrls.add(URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8));
                 } catch (Exception e) {
-                    log.warn("cleanTempImagesNotIn - Content URL 디코딩 실패, 원본 사용: {}", matcher.group(1), e);
                     usedUrls.add(matcher.group(1)); 
                 }
             }
@@ -285,8 +259,6 @@ public class FileService {
                 try {
                     decodedDbUrl = URLDecoder.decode(img.getFilePath(), StandardCharsets.UTF_8);
                 } catch (Exception e) {
-                    log.warn("cleanTempImagesNotIn - DB URL 디코딩 실패, 원본 사용: {}", img.getFilePath(), e);
-                    decodedDbUrl = img.getFilePath();
                 }
                 boolean keepByUrl = usedUrls.contains(decodedDbUrl);
                 
@@ -295,18 +267,14 @@ public class FileService {
                         String s3Key = extractS3KeyFromUrl(img.getFilePath());
                         if (s3Key != null && s3Key.startsWith("temp/")) { 
                             amazonS3.deleteObject(new DeleteObjectRequest(bucketName, s3Key));
-                            log.info("Cleaned up unused temp S3 object: {}", s3Key);
                         } else {
-                            log.warn("Skipping cleanup for non-temp or invalid S3 key: {}", s3Key);
                         }
                     } catch (Exception e) {
-                        log.error("cleanTempImagesNotIn - S3 임시 객체 삭제 중 오류 발생 (Image ID: {}): {}", img.getId(), e.getMessage(), e);
                     } 
                     try {
                         imageRepository.delete(img); 
-                        log.info("Deleted unused temp image entity: ID={}", img.getId());
                     } catch (Exception e) {
-                        log.error("Failed to delete unused temp image entity: ID={}. Error: {}", img.getId(), e.getMessage(), e);
+                        throw new RuntimeException("Error deleting image from repository: " + e.getMessage(), e);
                     }
                 }
             }
@@ -333,7 +301,6 @@ public class FileService {
                 return URLDecoder.decode(key, StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
-            log.error("Failed to extract S3 key from URL: {}", fileUrl, e);
         }
         return null; 
     }

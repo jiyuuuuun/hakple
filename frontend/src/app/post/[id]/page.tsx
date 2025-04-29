@@ -68,8 +68,6 @@ export default function PostDetailPage() {
     const [commentLikingId, setCommentLikingId] = useState<number | null>(null);
     const editCommentRef = useRef<HTMLTextAreaElement>(null);
 
-    const [postAuthorImgError, setPostAuthorImgError] = useState(false);
-    const [commentImgErrors, setCommentImgErrors] = useState<Record<number, boolean>>({});
     const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
     useEffect(() => {
@@ -338,7 +336,6 @@ export default function PostDetailPage() {
         }
 
         setTimeout(() => {
-            console.log('게시글 수정 페이지로 이동:', editUrl);
             router.push(editUrl);
         }, 100);
     };
