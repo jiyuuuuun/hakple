@@ -55,7 +55,7 @@ cp src/main/resources/application.yml.example src/main/resources/application.yml
 # 3. 서버 실행
 ./gradlew bootRun
 ```
-###Frontend (Next.js)
+### Frontend (Next.js)
 ```bash
 cd hakple/frontend
 
