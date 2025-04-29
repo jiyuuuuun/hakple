@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class CommentReportService {
     private final CommentReportRepository reportRepository;
@@ -26,6 +26,7 @@ public class CommentReportService {
     private final UserRepository userRepository;
 
     //댓글 신고
+    @Transactional
     public void reportComment(Long commentId,Long userId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));

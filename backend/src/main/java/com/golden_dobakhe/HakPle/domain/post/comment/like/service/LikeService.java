@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class LikeService {
 
@@ -30,6 +30,7 @@ public class LikeService {
     private final UserRepository userRepository;
 
     //좋아요 +
+    @Transactional
     public CommentResult likeComment(Long commentId,User user) {
 
         Comment comment=commentRepository.findById(commentId).orElse(null);
@@ -51,6 +52,7 @@ public class LikeService {
     }
 
     //좋아요 -
+    @Transactional
     public CommentResult unlikeComment(Long commentId, User user) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
@@ -93,7 +95,6 @@ public class LikeService {
     }
 
     // 사용자가 댓글에 좋아요 했는지 확인
-    @Transactional(readOnly = true)
     public LikeStatusResponseDto isLiked(Long commentId, User user) {
         // 댓글 존재 여부 확인
         Comment comment = commentRepository.findById(commentId)
@@ -113,24 +114,4 @@ public class LikeService {
         }
         return comment.getLikeCount();
     }
-
-//    //회원 별 좋아요 누른 댓글
-//    public List<LikedCommentDto> userLikedComments(Long userId) {
-//        return userRepository.findById(userId)
-//                .map(user -> likeRepository.findByUserId(user.getId()).stream()
-//                        .map(CommentLike::getComment)
-//                        .map(comment -> new LikedCommentDto(
-//                                comment.getId(),
-//                                comment.getContent()
-//                        ))
-//                        .collect(Collectors.toList()))
-//                .orElse(Collections.emptyList());
-//    }
-//
-//    //회원 별 좋아요 누른 댓글 갯수
-//    public int countUserLikedComments(Long userId) {
-//        return userRepository.findById(userId)
-//                .map(user ->  likeRepository.findByUserId(user.getId()).size())
-//                .orElse(0);
-//    }
 }

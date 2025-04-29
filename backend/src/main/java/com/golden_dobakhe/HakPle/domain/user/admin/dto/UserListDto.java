@@ -8,6 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
+@Schema(description = "유저 리스트 응답 Dto")
 public class UserListDto {
 
     @Schema(description = "ID")

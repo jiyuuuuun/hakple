@@ -92,7 +92,6 @@ export function useLoginMember() {
     const setLoginMember = (member: BackendUser) => {
         // 백엔드 응답 원본 데이터 확인용 로그 추가
         console.group('LoginMember Store - setLoginMember')
-        console.log('백엔드 응답 데이터:', member)
 
         // 액세스 토큰이 있는 로그인 요청인 경우 처리
         if (member.accessToken && member.id) {
@@ -153,7 +152,7 @@ export function useLoginMember() {
             profileImageUrl: profileImageUrl,
         }
 
-        console.log('생성된 User 객체:', user)
+        
         _setLoginMember(user)
 
         const isValidLogin = !!user.userName || !!user.nickname // <- 사용자 확인 가능한 핵심 필드
@@ -197,7 +196,6 @@ export function useLoginMember() {
             const isAdmin = await response.json()
             return isAdmin === true
         } catch (error) {
-            console.log('관리자 권한 확인 중 오류:', error)
             return false
         }
     }

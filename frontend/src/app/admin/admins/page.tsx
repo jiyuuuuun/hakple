@@ -74,7 +74,7 @@ export default function AdminListPage() {
   // 관리자 목록 가져오기
   const fetchAdmins = async (page: number, size: number) => {
     try {
-      console.log('관리자 목록 조회 API 요청 시작');
+      
       
       const response = await fetchApi(`/api/v1/admin/admins?page=${page}&size=${size}`, {
         method: 'GET',
@@ -87,7 +87,7 @@ export default function AdminListPage() {
       }
       
       const data: PageResponse<Admin> = await response.json();
-      console.log('관리자 목록 조회 성공:', data);
+      
       
       setAdmins(data.content);
       setFilteredAdmins(data.content);

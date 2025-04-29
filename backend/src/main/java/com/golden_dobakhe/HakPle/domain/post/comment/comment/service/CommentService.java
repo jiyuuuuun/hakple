@@ -26,8 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Set;
 
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;
@@ -37,7 +35,7 @@ import com.golden_dobakhe.HakPle.domain.notification.entity.NotificationType;
 import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService;
 
 @Service
-@Transactional // 모든 public 메서드가 트랜잭션 범위 안에서 실행
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Slf4j
 public class CommentService {
@@ -50,7 +48,7 @@ public class CommentService {
     public final LikeRepository likeRepository;
     public final NotificationService notificationService;
 
-    @Transactional(readOnly = true)
+
     public List<CommentResponseDto> getCommentsByBoardId(Long boardId) {
         
         Board board = boardRepository.findById(boardId)
@@ -64,7 +62,7 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+
     public List<CommentResponseDto> getCommentsByBoardId(Long boardId, Long userId) {
         
         Board board = boardRepository.findById(boardId)
@@ -106,6 +104,7 @@ public class CommentService {
     }
 
     //댓글 저장
+    @Transactional
     public Comment commentSave(CommentRequestDto commentRequestDto,Long userId) {
        Board board = boardRepository.findById(commentRequestDto.getBoardId())
            .orElseThrow(() -> new CommentException(CommentResult.BOARD_NOT_FOUND));
@@ -150,6 +149,7 @@ public class CommentService {
 
 
     //댓글 수정
+    @Transactional
     public CommentResult commentUpdate(CommentRequestDto commentRequestDto, Long userId) {
         User user = userRepository.findById(userId).orElse(null);
         if(user == null) { 
@@ -178,6 +178,7 @@ public class CommentService {
     }
 
     //댓글 삭제
+    @Transactional
     public CommentResult commentDelete(Long commentId, Long userId) {
         User user = userRepository.findById(userId).orElse(null);
         if(user == null) { 
@@ -212,7 +213,6 @@ public class CommentService {
 
         comment.setStatus(status);
         commentRepository.save(comment);
-        log.info("관리자에 의해 댓글 상태 변경됨: commentId={}, newStatus={}", commentId, status);
     }
 
     public Page<CommentResponseDto> findMyComments(String userName, Pageable pageable) {

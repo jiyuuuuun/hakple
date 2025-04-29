@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
+@Schema(description = "신고 댓글 응답 Dto")
 public class CommentReportDto {
     @Schema(description = "신고 ID", example = "1")
     private Long reportId;

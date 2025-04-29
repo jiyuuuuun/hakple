@@ -85,16 +85,16 @@ export default function AcademyListPage() {
   // 학원 목록 가져오기
   const fetchAcademies = async () => {
     try {
-      console.log('학원 목록 조회 API 요청 시작');
+      
       
       // 페이지네이션이 적용된 API 엔드포인트
       const apiUrl = `/api/v1/admin/academies?page=${currentPage}&size=${pageSize}`;
-      console.log('요청 URL:', apiUrl);
+      
 
       const response = await fetchApi(apiUrl, {
         method: 'GET',
       });
-      console.log('응답 상태:', response.status, response.statusText);
+      
       
       if (!response.ok) {
         let errorText = '';
@@ -108,23 +108,19 @@ export default function AcademyListPage() {
         throw new Error(`학원 목록을 가져오는데 실패했습니다. 상태: ${response.status}, 메시지: ${errorText || response.statusText}`);
       }
       
-      // Content-Type 확인 및 로깅
-      const contentType = response.headers.get('content-type');
-      console.log('응답 Content-Type:', contentType);
-      
+    
       // 응답 처리
       let data;
       try {
         const responseText = await response.text();
-        console.log('원본 응답 데이터:', responseText);
+        
         
         if (!responseText || responseText.trim() === '') {
-          console.log('응답이 비어있습니다.');
           data = { content: [], totalPages: 0, totalElements: 0 };
         } else {
           try {
             data = JSON.parse(responseText);
-            console.log('파싱된 데이터:', data);
+        
           } catch (parseError) {
             console.error('JSON 파싱 오류:', parseError);
             data = { content: [], totalPages: 0, totalElements: 0 };
@@ -161,16 +157,11 @@ export default function AcademyListPage() {
         creationTime: item.creationTime || item.createdAt || ''
       }));
       
-      console.log('매핑된 학원 데이터:', mappedData);
+      
       
       setAcademies(mappedData);
       setFilteredAcademies(mappedData);
       
-      if (mappedData.length === 0) {
-        console.log('불러온 학원 목록이 비어있습니다.');
-      } else {
-        console.log(`총 ${mappedData.length}개의 학원 정보를 가져왔습니다.`);
-      }
     } catch (error) {
       console.error('학원 목록 조회 중 오류:', error);
       setError(error instanceof Error ? error.message : '학원 목록을 가져오는데 실패했습니다.');
