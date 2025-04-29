@@ -89,6 +89,7 @@ export function useLoginMember() {
 
 
     const setLoginMember = (member: BackendUser) => {
+        // 백엔드 응답 원본 데이터 확인용 로그 추가
         console.group('LoginMember Store - setLoginMember')
         console.log('백엔드 응답 데이터:', member)
 

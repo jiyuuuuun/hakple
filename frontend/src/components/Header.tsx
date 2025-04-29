@@ -221,13 +221,10 @@ export default function Header() {
         };
     }, [isNotificationOpen]);
 
-    // 알림 읽음 처리 API 호출 함수
     const markNotificationAsRead = async (notificationId: number) => {
-        console.log(`📬 알림 ${notificationId} 읽음 처리 시도`); // 로그 문구 원래대로
+        console.log(`📬 알림 ${notificationId} 읽음 처리 시도`);
 
-        // ======== API 호출 다시 활성화 ========
         try {
-            // API 호출
             const response = await fetchApi(`/api/v1/notifications/my/${notificationId}/read`, {
                 method: 'PATCH',
                 credentials: 'include',
@@ -238,9 +235,8 @@ export default function Header() {
                 return;
             }
 
-            console.log(`✅ API 호출 성공, 상태 업데이트 시도`); // 상태 업데이트 로그
+            console.log(`✅ API 호출 성공, 상태 업데이트 시도`);
 
-            // 상태 업데이트
             setNotifications(prev => {
                 const newState = prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n);
                 console.log('🔔 알림 목록 상태 업데이트됨:', newState.find(n => n.id === notificationId));
@@ -254,32 +250,25 @@ export default function Header() {
 
         } catch (error) {
             console.error(`알림 ${notificationId} 읽음 처리 API 호출 중 오류 발생:`, error);
-            // API 호출 실패 시 상태 업데이트 안 함
         }
-        // ======== API 호출 로직 끝 ========
     };
 
-    // 알림 목록 가져오는 함수 (페이지네이션 적용)
     const fetchNotifications = async (page = 0, size = 10, loadMore = false) => {
-        console.log('[fetchNotifications] 함수 호출됨! page:', page); // <-- 로그 추가
+        console.log('[fetchNotifications] 함수 호출됨! page:', page); 
         if (!isLogin) return;
         setIsLoadingNotifications(true);
         try {
             console.log(`🔔 알림 목록 가져오기 API 호출 (page: ${page}, size: ${size})`);
-            // API 경로 수정: /api/v1/notifications/my
             const response = await fetchApi(`/api/v1/notifications/my?page=${page}&size=${size}&sort=creationTime,desc`);
             if (!response.ok) {
                 console.error('알림 목록 가져오기 실패:', response.status);
-                setNotifications([]); // 실패 시 초기화
+                setNotifications([]);
                 setNotificationCount(0);
                 return;
             }
             const data: Page<Notification> = await response.json();
             console.log('🔔 알림 목록 수신:', data);
             setNotifications(data.content || []);
-            // TODO: 백엔드에서 읽지 않은 알림 개수를 별도로 제공한다면 해당 값을 사용
-            // 지금은 일단 총 개수를 배지에 표시 (totalElements 사용)
-            // setNotificationCount(data.totalElements || 0); // 👈 이 라인 제거!
 
         } catch (error) {
             console.error('알림 목록 가져오기 중 오류 발생:', error);
@@ -290,7 +279,6 @@ export default function Header() {
         }
     };
 
-    // 읽지 않은 알림 개수 가져오는 함수
     const fetchUnreadCount = async () => {
         console.log('[fetchUnreadCount] 함수 호출됨!');
         if (!isLogin) return;
@@ -300,14 +288,13 @@ export default function Header() {
             if (!response.ok) throw new Error('Failed to fetch unread count');
             const data: { unreadCount: number } = await response.json();
 
-            // 👇 API 응답 데이터와 상태 업데이트 전 값 로깅 추가
             console.log('[fetchUnreadCount] API 응답 데이터:', data);
             const newCount = data.unreadCount || 0;
             console.log('[fetchUnreadCount] setNotificationCount 호출 예정 값:', newCount);
 
-            setNotificationCount(newCount); // 상태 업데이트
+            setNotificationCount(newCount);
 
-            console.log('📊 읽지 않은 알림 개수 (상태 업데이트 후):', newCount); // 로그 위치 변경                                          
+            console.log('📊 읽지 않은 알림 개수 (상태 업데이트 후):', newCount);
         } catch (error) {
             console.error('읽지 않은 알림 개수 가져오기 오류:', error);
             setNotificationCount(0);
@@ -316,30 +303,26 @@ export default function Header() {
         }
     };
 
-    // 로그인 상태 변경 시 읽지 않은 개수 가져오기
     useEffect(() => {
         console.log('[useEffect isLogin] 실행됨, isLogin:', isLogin);
         if (isLogin) {
             console.log('[useEffect isLogin] isLogin=true, fetchUnreadCount 호출 시도...');
-            // fetchUnreadCount(); // 바로 호출하지 않고
-            const timer = setTimeout(() => { // 짧은 지연 후 호출
+            const timer = setTimeout(() => {
                 console.log('[useEffect isLogin] setTimeout 실행, fetchUnreadCount 호출!');
                 fetchUnreadCount();
-            }, 10); // 10ms 지연
-            return () => clearTimeout(timer); // 클린업 함수: 컴포넌트 언마운트 시 타이머 제거
+            }, 10);
+            return () => clearTimeout(timer);
         } else {
-            // 로그아웃 시 상태 초기화
             setNotifications([]);
             setNotificationCount(0);
             setIsNotificationOpen(false);
         }
     }, [isLogin]);
 
-    // 새로고침 버튼 클릭 핸들러
     const handleRefresh = () => {
-        console.log('[handleRefresh] 새로고침 버튼 클릭됨, fetchUnreadCount 호출 시도...'); // <-- 확인용 로그 추가
-        fetchUnreadCount(); // 개수 새로고침
-        if (isNotificationOpen) { // 드롭다운 열려있으면 목록도 새로고침
+        console.log('[handleRefresh] 새로고침 버튼 클릭됨, fetchUnreadCount 호출 시도...');
+        fetchUnreadCount();
+        if (isNotificationOpen) {
             fetchNotifications(0, 10);
         }
     };

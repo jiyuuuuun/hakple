@@ -22,7 +22,7 @@ export default function ReportedPostsPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [processingIds, setProcessingIds] = useState<number[]>([]);
-  const [token, setToken] = useState<string | null>(null);
+  // const [token, setToken] = useState<string | null>(null);
   
   // 검색 및 정렬 관련 상태
   const [searchTerm, setSearchTerm] = useState('');
@@ -101,7 +101,8 @@ export default function ReportedPostsPage() {
   };
 
   const handlePageChange = (page: number) => {
-    if (page < 0 || page >= totalPages || !token) return;
+    // if (page < 0 || page >= totalPages || !token) return;
+    if (page < 0 || page >= totalPages) return;ㄴ
     fetchPosts(page);
   };
 
@@ -118,7 +119,7 @@ export default function ReportedPostsPage() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            // 'Authorization': `Bearer ${token}`
           },
         }
       );
@@ -212,7 +213,7 @@ export default function ReportedPostsPage() {
     return null;
   }
 
-  const displayPage = currentPage + 1;
+  // const displayPage = currentPage + 1;
   const displayTotalPages = totalPages;
 
   return (

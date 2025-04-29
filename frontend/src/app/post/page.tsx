@@ -67,6 +67,7 @@ export default function PostPage() {
   const academyAlertRef = useRef(false);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
+  const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -133,7 +134,6 @@ export default function PostPage() {
         url += `&tag=${encodeURIComponent(tag)}`;
       }
 
-      console.log('게시글 목록 요청 URL:', url);
 
       const [postsResponse, likeStatusResponse] = await Promise.all([
         fetchApi(url, {
@@ -179,7 +179,6 @@ export default function PostPage() {
         setTotalPages(postData.totalPages || 1);
         setSearchCount(postData.totalElements || 0);
       } else {
-        console.log('예상과 다른 API 응답 형식:', postData);
         setPosts([]);
         setTotalPages(1);
         setSearchCount(0);
@@ -229,7 +228,6 @@ export default function PostPage() {
       }
 
       const data = await response.json();
-      console.log('인기 태그 데이터:', data);
 
       if (Array.isArray(data)) {
         setPopularTags((data as {name:string; count:number}[]).map(tag => ({
@@ -375,6 +373,31 @@ export default function PostPage() {
         return next;
       });
     }
+  };
+
+  // Scroll event handler
+  const handleScroll = () => {
+    if (window.scrollY > 300) {
+      setShowScrollTopButton(true);
+    } else {
+      setShowScrollTopButton(false);
+    }
+  };
+
+  // Add/remove scroll event listener
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
   };
 
   if (!isMounted) {
@@ -631,6 +654,17 @@ export default function PostPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Scroll to Top Button */}
+        {showScrollTopButton && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-100 right-100 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+            aria-label="맨 위로 스크롤"
+          >
+            <span className="material-icons">arrow_upward</span>
+          </button>
         )}
       </div>
     </main>

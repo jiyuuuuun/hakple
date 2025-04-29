@@ -1,5 +1,6 @@
 package com.golden_dobakhe.HakPle.global;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Arrays;
@@ -13,13 +14,14 @@ public enum Status {
     private final String value;
 
     Status(String value) {
-        this.value = value; // Enum 값과 문자열 값을 연결
+        this.value = value; 
     }
 
     public String getValue() {
-        return value; // 문자열 값을 반환
+        return value; 
     }
 
+    @JsonCreator
     public static Status fromValue(String value) {
         return Arrays.stream(Status.values())
                 .filter(status -> status.getValue().equals(value))

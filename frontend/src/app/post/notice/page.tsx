@@ -23,9 +23,9 @@ interface Post {
     commentCount: number;
     likeCount: number;
     tags: string[];
-    hasImage?: boolean;  // 이미지 첨부 여부
-    isLiked?: boolean; // isLiked 필드 추가
-    profileImageUrl?: string; // 프로필 이미지 URL 추가
+    hasImage?: boolean;
+    isLiked?: boolean;
+    profileImageUrl?: string;
 }
 
 export default function NoticePage() {
@@ -50,6 +50,7 @@ export default function NoticePage() {
     const [postType, setPostType] = useState<string | null>(null);
     const [isAdminState, setIsAdminState] = useState(false);
     const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
+    const [showScrollTopButton, setShowScrollTopButton] = useState(false);
 
     const isAdmin = () => isAdminState || (loginMember && !!loginMember.isAdmin);
 
@@ -170,7 +171,6 @@ export default function NoticePage() {
 
             console.log('공지사항 API 요청 URL:', url);
 
-            // Promise.all로 게시글과 좋아요 상태 동시 요청
             const [postsResponse, likeStatusResponse] = await Promise.all([
                 fetchApi(url, {
                     method: 'GET',
@@ -180,7 +180,7 @@ export default function NoticePage() {
                     },
                     credentials: 'include'
                 }),
-                fetchApi('/api/v1/posts/my/like-status', { // 좋아요 상태 요청
+                fetchApi('/api/v1/posts/my/like-status', {
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
@@ -189,7 +189,6 @@ export default function NoticePage() {
                 }),
             ]);
 
-            console.log(postsResponse);
 
             if (!postsResponse.ok || !likeStatusResponse.ok) {
                 let errorMessage = '공지사항 또는 좋아요 상태를 불러오지 못했습니다.';
@@ -199,7 +198,6 @@ export default function NoticePage() {
                         errorMessage = errData.message || errorMessage;
                     } catch (jsonParseError) {
                         console.warn('Failed to parse posts error response JSON:', jsonParseError);
-                        /* ignore JSON parse error */
                     }
                 } else {
                     try {
@@ -207,25 +205,22 @@ export default function NoticePage() {
                         errorMessage = errData.message || errorMessage;
                     } catch (jsonParseError) {
                         console.warn('Failed to parse like status error response JSON:', jsonParseError);
-                        /* ignore JSON parse error */
                     }
                 }
                 throw new Error(errorMessage);
             }
 
             const postData = await postsResponse.json();
-            const likedPostIds: number[] = await likeStatusResponse.json(); // 좋아요한 게시글 ID 목록
+            const likedPostIds: number[] = await likeStatusResponse.json();
 
             if (postData && Array.isArray(postData.content)) {
-                // 게시글 데이터와 좋아요 상태 병합
                 const processedPosts = postData.content.map((post: Post) => ({
                     ...post,
                     hasImage: post.hasImage || false,
                     commentCount: post.commentCount || 0,
-                    isLiked: likedPostIds.includes(post.id), // isLiked 상태 설정
-                    profileImageUrl: post.profileImageUrl // profileImageUrl 매핑 추가
+                    isLiked: likedPostIds.includes(post.id),
+                    profileImageUrl: post.profileImageUrl
                 }));
-                console.log('Processed notice posts with isLiked:', processedPosts);
                 setPosts(processedPosts);
                 setTotalPages(postData.totalPages || 1);
                 setSearchCount(postData.totalElements || 0);
@@ -258,7 +253,6 @@ export default function NoticePage() {
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newSortType = e.target.value;
-        console.log(`정렬 방식 변경: ${newSortType}`);
         setSortType(newSortType);
         setCurrentPage(1);
     };
@@ -271,7 +265,6 @@ export default function NoticePage() {
 
     const handleFilterChange = (type: string) => {
         if (type !== filterType) {
-            console.log(`필터 유형 변경: ${filterType} -> ${type}`);
             setFilterType(type);
         }
     };
@@ -327,10 +320,9 @@ export default function NoticePage() {
         return formatRelativeTime(creationTime);
     }
 
-    // 좋아요 클릭 핸들러 추가
     const handleLikeClick = async (post: Post, event: React.MouseEvent) => {
-        event.preventDefault(); // Link 이동 방지
-        event.stopPropagation(); // 상위 div 클릭 이벤트 전파 방지
+        event.preventDefault();
+        event.stopPropagation();
 
         if (likingPosts.has(post.id)) return;
 
@@ -374,6 +366,31 @@ export default function NoticePage() {
             });
         }
     };
+
+    // Scroll event handler
+  const handleScroll = () => {
+    if (window.scrollY > 300) {
+      setShowScrollTopButton(true);
+    } else {
+      setShowScrollTopButton(false);
+    }
+  };
+
+  // Add/remove scroll event listener
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
     if (!isLogin) {
         return (
@@ -664,6 +681,16 @@ export default function NoticePage() {
                         )}
                     </>
                 )}
+                 {/* Scroll to Top Button */}
+        {showScrollTopButton && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-100 right-100 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+            aria-label="맨 위로 스크롤"
+          >
+            <span className="material-icons">arrow_upward</span>
+          </button>
+        )}
             </div>
         </main>
     );
