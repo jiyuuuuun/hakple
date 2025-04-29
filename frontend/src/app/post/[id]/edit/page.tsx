@@ -155,7 +155,6 @@ const EditPostPage = () => {
         const checkAdminPermission = async () => {
             if (isLogin && loginMember) {
                 try {
-                    console.log('[Admin Check] Starting...');
                     const response = await fetchApi(`/api/v1/admin/check`, {
                         method: 'GET',
                     });
@@ -223,14 +222,6 @@ const EditPostPage = () => {
             
             const loggedInUserName = loginMember?.userName?.trim();
             const postOwnerName = ownerUserName?.trim();
-
-            console.log('Permission Check:', {
-              loggedInUserName, 
-              postOwnerName, 
-              isAdmin,
-              isLogin
-            });
-
             const hasPermission = isAdmin || (loggedInUserName && postOwnerName !== undefined && loggedInUserName === postOwnerName);
 
             if (hasPermission) {
