@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-    title: 'Hakple | 학습 플랫폼',
-    description: '학원생들을 위한 커뮤니티 플랫폼',
+    title: 'Hakple | 학원생 커뮤니티 플랫폼',
+    description: '전국 학원생들을 위한 소통, 정보 공유, 친목 커뮤니티 플랫폼',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             rel="stylesheet"
                             href="https://fonts.googleapis.com/icon?family=Material+Icons"
                         />
-                        <link rel="icon" href="/favicon.ico" />
+                        <link rel="icon" href="/favicon.ico" sizes="any" />
                         <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet" />
                     </head>
                     <body className={`${geistSans.variable} ${geistMono.variable} font-sans flex flex-col min-h-screen`}>

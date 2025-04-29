@@ -42,11 +42,6 @@ export default function ReportedCommentsPage() {
   const PAGE_SIZE = 10;
 
   useEffect(() => {
-    // // localStorage에서 토큰 가져오기
-    // const storedToken = localStorage.getItem('accessToken'); // 'accessToken'은 예시 키입니다. 실제 사용하는 키로 변경하세요.
-    // if (storedToken) {
-    //   setToken(storedToken);
-    // }
     checkAdmin();
   }, [router]);
 
@@ -108,8 +103,7 @@ export default function ReportedCommentsPage() {
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    // token 관련 조건 주석 처리
-    // if (processingIds.includes(commentId) || !token) return;
+
     if (processingIds.includes(commentId)) return;
     
     setProcessingIds(prev => [...prev, commentId]);

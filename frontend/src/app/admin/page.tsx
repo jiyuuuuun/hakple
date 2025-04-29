@@ -27,17 +27,17 @@ export default function AdminPage() {
   useEffect(() => {
     const checkAdmin = async () => {
   try {
-    const apiUrl = '/api/v1/admin/check'; // BASE_URL은 fetchApi 안에서 붙는다고 가정
-    console.log('Checking admin status, API URL:', apiUrl);
+    const apiUrl = '/api/v1/admin/check'; 
+    
 
     const response = await fetchApi(apiUrl, {
       method: 'GET',
     });
 
-    console.log('Admin check response status:', response.status);
+    
 
     if (!response.ok) {
-      console.log('Admin check failed, status:', response.status);
+      
       setDebugInfo({ 
         error: 'Admin check failed', 
         status: response.status,
@@ -48,15 +48,15 @@ export default function AdminPage() {
     }
 
     const isAdminResult = await response.json();
-    console.log('Admin check result:', isAdminResult);
+    
 
     if (isAdminResult === true) {
-      console.log('User is admin, showing admin page');
+      
       setIsAdmin(true);
       setDebugInfo({ isAdmin: true, message: 'Admin permissions confirmed' });
       fetchAcademies();
     } else {
-      console.log('User is not admin, redirecting to home');
+      
       setDebugInfo({ isAdmin: false, message: 'Not an admin user' });
       router.push('/');
     }
@@ -91,7 +91,7 @@ export default function AdminPage() {
 
     try {
       data = JSON.parse(responseText);
-      console.log('파싱된 아카데미 데이터:', data);
+      
 
       if (data && Array.isArray(data.content)) {
         setAcademies(data.content);

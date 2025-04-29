@@ -23,7 +23,6 @@ export async function handleLike({
         });
 
         if (!response.ok) {
-            console.log('좋아요 응답 상태코드:', response.status);
 
             throw new Error('좋아요 처리 실패');
         }

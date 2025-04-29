@@ -7,7 +7,6 @@ import com.golden_dobakhe.HakPle.domain.post.comment.exception.CommentException;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.TotalBoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
-import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardReportRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.user.admin.dto.*;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
@@ -32,7 +31,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
+@Transactional(readOnly = true)
 public class AdminService {
 
     private final UserRepository userRepository;
@@ -42,6 +41,7 @@ public class AdminService {
     private final BoardRepository boardRepository;
     private final CommentRepository commentRepository;
 
+    @Transactional
     public String registerAdmin(AdminRegisterDto dto) {
         if (userRepository.existsByUserName(dto.getUserName())) {
             throw new UserException(UserErrorCode.USERNAME_DUPLICATE);
@@ -65,6 +65,7 @@ public class AdminService {
         return "관리자 등록 완료";
     }
 
+    @Transactional
     public Map<String, String> loginAdmin(AdminLoginDto dto) {
         User admin = userRepository.findByUserName(dto.getUserName())
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
@@ -129,6 +130,7 @@ public class AdminService {
     }
 
     //학원 생성
+    @Transactional
     public String createAcademy(AcademyRequestDto requestDto) {
         String code = generateAcademyCode(requestDto.getPhone());
 
@@ -147,12 +149,14 @@ public class AdminService {
         return code;
     }
     //게시물 삭제 처리
+    @Transactional
     public void setBoardPending(Long boardId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound("해당 게시물이 존재하지 않습니다"));
         board.setStatus(Status.PENDING);
     }
     //댓글 삭제 처리
+    @Transactional
     public void setCommentPending(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
@@ -185,11 +189,6 @@ public class AdminService {
         return boards.map(TotalBoardResponse::from);
     }
 
-    public Page<TotalBoardResponse> getFreeBoards(String academyCode, Pageable pageable) {
-        // 타입이 null이거나 'free'인 게시물만 조회 (자유게시판)
-        Page<Board> boards = boardRepository.findByAcademyCodeAndTypeNullOrFree(academyCode, Status.ACTIVE, pageable);
-        return boards.map(TotalBoardResponse::from);
-    }
 
     /**
      * 학원 코드로 학원 정보 조회
@@ -224,6 +223,7 @@ public class AdminService {
 
 
     //회원 상태 바꾸기
+    @Transactional
     public void changeUserStatus(Long userId,Status status) {
         User user=userRepository.findById(userId).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
         user.setStatus(status);

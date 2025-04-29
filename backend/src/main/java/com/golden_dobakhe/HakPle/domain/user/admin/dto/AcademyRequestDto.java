@@ -10,6 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
+@Schema(description = "학원 등록 요청 Dto")
 public class AcademyRequestDto {
     @Schema(description = "학원 이름", example = "한빛학원")
     @NotBlank(message = "학원 이름은 필수입니다.")
