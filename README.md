@@ -11,7 +11,7 @@
   <summary>메인 페이지 화면 보기</summary>
 
   <p align="center">
-    <img src="https://github.com/user-attachments/assets/2c185691-03d9-45fe-b181-db0d24d5fa6e" width="400" />
+    <img src="https://github.com/user-attachments/assets/fe70fdf7-c212-46c3-a15c-9ea6f9dab755" width="400" />
   </p>
 
 </details>
