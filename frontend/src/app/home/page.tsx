@@ -14,6 +14,7 @@ import '@/app/calendar/calendar.css' // ➕ 커스텀 스타일 적용할 파일
 import PostListSkeleton from '@/components/PostListSkeleton'
 import NoticeSkeleton from '@/components/NoticeSkeleton'
 import ProfileSkeleton from '@/components/ProfileSkeleton'
+import AcademySkeleton from '@/components/AcademySkeleton'
 
 // 스타일시트를 위한 import 추가 - CDN 방식으로 헤드에 추가는 layout에서 처리
 // 대신 SVG 아이콘 컴포넌트를 직접 사용합니다
@@ -580,29 +581,33 @@ export default function HomePage() {
                     {/* 왼쪽 사이드바 - 현재 학원 */}
                     <aside className="w-full md:w-64 shrink-0">
                         {/* 현재 학원 섹션 */}
-                        <div className="bg-white rounded-lg shadow p-4 mb-6 mt-8">
-                            <h2 className="text-lg font-semibold mb-4 text-gray-800">현재 학원</h2>
-                            <div className="space-y-2">
-                                {userInfo?.academyCode ? (
-                                    <div className="p-2 rounded-md flex items-center justify-between">
-                                        <span className="text-gray-700 text-lg font-medium">
-                                            {userInfo.academyName || '등록된 학원'}
-                                        </span>
-                                        <div className="flex items-center text-[#9C50D4]">
-                                            <span className="w-2 h-2 bg-[#9C50D4] rounded-full mr-1"></span>
-                                            <span className="text-sm">활성</span>
+                        {loading ? (
+                            <AcademySkeleton />
+                        ) : (
+                            <div className="bg-white rounded-lg shadow p-4 mb-6 mt-8">
+                                <h2 className="text-lg font-semibold mb-4 text-gray-800">현재 학원</h2>
+                                <div className="space-y-2">
+                                    {userInfo?.academyCode ? (
+                                        <div className="p-2 rounded-md flex items-center justify-between">
+                                            <span className="text-gray-700 text-lg font-medium">
+                                                {userInfo.academyName || '등록된 학원'}
+                                            </span>
+                                            <div className="flex items-center text-[#9C50D4]">
+                                                <span className="w-2 h-2 bg-[#9C50D4] rounded-full mr-1"></span>
+                                                <span className="text-sm">활성</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <Link href="/myinfo/academyRegister" className="block">
-                                        <div className="p-3 bg-purple-50 rounded-md flex items-center justify-between hover:bg-purple-100 transition-colors">
-                                            <span className="text-[#9C50D4] font-medium">학원 등록하러 가기</span>
-                                            <ChevronRightIcon className="h-5 w-5 text-[#9C50D4]" />
-                                        </div>
-                                    </Link>
-                                )}
+                                    ) : (
+                                        <Link href="/myinfo/academyRegister" className="block">
+                                            <div className="p-3 bg-purple-50 rounded-md flex items-center justify-between hover:bg-purple-100 transition-colors">
+                                                <span className="text-[#9C50D4] font-medium">학원 등록하러 가기</span>
+                                                <ChevronRightIcon className="h-5 w-5 text-[#9C50D4]" />
+                                            </div>
+                                        </Link>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* 인기글 순위 섹션 */}
                         <div className="bg-white rounded-lg shadow p-4 mb-6">
