@@ -1,12 +1,22 @@
 # Hakple
 
-![image](https://github.com/user-attachments/assets/2db4204c-bcc7-471e-a27b-6f0939b074e7)
-
-
 > 학원생을 위한 커뮤니티 플랫폼
 
 **Hakple**는 학원 수강생들이 소통하고, 질문하고, 정보를 공유할 수 있는 커뮤니티 플랫폼입니다.  
 주요 기능으로는 회원가입, 게시판(질문/자유), 공지사항 열람, 댓글/좋아요 기능과, 실시간 알림 서비스 등이 있습니다.
+
+## 📸 UI 스크린샷
+
+<details>
+  <summary>메인 페이지 화면 보기</summary>
+
+  <p align="center">
+    <img src="https://github.com/user-attachments/assets/2c185691-03d9-45fe-b181-db0d24d5fa6e" width="400" />
+  </p>
+
+</details>
+
+---
 
 ## 🛠️ 주요 기능
 
@@ -29,10 +39,10 @@
 | CI/CD | GitHub Actions |
 
 ---
+
 ## 🚀 Getting Started
 
 ### Backend (Spring Boot)
-
 ```bash
 # 1. 프로젝트 클론
 git clone https://github.com/your-repo/hakple.git
@@ -44,7 +54,9 @@ cp src/main/resources/application.yml.example src/main/resources/application.yml
 
 # 3. 서버 실행
 ./gradlew bootRun
-
+```
+###Frontend (Next.js)
+```bash
 cd hakple/frontend
 
 # 의존성 설치
@@ -54,6 +66,8 @@ npm install
 npm run dev
 
 ```
+---
+
 ## 🛠️ 주요 기능 상세
 
 - 회원 관리
@@ -79,8 +93,12 @@ npm run dev
   - 관리자 관리
   - 회원 목록 조회 등등
  
+---
+ 
 ## 🌐 배포 주소
 - [Hakple 웹사이트 링크](https://www.hakple.site)
+
+---
 
 ## 🎥 데모 영상
 
