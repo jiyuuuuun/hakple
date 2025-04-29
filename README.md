@@ -1,4 +1,8 @@
-# Hakple
+<p align="center">
+  <img src="images/logo.png" width="150" />
+</p>
+
+<h1 align="center">Hakple</h1>
 
 > 학원생을 위한 커뮤니티 플랫폼
 
