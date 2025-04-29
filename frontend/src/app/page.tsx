@@ -38,7 +38,7 @@ export default function Home() {
         // 관리자 권한 확인 함수를 useEffect 내부로 이동
         const checkAdminPermission = async () => {
             try {
-                const response = await fetchApi('/api/v1/admin/check', {
+                const response = await fetchApi(`${API_BASE_URL}/api/v1/admin/check`, {
                     method: 'GET',
                 })
 
@@ -67,7 +67,7 @@ export default function Home() {
 
         const checkLoginStatus = async () => {
             try {
-                const response = await fetchApi('/api/v1/auth/me', {
+                const response = await fetchApi(`${API_BASE_URL}/api/v1/auth/me`, {
                     method: 'GET',
                 })
 
