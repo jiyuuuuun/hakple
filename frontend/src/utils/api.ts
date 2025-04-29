@@ -13,6 +13,12 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
  */
 const API_TIMEOUT = Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 30000
 
+interface ApiResponse {
+    success: boolean
+    message?: string
+    data?: unknown
+}
+
 /**
  * 기본 fetch 함수 래퍼
  * @param url API 엔드포인트 URL
@@ -206,9 +212,7 @@ export const uploadImage = async (file: File): Promise<ImageUploadResponse> => {
     const formData = new FormData()
     formData.append('file', file)
 
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
-
-    const response = await fetchApi(`${API_BASE_URL}/api/v1/images/upload`, {
+    const response = await fetchApi('/api/v1/images/upload', {
         method: 'POST',
         body: formData,
     })

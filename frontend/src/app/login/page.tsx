@@ -10,7 +10,7 @@ import { fetchApi } from '@/utils/api'
 // API 기본 URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
 
-const socialLoginForKakaoUrl = `${API_BASE_URL}/oauth2/authorization/kakao`
+const socialLoginForKakaoUrl = '/oauth2/authorization/kakao'
 const redirectUrlAfterSocialLogin = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'
 
 export default function LoginPage() {
@@ -37,7 +37,7 @@ export default function LoginPage() {
 
         try {
             console.log('로그인 요청 시작')
-            const response = await fetchApi(`${API_BASE_URL}/api/v1/auth/login`, {
+            const response = await fetchApi('/api/v1/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

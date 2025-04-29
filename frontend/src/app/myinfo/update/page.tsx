@@ -9,9 +9,6 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { fetchApi } from '@/utils/api'
 
-// API 기본 URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
-
 // 휴대폰 번호 형식화 함수 (하이픈 추가)
 const formatPhoneNumber = (phoneNum: string): string => {
     if (!phoneNum) return ''
@@ -71,7 +68,7 @@ export default function ProfileUpdatePage() {
         const fetchUserInfo = async () => {
             try {
                 console.log('사용자 정보 요청 시작')
-                const response = await fetchApi(`${API_BASE_URL}/api/v1/myInfos`, {
+                const response = await fetchApi('/api/v1/myInfos', {
                     method: 'GET',
                 })
 
@@ -228,7 +225,7 @@ export default function ProfileUpdatePage() {
             // 백엔드에 실제 API 요청
             console.log('휴대폰 번호 중복 확인 API 요청:', newPhoneNumber)
             const response = await fetchApi(
-                `${API_BASE_URL}/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`,
+                `/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`,
                 {
                     method: 'GET',
                 },
@@ -323,7 +320,7 @@ export default function ProfileUpdatePage() {
             console.log('프로필 업데이트 요청 데이터:', updateData)
 
             // 백엔드에 업데이트 요청
-            const response = await fetchApi(`${API_BASE_URL}/api/v1/myInfos/update`, {
+            const response = await fetchApi('/api/v1/myInfos/update', {
                 method: 'PATCH',
                 body: JSON.stringify(updateData),
             })

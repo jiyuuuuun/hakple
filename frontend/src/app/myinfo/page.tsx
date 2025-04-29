@@ -227,9 +227,9 @@ export default function MyInfoPage() {
         setCountLoading(true)
         try {
             await Promise.all([
-                fetchCount(`${API_BASE_URL}/api/v1/posts/my`, setPostCount),
-                fetchCount(`${API_BASE_URL}/api/v1/comments/my`, setCommentCount),
-                fetchCount(`${API_BASE_URL}/api/v1/posts/my/likes`, setLikeCount),
+                fetchCount('/api/v1/posts/my', setPostCount),
+                fetchCount('/api/v1/comments/my', setCommentCount),
+                fetchCount('/api/v1/posts/my/likes', setLikeCount),
             ])
         } catch (error) {
             console.error('카운트 정보 조회 오류:', error)
@@ -263,7 +263,7 @@ export default function MyInfoPage() {
 
                 try {
                     // fetchApi 유틸리티 함수 사용으로 변경
-                    const response = await fetchApi(`${API_BASE_URL}/api/v1/admin/check`, {
+                    const response = await fetchApi('/api/v1/admin/check', {
                         method: 'GET',
                         signal: controller.signal,
                     })
@@ -306,7 +306,7 @@ export default function MyInfoPage() {
         }
 
         // fetch 대신 fetchApi 사용
-        fetchApi(`${API_BASE_URL}/api/v1/myInfos`, {
+        fetchApi('/api/v1/myInfos', {
             method: 'GET',
         })
             .then((res) => {
