@@ -66,6 +66,7 @@ export default function NoticePage() {
                     if (response.ok) {
                         const isAdminResult = await response.json();
                         setIsAdminState(isAdminResult === true);
+                        console.log('관리자 권한 확인 결과:', isAdminResult);
                     }
                 } catch (error) {
                     console.error('관리자 권한 확인 중 오류 발생:', error);
@@ -165,9 +166,12 @@ export default function NoticePage() {
                 url += `&type=${encodeURIComponent(currentPostType)}`;
             }
 
+            console.log('공지사항 API 요청 URL:', url);
             const response = await fetchApi(url, {
                 method: 'GET',
             });
+
+            console.log(response);
 
 
             const [postsResponse, likeStatusResponse] = await Promise.all([
@@ -670,16 +674,17 @@ export default function NoticePage() {
                         )}
                     </>
                 )}
-                {/* Scroll to Top Button */}
-                {showScrollTopButton && (
-                    <button
-                        onClick={scrollToTop}
-                         className="fixed bottom-[300px] right-4 md:right-10 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
-                        aria-label="맨 위로 스크롤"
-                    >
-                        <span className="material-icons">arrow_upward</span>
-                    </button>
-                )}
+                 {/* Scroll to Top Button */}
+        {showScrollTopButton && (
+          <button
+            onClick={scrollToTop}
+             className="fixed bottom-[300px] right-4 md:right-10 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+            aria-label="맨 위로 스크롤"
+          >
+            <span className="material-icons">arrow_upward</span>
+          </button>
+        )}
+
             </div>
         </main>
     );

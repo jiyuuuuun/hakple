@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
@@ -155,6 +155,7 @@ const EditPostPage = () => {
         const checkAdminPermission = async () => {
             if (isLogin && loginMember) {
                 try {
+                    console.log('[Admin Check] Starting...');
                     const response = await fetchApi(`/api/v1/admin/check`, {
                         method: 'GET',
                     });
@@ -162,14 +163,17 @@ const EditPostPage = () => {
                     if (response.ok) {
                         const isAdminResult = await response.json();
                         setIsAdmin(isAdminResult === true);
+                    } else {
+                         setIsAdmin(false);
                     }
                 } catch (error) {
-                    console.error('관리자 권한 확인 중 오류 발생:', error);
+                    console.error('[Admin Check] Error during check:', error);
+                    setIsAdmin(false);
                 } finally {
                     setAdminCheckComplete(true);
                 }
             } else {
-                setAdminCheckComplete(true);
+                setAdminCheckComplete(true); 
             }
         };
         
@@ -182,74 +186,83 @@ const EditPostPage = () => {
         }
     }, [adminCheckComplete, isAdmin, boardType, isLoading, postId, router]);
 
+    const fetchPostData = useCallback(async () => {
+        if (!isLogin || !loginMember) { 
+            return;
+        }
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const response = await fetchApi(`/api/v1/posts/${postId}`, {
+                method: 'GET',
+            })
+
+            if (!response.ok) {
+                throw new Error('게시글을 불러오는데 실패했습니다.')
+            }
+
+            const data = await response.json();
+
+            setTitle(data.title);
+
+            setContent(data.content);
+
+            setTags(
+              Array.isArray(data.tags) 
+                ? data.tags
+                    .filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '') 
+                : []
+            );
+
+            setBoardType(data.boardType);
+            setInitialImageUrls(data.imageUrls || []);
+
+            const ownerUserName = data.userName;
+            
+            const loggedInUserName = loginMember?.userName?.trim();
+            const postOwnerName = ownerUserName?.trim();
+
+            console.log('Permission Check:', {
+              loggedInUserName, 
+              postOwnerName, 
+              isAdmin,
+              isLogin
+            });
+
+            const hasPermission = isAdmin || (loggedInUserName && postOwnerName !== undefined && loggedInUserName === postOwnerName);
+
+            if (hasPermission) {
+              setError('');
+            } else {
+              setError('게시글을 수정할 권한이 없습니다.');
+            }
+
+        } catch (err) {
+            console.error('게시글 로딩 실패:', err)
+            setError(err instanceof Error ? err.message : '게시글을 불러오는 데 실패했습니다.')
+        } finally {
+            setIsLoading(false)
+        }
+    }, [postId, isLogin, loginMember, isAdmin]);
+
     useEffect(() => {
-        const fetchPostData = async () => {
-            if (!isLogin || !loginMember) { 
-                return;
-            }
 
-            setIsLoading(true);
-            setError('');
-
-            try {
-                const response = await fetchApi(`/api/v1/posts/${postId}`, {
-                    method: 'GET',
-                })
-
-                if (!response.ok) {
-                    throw new Error('게시글을 불러오는데 실패했습니다.')
-                }
-
-                const data = await response.json();
-
-                setTitle(data.title);
-
-                setContent(data.content);
-
-                setTags(
-                  Array.isArray(data.tags) 
-                    ? data.tags
-                        .filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '') 
-                    : []
-                );
-
-                setBoardType(data.boardType);
-                setInitialImageUrls(data.imageUrls || []);
-
-                const ownerUserName = data.userName;
-                
-                const loggedInUserName = loginMember?.userName?.trim();
-                const postOwnerName = ownerUserName?.trim();
-
-                const hasPermission = loggedInUserName && postOwnerName !== undefined && 
-                                      (loggedInUserName === postOwnerName || isAdmin);
-
-                if (hasPermission) {
-                  setError('');
-                } else {
-                  setError('게시글을 수정할 권한이 없습니다.');
-                }
-
-            } catch (err) {
-                console.error('게시글 로딩 실패:', err)
-                setError(err instanceof Error ? err.message : '게시글을 불러오는 데 실패했습니다.')
-            } finally {
-                setIsLoading(false)
-            }
-        }
-        
-        if (isLogin && loginMember) {
+        if (adminCheckComplete && isLogin && loginMember) {
              fetchPostData();
+        } else if (!isLogin) {
+            router.push('/login');
         } else {
+             setIsLoading(true); 
         }
-
-    }, [postId, isLogin, isAdmin, loginMember])
+    }, [adminCheckComplete, isLogin, loginMember, fetchPostData]); 
 
     useEffect(() => {
         if (!isLogin) {
-            router.push('/login')
+             router.push('/login');
         }
-    }, [isLogin, router])
+    }, [isLogin, router]);
 
     if (!isLogin) {
         return (
@@ -328,7 +341,6 @@ const EditPostPage = () => {
                 usedImageUrls: finalUsedImageUrls
             }
 
-            console.log('수정 요청 데이터:', postData)
 
             const response = await fetchApi(`/api/v1/posts/${postId}`, {
                 method: 'PUT',
@@ -372,7 +384,6 @@ const EditPostPage = () => {
         }
     }
 
-    console.log("Rendering EditPostPage with tags state:", tags);
 
     return (
         <main className="bg-[#f9fafc] min-h-screen pb-8">
