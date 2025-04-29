@@ -1,3 +1,4 @@
+import { fetchApi } from '@/utils/api';
 // utils/likeHandler.js
 
 export async function handleLike({
