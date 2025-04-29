@@ -9,72 +9,47 @@ import { BellIcon } from '@heroicons/react/24/outline'
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
-/**
- * 헤더 컴포넌트
- *
- * 웹사이트의 상단 네비게이션 바를 제공합니다.
- * 로고, 네비게이션 메뉴, 검색 기능, 로그인/로그아웃 버튼을 포함합니다.
- * 로그인 상태에 따라 UI가 변경됩니다.
- * 반응형으로 설계되어 모바일과 데스크톱 환경에 모두 대응합니다.
- */
-
-// 백엔드 DTO와 필드 일치시키기
 interface Notification {
     id: number;
-    notificationType: 'POST_LIKE' | 'POST_COMMENT' | 'POPULAR_POST'; // Enum 값들
+    notificationType: 'POST_LIKE' | 'POST_COMMENT' | 'POPULAR_POST';
     message: string;
     link: string;
     isRead: boolean;
-    creationTime: string; // ISO 8601 형식 문자열로 받을 것으로 예상
+    creationTime: string;
 }
 
-// API 응답 페이지 타입 정의 (간단하게)
 interface Page<T> {
     content: T[];
     totalElements: number;
-    // ... 기타 페이징 정보
 }
 
 export default function Header() {
-    // 모바일에서 메뉴 버튼 클릭 시 상태 관리
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    // 관리자 권한 확인 상태
     const [isAdmin, setIsAdmin] = useState(false)
-    // 검색어 상태 관리
     const [searchQuery, setSearchQuery] = useState('')
-    // 알림 드롭다운 상태
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-    const [notifications, setNotifications] = useState<Notification[]>([]); // 초기값 빈 배열
-    const [notificationCount, setNotificationCount] = useState(0); // 초기값 0
-    const [isLoadingNotifications, setIsLoadingNotifications] = useState(false); // 로딩 상태 추가
-    const [isLoadingCount, setIsLoadingCount] = useState(false); // 개수 로딩 (분리)
-    // 현재 경로 가져오기
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notificationCount, setNotificationCount] = useState(0);
+    const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+    const [isLoadingCount, setIsLoadingCount] = useState(false);
     const pathname = usePathname()
-    // 라우터 가져오기
     const router = useRouter()
-    // 검색 파라미터 가져오기
     const searchParams = useSearchParams()
-    // 드롭다운 참조
     const notificationRef = useRef<HTMLDivElement>(null);
 
-    // 로그인 상태 관리 - useGlobalLoginMember로 전역 상태 사용
     const { isLogin, logoutAndHome, loginMember } = useGlobalLoginMember()
 
-    // 로그인/회원가입 페이지에서는 헤더를 표시하지 않음
     const isAuthPage = pathname === '/login' || pathname === '/signup'
 
-    // 프로필 이미지 상태 추가
     const [profileImageUrl, setProfileImageUrl] = useState<string | null>(loginMember?.profileImageUrl || null);
     
-    // 컴포넌트 마운트 시 또는 loginMember 변경 시 프로필 이미지 업데이트
     useEffect(() => {
         setProfileImageUrl(loginMember?.profileImageUrl || null);
     }, [loginMember]);
     
-    // 컴포넌트 마운트 시 MyInfo API 호출하여 프로필 이미지 가져오기
     useEffect(() => {
         if (isLogin) {
-            
+
             fetchApi('/api/v1/myInfos', {
                 method: 'GET',
             })
@@ -84,7 +59,7 @@ export default function Header() {
             })
             .then(data => {
                 if (data && data.profileImageUrl) {
-                    
+
                     setProfileImageUrl(data.profileImageUrl);
                 }
             })
@@ -94,13 +69,11 @@ export default function Header() {
         }
     }, [isLogin]);
 
-    // 컴포넌트 마운트 시 한 번 관리자 권한 확인
     useEffect(() => {
         if (isAuthPage || !isLogin) return
         checkAdminPermission()
     }, [isAuthPage, isLogin])
 
-    // 로그인 상태 변경 감지를 위한 효과
     useEffect(() => {
         if (isAuthPage || !isLogin) {
             setIsAdmin(false)
@@ -109,7 +82,6 @@ export default function Header() {
         checkAdminPermission()
     }, [isLogin, loginMember, isAuthPage])
 
-    // 현재 경로가 바뀔 때 관리자 권한 다시 확인 (특히 /admin 페이지 방문 시)
     useEffect(() => {
         if (isAuthPage || !isLogin) {
             setIsAdmin(false)
@@ -121,30 +93,24 @@ export default function Header() {
         }
     }, [pathname, isLogin, isAuthPage])
 
-
-    // 관리자 권한 확인 함수
     const checkAdminPermission = async () => {
         try {
-            // fetchApi 사용으로 변경
             const response = await fetchApi('/api/v1/admin/check', {
                 method: 'GET',
             })
 
-            // 인증/권한 오류도 일반 로그로 출력
             if (response.status === 401 || response.status === 403) {
                 
                 setIsAdmin(false)
                 return
             }
 
-            // 그 외 서버 오류는 중요한 에러이므로 error로 출력
             if (!response.ok) {
                 
                 setIsAdmin(false)
                 return
             }
 
-            // boolean 값으로 응답이 오므로 이를 처리
             const isAdminResult = await response.json()
 
             if (isAdminResult === true) {
@@ -153,49 +119,38 @@ export default function Header() {
                 setIsAdmin(false)
             }
         } catch (error) {
-            // 중요한 네트워크 오류는 콘솔에 출력
             console.error('관리자 권한 확인 중 오류 발생:', error)
             setIsAdmin(false)
         }
     }
 
-    // 검색 제출 핸들러
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         if (!searchQuery.trim()) return
 
-        // 로그인 상태 체크
         if (!isLogin) {
             alert('로그인이 필요합니다')
             router.push('/login')
             return
         }
 
-        // POST API에서 토큰으로 userId를 추출해서 academyCode를 조회하기 때문에
-        // 프론트엔드에서 별도로 academyCode를 체크할 필요가 없음
-
-        // 검색 페이지로 이동 (등록일순, 제목 검색 조건 포함)
         router.push(
             `/post?keyword=${encodeURIComponent(searchQuery.trim())}&sortType=${encodeURIComponent(
                 '등록일순',
             )}&filterType=${encodeURIComponent('제목')}`,
         )
 
-        // 검색 후 검색창 초기화
         setSearchQuery('')
     }
 
-    // 알림 드롭다운 토글 함수
     const toggleNotificationDropdown = () => {
         const newState = !isNotificationOpen;
         setIsNotificationOpen(newState);
-        // 드롭다운이 열릴 때만 알림 목록을 가져옴
         if (newState) {
             fetchNotifications();
         }
     };
 
-    // 외부 클릭 감지 로직
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
@@ -211,7 +166,7 @@ export default function Header() {
     }, [isNotificationOpen]);
 
     const markNotificationAsRead = async (notificationId: number) => {
-        
+
 
         try {
             const response = await fetchApi(`/api/v1/notifications/my/${notificationId}/read`, {
@@ -224,16 +179,15 @@ export default function Header() {
                 return;
             }
 
-            
+
 
             setNotifications(prev => {
                 const newState = prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n);
-                
                 return newState;
             });
             setNotificationCount(prev => {
                 const newCount = Math.max(0, prev - 1);
-                
+
                 return newCount;
             });
 
@@ -243,11 +197,10 @@ export default function Header() {
     };
 
     const fetchNotifications = async (page = 0, size = 10, loadMore = false) => {
-        
+
         if (!isLogin) return;
         setIsLoadingNotifications(true);
         try {
-            
             const response = await fetchApi(`/api/v1/notifications/my?page=${page}&size=${size}&sort=creationTime,desc`);
             if (!response.ok) {
                 console.error('알림 목록 가져오기 실패:', response.status);
@@ -256,7 +209,7 @@ export default function Header() {
                 return;
             }
             const data: Page<Notification> = await response.json();
-            
+
             setNotifications(data.content || []);
 
         } catch (error) {
@@ -269,7 +222,7 @@ export default function Header() {
     };
 
     const fetchUnreadCount = async () => {
-        
+
         if (!isLogin) return;
         setIsLoadingCount(true);
         try {
@@ -277,13 +230,11 @@ export default function Header() {
             if (!response.ok) throw new Error('Failed to fetch unread count');
             const data: { unreadCount: number } = await response.json();
 
-           
+
             const newCount = data.unreadCount || 0;
-            
 
             setNotificationCount(newCount);
 
-            
         } catch (error) {
             console.error('읽지 않은 알림 개수 가져오기 오류:', error);
             setNotificationCount(0);
@@ -293,11 +244,10 @@ export default function Header() {
     };
 
     useEffect(() => {
-        
+
         if (isLogin) {
-            
             const timer = setTimeout(() => {
-               
+
                 fetchUnreadCount();
             }, 10);
             return () => clearTimeout(timer);
@@ -309,7 +259,7 @@ export default function Header() {
     }, [isLogin]);
 
     const handleRefresh = () => {
-        
+
         fetchUnreadCount();
         if (isNotificationOpen) {
             fetchNotifications(0, 10);
