@@ -35,8 +35,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                // OAuth2 및 스웨거 API 문서
-                                "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
+                                // OAuth2 및 스웨거 API 문서 테스트용은 http://localhost:3000
+                                "/oauth2/authorization/kakao?redirectUrl=https://www.hakple.site",
                                 "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
 
                                 // 인증 관련 API
