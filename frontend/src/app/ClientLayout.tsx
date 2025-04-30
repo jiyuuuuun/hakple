@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -65,37 +65,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // 루트 페이지에서 푸터 숨김 여부
     const shouldHideFooter = pathname === '/' || shouldHideHeaderFooter;
 
-    
-    const checkLoginStatus = async () => {
-    try {
-        
-        const response = await fetchApi('/api/v1/admin/check')
-
-        
-
-        if (response.ok) {
-            const data = await response.json()
-            
-
-            const userInfoResponse = await fetchApi('/api/v1/myInfos')
-
-            if (userInfoResponse.ok) {
-                const userInfo = await userInfoResponse.json()
-                console.log('추가 사용자 정보:', userInfo)
-                setLoginMember(userInfo)
-            } else {
-                setLoginMember(data)
-            }
-        } else {
-            setNoLoginMember()
-        }
-    } catch (error) {
-        console.error('로그인 상태 확인 중 오류:', error)
-        setNoLoginMember()
-    }
-}
-
-
     useEffect(() => {
         
 
@@ -122,7 +91,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         // 루트 경로('/')에서는 로그인 체크를 수행하되, 실패해도 리다이렉트하지 않음
         const checkLoginStatus = async () => {
             try {
-                const response = await fetchApi('/api/v1/auth/me', {
+                const response = await fetchApi('/api/v1/admin/check', {
                     method: 'GET',
                 })
 
@@ -137,7 +106,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 setLoginMember(data)
                 setIsLogin(true)
                 return true
-            } catch (error) {
+            } catch {
                 setNoLoginMember()
                 setIsLogin(false)
                 return false
@@ -191,7 +160,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                                 
                                 router.replace("/admin")
                             }
-                        } catch (error) {
+                        } catch {
                             
                         }
                     }
@@ -229,7 +198,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 
                 setLoginMember(data);
             }
-            } catch (err) {
+            } catch {
             
             }
         };

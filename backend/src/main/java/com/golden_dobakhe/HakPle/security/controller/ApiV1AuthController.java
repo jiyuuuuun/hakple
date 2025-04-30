@@ -3,26 +3,29 @@ package com.golden_dobakhe.HakPle.security.controller;
 
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.security.OAuth.CustomRequest;
-import com.golden_dobakhe.HakPle.security.OAuth.SecurityUser;
+// import com.golden_dobakhe.HakPle.security.OAuth.SecurityUser; // SecurityUser는 직접 사용하지 않으므로 주석 처리 또는 삭제 가능
 import com.golden_dobakhe.HakPle.security.dto.MeDto;
 import com.golden_dobakhe.HakPle.security.service.AuthService;
+import com.golden_dobakhe.HakPle.domain.user.user.service.UserRegistService; // UserRegistService import 추가
 import com.golden_dobakhe.HakPle.security.dto.LoginDto;
 import com.golden_dobakhe.HakPle.security.dto.LoginResponseDto;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie; // 주석 처리 해제
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession; // HttpSession import 추가
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.Authentication; // Authentication import 추가
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseCookie;
 
-import java.security.Principal;
+// import java.security.Principal; // Principal은 직접 사용하지 않으므로 주석 처리 또는 삭제 가능
 import java.util.Optional;
 
 @RestController
@@ -34,6 +37,7 @@ public class ApiV1AuthController {
     private final PasswordEncoder passwordEncoder;
     private final CustomRequest customRequest;
     private final JwtTokenizer jwtTokenizer;
+    private final UserRegistService userRegistService; // UserRegistService 주입
 
     //테스트용이라서 배포 전에 삭제할꺼임
     @GetMapping("/home")
@@ -89,7 +93,6 @@ public class ApiV1AuthController {
         //토큰을 저장하고
         authService.addRefreshToken(user, refreshToken);
 
-
         //만든걸 보내야지
         LoginResponseDto loginResponseDto = new LoginResponseDto(accessToken, refreshToken, user.getId(), user.getUserName());
 
@@ -118,10 +121,57 @@ public class ApiV1AuthController {
 
     //로그아웃 만들어야지
     @DeleteMapping("/logout")
-    public ResponseEntity<?> logout() {
-        //쿠키를 지우는게 나을듯
-        customRequest.deleteCookie("accessToken");
-        customRequest.deleteCookie("refreshToken");
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) { // HttpServletRequest 추가
+        // 1. Access Token 가져오기 (쿠키에서)
+        String accessToken = customRequest.getCookieValue("accessToken");
+
+        if (accessToken != null && !accessToken.isEmpty()) {
+            try {
+                // 2. Access Token에서 사용자 ID 추출
+                Claims claims = jwtTokenizer.parseAccessToken(accessToken);
+                Long userId = ((Number) claims.get("userId")).longValue();
+
+                // 3. 토큰 무효화 (Redis 블랙리스트 및 DB Refresh Token 삭제)
+                userRegistService.logout(accessToken, userId);
+                log.info("토큰 무효화 완료 (UserId: {})", userId);
+
+            } catch (Exception e) {
+                // 토큰 파싱 실패 또는 사용자 ID 추출 실패 등 예외 처리
+                log.error("로그아웃 중 토큰 처리 오류: {}", e.getMessage());
+                // 오류가 발생해도 쿠키 삭제 및 세션 무효화는 시도
+            }
+        } else {
+            log.warn("로그아웃 요청 시 Access Token 쿠키 없음");
+        }
+        
+        // 4. HTTP 세션 무효화
+        HttpSession session = request.getSession(false); // false: 기존 세션 없으면 새로 만들지 않음
+        if (session != null) {
+            session.invalidate();
+            log.info("HTTP 세션 무효화 완료");
+        }
+
+        // 5. 쿠키 삭제 (직접 ResponseCookie 생성 - 혹시 모르니 유지)
+        ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", null)
+                .path("/")
+                .sameSite("Lax")
+                .secure(true)
+                .httpOnly(true)
+                .maxAge(0)
+                .build();
+        response.addHeader("Set-Cookie", accessTokenCookie.toString());
+
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", null)
+                .path("/")
+                .sameSite("Lax")
+                .secure(true)
+                .httpOnly(true)
+                .maxAge(0)
+                .build();
+        response.addHeader("Set-Cookie", refreshTokenCookie.toString());
+        
+        log.info("accessToken/refreshToken 쿠키 삭제 헤더 설정 완료");
+
         return ResponseEntity.ok("로그아웃 완료");
     }
 
