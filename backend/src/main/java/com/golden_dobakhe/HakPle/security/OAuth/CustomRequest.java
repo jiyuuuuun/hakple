@@ -71,7 +71,8 @@ public class CustomRequest {
     public void setCookie(String name, String value, Long maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .path("/")
-                .domain("localhost")
+                .domain("https://www.hakple.site")
+                .secure(true)
                 .sameSite("Lax") // Strict 대신 Lax로 완화
                 .httpOnly(true)
                 .maxAge(maxAge/1000) // 밀리초 → 초 변환
@@ -95,7 +96,7 @@ public class CustomRequest {
     public void deleteCookie(String name) {
         ResponseCookie cookie = ResponseCookie.from(name, null)
                 .path("/")
-                .domain("localhost")
+                .domain("https://www.hakple.site")
                 .sameSite("Strict")
                 .secure(true)
                 .httpOnly(true)
