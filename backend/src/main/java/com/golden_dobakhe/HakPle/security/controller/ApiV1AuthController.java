@@ -10,6 +10,7 @@ import com.golden_dobakhe.HakPle.domain.user.user.service.UserRegistService; // 
 import com.golden_dobakhe.HakPle.security.dto.LoginDto;
 import com.golden_dobakhe.HakPle.security.dto.LoginResponseDto;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
+import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image; // Image import 경로 수정
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie; // 주석 처리 해제
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,9 +25,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseCookie;
+import java.util.Optional;
 
 // import java.security.Principal; // Principal은 직접 사용하지 않으므로 주석 처리 또는 삭제 가능
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -63,13 +64,19 @@ public class ApiV1AuthController {
                 return new IllegalStateException("사용자를 찾을 수 없습니다: " + userId);
             });
 
-        // academyId 필드 추가
+        // 프로필 이미지 URL 가져오기 (null 체크 포함)
+        String profileImageUrl = Optional.ofNullable(user.getProfileImage()) // User의 Image 객체 가져오기
+                                       .map(Image::getFilePath)      // Image 객체가 있다면 파일 경로 가져오기
+                                       .orElse(null);                     // Image 객체가 null이면 null 반환
+
+        // MeDto 생성 시 profileImageUrl 전달
         MeDto meDto = new MeDto(
-            user.getId(), 
-            user.getNickName(), 
-            user.getCreationTime(), 
+            user.getId(),
+            user.getNickName(),
+            user.getCreationTime(),
             user.getModificationTime(),
-            user.getAcademyId()  // academyId 필드 추가
+            user.getAcademyId(),
+            profileImageUrl // 가져온 profileImageUrl 전달
         );
         
         return ResponseEntity.ok(meDto);
