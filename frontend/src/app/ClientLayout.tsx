@@ -81,7 +81,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
             if (userInfoResponse.ok) {
                 const userInfo = await userInfoResponse.json()
-                console.log('추가 사용자 정보:', userInfo)
                 setLoginMember(userInfo)
             } else {
                 setLoginMember(data)

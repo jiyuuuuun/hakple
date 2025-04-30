@@ -66,7 +66,7 @@ export default function AcademyRegister() {
             if (contentType && contentType.includes('application/json')) {
                 // JSON 응답인 경우
                 const data = (await response.json()) as AcademyResponse
-                console.log('학원 등록 응답 데이터 (JSON):', data)
+
 
                 // JSON 응답에서 학원 이름 추출
                 if (data && data.academyName) {
@@ -75,7 +75,7 @@ export default function AcademyRegister() {
             } else {
                 // 텍스트 응답인 경우
                 const textData = await response.text()
-                console.log('학원 등록 응답 데이터 (텍스트):', textData)
+
 
                 // 텍스트 응답에서 학원 이름 추출
                 if (textData.includes('학원이 등록되었습니다:')) {

@@ -29,7 +29,6 @@ const MobileBottomNav = () => {
             setIsAdmin(isAdminResult === true)
         })
         .catch(error => {
-            console.log('관리자 권한 확인 중 오류:', error)
             setIsAdmin(false)
         })
     }, [isLogin])

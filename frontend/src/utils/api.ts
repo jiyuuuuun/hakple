@@ -115,7 +115,6 @@ export async function fetchJson<T>(url: string, options?: RequestInit): Promise<
         // 에러 상태에 따른 처리
         if (response.status === 400 || response.status === 403) {
             // 클라이언트 에러는 일반 로그로 처리
-            console.log(`클라이언트 에러 발생 (${response.status}):`, response.statusText)
         } else if (response.status >= 500) {
             // 서버 에러는 경고 로그로 처리
             console.warn(`서버 에러 발생 (${response.status}):`, response.statusText)
@@ -136,7 +135,6 @@ export async function fetchJson<T>(url: string, options?: RequestInit): Promise<
     try {
         return JSON.parse(text) as T
     } catch (error) {
-        console.log('JSON 파싱 실패:', error)
         throw new Error('서버 응답을 처리할 수 없습니다.')
     }
 }
