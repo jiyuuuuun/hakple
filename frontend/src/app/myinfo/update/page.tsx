@@ -224,16 +224,19 @@ export default function ProfileUpdatePage() {
 
             // 백엔드에 실제 API 요청
             console.log('휴대폰 번호 중복 확인 API 요청:', newPhoneNumber)
-            const response = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`, {
-                method: 'GET',
-            })
+            const response = await fetchApi(
+                `/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`,
+                {
+                    method: 'GET',
+                },
+            )
 
             // 응답 처리
             if (response.ok) {
                 const available = await response.json()
                 if (available) {
                     setPhoneError('사용 가능한 휴대폰 번호입니다.')
-                setIsPhoneChecked(true)
+                    setIsPhoneChecked(true)
                     console.log('휴대폰 번호 중복확인 완료 - 사용 가능')
                 } else {
                     setPhoneError('이미 사용 중인 휴대폰 번호입니다.')
@@ -245,7 +248,7 @@ export default function ProfileUpdatePage() {
                 const errorText = await response.text()
                 console.log('휴대폰 번호 중복확인 실패 응답:', errorText)
                 setPhoneError('휴대폰 번호 중복 확인에 실패했습니다.')
-                    setIsPhoneChecked(false)
+                setIsPhoneChecked(false)
             }
         } catch (err) {
             console.error('휴대폰 번호 중복 확인 중 오류 발생:', err)
@@ -332,35 +335,35 @@ export default function ProfileUpdatePage() {
             // 성공 시 처리
             try {
                 // 응답 형식 확인 후 처리
-                const contentType = response.headers.get('content-type');
-                let result;
-                
+                const contentType = response.headers.get('content-type')
+                let result
+
                 if (contentType && contentType.includes('application/json')) {
                     // JSON 응답인 경우
-                    result = await response.json();
-                    console.log('프로필 업데이트 성공 (JSON):', result);
+                    result = await response.json()
+                    console.log('프로필 업데이트 성공 (JSON):', result)
                 } else {
                     // 텍스트 응답인 경우
-                    const textResponse = await response.text();
-                    console.log('프로필 업데이트 성공 (텍스트):', textResponse);
-                    result = { message: textResponse };
+                    const textResponse = await response.text()
+                    console.log('프로필 업데이트 성공 (텍스트):', textResponse)
+                    result = { message: textResponse }
                 }
-                
+
                 // 성공 메시지 표시
-                toast.success('프로필 정보가 업데이트되었습니다');
-                
+                toast.success('프로필 정보가 업데이트되었습니다')
+
                 // 마이페이지로 이동
                 setTimeout(() => {
-                    router.push('/myinfo');
-                }, 1500);
+                    router.push('/myinfo')
+                }, 1500)
             } catch (parseError) {
-                console.error('응답 파싱 중 오류:', parseError);
+                console.error('응답 파싱 중 오류:', parseError)
                 // 파싱 오류가 발생해도 업데이트는 성공한 것으로 처리
-                toast.success('프로필 정보가 업데이트되었습니다');
-                
+                toast.success('프로필 정보가 업데이트되었습니다')
+
                 setTimeout(() => {
-                    router.push('/myinfo');
-                }, 1500);
+                    router.push('/myinfo')
+                }, 1500)
             }
         } catch (err) {
             console.error('프로필 업데이트 중 오류 발생:', err)
@@ -386,15 +389,15 @@ export default function ProfileUpdatePage() {
             <div className="max-w-2xl mx-auto">
                 {/* 뒤로가기 버튼 */}
                 <div className="mb-8">
-                    <Link 
-                        href="/myinfo" 
+                    <Link
+                        href="/myinfo"
                         className="inline-flex items-center text-gray-600 hover:text-[#9C50D4] transition-colors text-lg"
                     >
                         <ArrowLeftIcon className="h-6 w-6 mr-2" />
                         <span>내 정보로 돌아가기</span>
                     </Link>
                 </div>
-                
+
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                     {/* 헤더 부분 */}
                     <div className="bg-[#F7F3FD] px-8 py-6 border-b border-gray-100">
@@ -402,9 +405,7 @@ export default function ProfileUpdatePage() {
                             <UserIcon className="h-9 w-9 text-[#9C50D4] mr-4" />
                             <h1 className="text-2xl font-bold text-gray-800">프로필 정보 수정</h1>
                         </div>
-                        <p className="text-gray-600 mt-3 text-lg">
-                            닉네임과 휴대폰 번호를 변경할 수 있습니다.
-                        </p>
+                        <p className="text-gray-600 mt-3 text-lg">닉네임과 휴대폰 번호를 변경할 수 있습니다.</p>
                     </div>
 
                     {/* 컨텐츠 부분 */}
@@ -432,8 +433,19 @@ export default function ProfileUpdatePage() {
                         {error && (
                             <div className="mb-8 bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
                                 <div className="flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-6 w-6 text-red-500 mr-3"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
                                     </svg>
                                     <p className="text-base text-red-600">{error}</p>
                                 </div>
@@ -448,9 +460,7 @@ export default function ProfileUpdatePage() {
                                         <label htmlFor="nickname" className="block text-lg font-medium text-gray-700">
                                             닉네임
                                         </label>
-                                        <span className="text-sm text-gray-500">
-                                            현재: {currentNickname}
-                                        </span>
+                                        <span className="text-sm text-gray-500">현재: {currentNickname}</span>
                                     </div>
                                     <div className="relative">
                                         <input
@@ -474,22 +484,33 @@ export default function ProfileUpdatePage() {
                                         )}
                                     </div>
                                     {nicknameError && (
-                                        <p className={`mt-3 text-base flex items-center ${
+                                        <p
+                                            className={`mt-3 text-base flex items-center ${
                                                 nicknameError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
-                                        }`}>
+                                            }`}
+                                        >
                                             {nicknameError.includes('사용 가능') ? (
                                                 <CheckIcon className="h-5 w-5 mr-2 text-green-500" />
                                             ) : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-5 w-5 mr-2"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                                    />
                                                 </svg>
                                             )}
                                             {nicknameError}
                                         </p>
                                     )}
-                                    <p className="mt-2 text-sm text-gray-500">
-                                        2~20자의 영문, 한글, 숫자
-                                    </p>
+                                    <p className="mt-2 text-sm text-gray-500">2~20자의 영문, 한글, 숫자</p>
                                 </div>
 
                                 {/* 휴대폰 번호 필드 */}
@@ -518,7 +539,7 @@ export default function ProfileUpdatePage() {
                                                 value={newPhoneNumber}
                                                 onChange={handlePhoneChange}
                                                 disabled={isKakaoUser}
-                                                />
+                                            />
                                             {newPhoneNumber && phoneError.includes('사용 가능') && (
                                                 <CheckCircleIcon className="absolute right-4 top-4 h-6 w-6 text-green-500" />
                                             )}
@@ -533,14 +554,27 @@ export default function ProfileUpdatePage() {
                                         </button>
                                     </div>
                                     {phoneError && (
-                                        <p className={`mt-3 text-base flex items-center ${
+                                        <p
+                                            className={`mt-3 text-base flex items-center ${
                                                 phoneError.includes('사용 가능') ? 'text-green-600' : 'text-red-600'
-                                        }`}>
+                                            }`}
+                                        >
                                             {phoneError.includes('사용 가능') ? (
                                                 <CheckIcon className="h-5 w-5 mr-2 text-green-500" />
                                             ) : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-5 w-5 mr-2"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                                    />
                                                 </svg>
                                             )}
                                             {phoneError}
@@ -548,15 +582,24 @@ export default function ProfileUpdatePage() {
                                     )}
                                     {isKakaoUser && (
                                         <p className="mt-3 text-sm text-amber-600 flex items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-5 w-5 mr-2"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
                                             </svg>
                                             카카오 계정은 휴대폰 번호를 변경할 수 없습니다.
                                         </p>
                                     )}
-                                    <p className="mt-2 text-sm text-gray-500">
-                                        예: 010-1234-5678 (하이픈 자동 추가)
-                                    </p>
+                                    <p className="mt-2 text-sm text-gray-500">예: 010-1234-5678 (하이픈 자동 추가)</p>
                                 </div>
 
                                 {/* 제출 버튼 */}
@@ -575,11 +618,29 @@ export default function ProfileUpdatePage() {
                                             disabled={!isFormValid || isLoading}
                                         >
                                             {isLoading ? (
-                                                <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                <svg
+                                                    className="animate-spin h-6 w-6 text-white"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <circle
+                                                        className="opacity-25"
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="10"
+                                                        stroke="currentColor"
+                                                        strokeWidth="4"
+                                                    ></circle>
+                                                    <path
+                                                        className="opacity-75"
+                                                        fill="currentColor"
+                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                    ></path>
                                                 </svg>
-                                            ) : '저장하기'}
+                                            ) : (
+                                                '저장하기'
+                                            )}
                                         </button>
                                     </div>
                                 </div>

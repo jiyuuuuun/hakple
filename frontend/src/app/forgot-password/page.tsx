@@ -6,7 +6,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { fetchApi } from '@/utils/api'
 
-
 export default function ForgotPasswordPage() {
     const router = useRouter()
     const [formData, setFormData] = useState({
@@ -26,12 +25,11 @@ export default function ForgotPasswordPage() {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target
         // 숫자만 입력 허용
-        const sanitizedValue = name === 'phoneNumber' || name === 'verificationCode' 
-            ? value.replace(/[^0-9]/g, '')
-            : value
-            
-        setFormData(prev => ({ ...prev, [name]: sanitizedValue }))
-        
+        const sanitizedValue =
+            name === 'phoneNumber' || name === 'verificationCode' ? value.replace(/[^0-9]/g, '') : value
+
+        setFormData((prev) => ({ ...prev, [name]: sanitizedValue }))
+
         // 휴대폰 번호가 변경되면 관련 상태 초기화
         if (name === 'phoneNumber') {
             setCodeSent(false)
@@ -40,12 +38,12 @@ export default function ForgotPasswordPage() {
             setPhoneExists(false)
             setIsExpired(false)
         }
-        
+
         // 인증번호가 변경되면 인증 상태 초기화
         if (name === 'verificationCode') {
             setCodeVerified(false)
         }
-        
+
         // 에러 메시지 초기화
         setErrorMessage('')
     }
@@ -98,34 +96,34 @@ export default function ForgotPasswordPage() {
             // 먼저 휴대폰 번호 존재 여부 확인
             const phoneCheckResponse = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${formData.phoneNumber}`, {
                 method: 'GET',
-            });
-            
+            })
+
             if (!phoneCheckResponse.ok) {
-                throw new Error(`휴대폰 번호 확인 실패: ${phoneCheckResponse.status}`);
+                throw new Error(`휴대폰 번호 확인 실패: ${phoneCheckResponse.status}`)
             }
-            
+
             // 응답 데이터 읽기 (Boolean 타입)
-            const isAvailable = await phoneCheckResponse.json() as boolean;
-            
+            const isAvailable = (await phoneCheckResponse.json()) as boolean
+
             // 이미 등록된 번호인 경우에만 인증번호 전송 (false = 이미 사용중인 번호)
             if (isAvailable) {
-                setErrorMessage("입력한 휴대폰 번호로 가입된 회원이 없습니다.");
-                setIsLoading(false);
-                return;
+                setErrorMessage('입력한 휴대폰 번호로 가입된 회원이 없습니다.')
+                setIsLoading(false)
+                return
             }
-            
-            setPhoneExists(true);
-            
+
+            setPhoneExists(true)
+
             // 인증번호 요청 - 휴대폰 번호가 이미 존재할 때만 실행 (isAvailable이 false일 때)
-            const response = await fetchApi(`/api/v1/sms/send?phone=${formData.phoneNumber}`, {
+            const response = await fetchApi('/api/v1/sms/send?phone=${formData.phoneNumber}', {
                 method: 'POST',
             })
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    throw new Error('존재하지 않는 사용자입니다.');
+                    throw new Error('존재하지 않는 사용자입니다.')
                 } else {
-                    throw new Error(`인증번호 전송 실패: ${response.status}`);
+                    throw new Error(`인증번호 전송 실패: ${response.status}`)
                 }
             }
 
@@ -134,8 +132,8 @@ export default function ForgotPasswordPage() {
             setTimeLeft(180)
             setIsTimerActive(true)
             setIsExpired(false)
-            setFormData(prev => ({ ...prev, verificationCode: '' })) // 재전송 시 인증번호 초기화
-            setSuccessMessage("인증번호가 전송되었습니다. 인증번호를 입력해주세요.");
+            setFormData((prev) => ({ ...prev, verificationCode: '' })) // 재전송 시 인증번호 초기화
+            setSuccessMessage('인증번호가 전송되었습니다. 인증번호를 입력해주세요.')
         } catch (error) {
             console.error('인증번호 전송 오류:', error)
             setErrorMessage(error instanceof Error ? error.message : '인증번호 전송에 실패했습니다. 다시 시도해주세요.')
@@ -186,7 +184,7 @@ export default function ForgotPasswordPage() {
             // 인증 성공
             setCodeVerified(true)
             setIsTimerActive(false)
-            setSuccessMessage("휴대폰 번호 인증이 완료되었습니다.");
+            setSuccessMessage('휴대폰 번호 인증이 완료되었습니다.')
         } catch (error) {
             console.error('인증 오류:', error)
             setErrorMessage(error instanceof Error ? error.message : '인증번호가 올바르지 않습니다. 다시 확인해주세요.')
@@ -203,7 +201,7 @@ export default function ForgotPasswordPage() {
             setErrorMessage('휴대폰 번호를 입력해주세요.')
             return
         }
-        
+
         // 휴대폰 인증이 완료되지 않은 경우
         if (!codeVerified) {
             setErrorMessage('휴대폰 번호 인증을 완료해주세요.')
@@ -211,13 +209,13 @@ export default function ForgotPasswordPage() {
         }
 
         setIsLoading(true)
-        setSuccessMessage("인증이 완료되었습니다. 비밀번호 재설정 페이지로 이동합니다.");
-        
+        setSuccessMessage('인증이 완료되었습니다. 비밀번호 재설정 페이지로 이동합니다.')
+
         // 잠시 후 페이지 이동
         setTimeout(() => {
             // 페이지 이동 시 phoneNumber를 state로 전달하여 비밀번호 재설정에 사용
             router.push(`/reset-password?phone=${encodeURIComponent(formData.phoneNumber)}`)
-        }, 1500);
+        }, 1500)
     }
 
     return (
@@ -262,7 +260,7 @@ export default function ForgotPasswordPage() {
                                 onChange={handleChange}
                                 placeholder="휴대폰 번호를 입력하세요"
                                 className={`flex-1 px-5 py-4 text-lg text-black rounded-lg border ${
-                                    phoneExists ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50"
+                                    phoneExists ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'
                                 } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                                 disabled={isLoading || codeSent}
                             />
@@ -270,13 +268,11 @@ export default function ForgotPasswordPage() {
                                 type="button"
                                 onClick={handleSendVerification}
                                 className={`px-4 py-2 whitespace-nowrap text-base ${
-                                    codeSent
-                                        ? "bg-green-500 text-white"
-                                        : "bg-[#9C50D4] text-white hover:bg-[#8a45bc]"
+                                    codeSent ? 'bg-green-500 text-white' : 'bg-[#9C50D4] text-white hover:bg-[#8a45bc]'
                                 } rounded-lg transition-colors`}
                                 disabled={isLoading || !formData.phoneNumber || codeSent}
                             >
-                                {isLoading ? "처리 중..." : codeSent ? "전송됨" : "인증번호 받기"}
+                                {isLoading ? '처리 중...' : codeSent ? '전송됨' : '인증번호 받기'}
                             </button>
                         </div>
                         <p className="text-sm text-gray-500">숫자만 입력해주세요</p>
@@ -303,11 +299,11 @@ export default function ForgotPasswordPage() {
                                     onChange={handleChange}
                                     placeholder="인증번호 6자리를 입력하세요"
                                     className={`flex-1 px-5 py-4 text-lg text-black rounded-lg border ${
-                                        isExpired 
-                                            ? "border-red-300" 
-                                            : codeVerified 
-                                                ? "border-green-500 bg-green-50" 
-                                                : "border-gray-300 bg-gray-50"
+                                        isExpired
+                                            ? 'border-red-300'
+                                            : codeVerified
+                                            ? 'border-green-500 bg-green-50'
+                                            : 'border-gray-300 bg-gray-50'
                                     } focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                                     maxLength={6}
                                     disabled={isLoading || codeVerified || isExpired}
@@ -316,9 +312,11 @@ export default function ForgotPasswordPage() {
                                     type="button"
                                     onClick={handleVerify}
                                     className="px-4 py-2 whitespace-nowrap text-base bg-[#9C50D4] text-white hover:bg-[#8a45bc] rounded-lg transition-colors"
-                                    disabled={isLoading || formData.verificationCode.length !== 6 || codeVerified || isExpired}
+                                    disabled={
+                                        isLoading || formData.verificationCode.length !== 6 || codeVerified || isExpired
+                                    }
                                 >
-                                    {isLoading ? "확인 중..." : "확인"}
+                                    {isLoading ? '확인 중...' : '확인'}
                                 </button>
                             </div>
                             {isExpired && (
@@ -333,7 +331,9 @@ export default function ForgotPasswordPage() {
                         type="submit"
                         disabled={isLoading || !codeVerified}
                         className={`w-full py-4 text-lg ${
-                            isLoading || !codeVerified ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#9C50D4] hover:bg-[#8a45bc]'
+                            isLoading || !codeVerified
+                                ? 'bg-gray-300 cursor-not-allowed'
+                                : 'bg-[#9C50D4] hover:bg-[#8a45bc]'
                         } text-white rounded-lg transition-colors mt-6`}
                     >
                         {isLoading ? '처리 중...' : '비밀번호 재설정'}

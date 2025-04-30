@@ -1,16 +1,11 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import SafeImage from '@/components/SafeImage'
-import SafeHtmlImage from '@/components/SafeHtmlImage'
 import { fetchApi } from '@/utils/api'
+
 export default function Home() {
     const router = useRouter()
-    // API 기본 URL
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
     // 타이핑 애니메이션을 위한 상태
     const [typedText, setTypedText] = useState('')
     const [currentTextIndex, setCurrentTextIndex] = useState(0)
@@ -38,7 +33,7 @@ export default function Home() {
         // 관리자 권한 확인 함수를 useEffect 내부로 이동
         const checkAdminPermission = async () => {
             try {
-                const response = await fetchApi('/api/v1/admin/check', {
+                const response = await fetchApi(`/api/v1/admin/check`, {
                     method: 'GET',
                 })
 

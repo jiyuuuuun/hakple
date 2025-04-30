@@ -95,7 +95,6 @@ export function useLoginMember() {
 
         // 액세스 토큰이 있는 로그인 요청인 경우 처리
         if (member.accessToken && member.id) {
-            console.log('로그인: accessToken 있음, userId:', member.id);
             const user: User = {
                 id: member.id,
                 nickname: member.userName || '',
@@ -135,8 +134,6 @@ export function useLoginMember() {
                     // 캐시 문제를 방지하기 위해 타임스탬프를 URL에 추가하지 않음
                     // 컴포넌트에서 이미지 로드 시 타임스탬프 추가
                 }
-                
-                console.log('프로필 이미지 URL 처리됨:', profileImageUrl);
             }
         }
 
