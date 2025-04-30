@@ -73,7 +73,7 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
         if (response.ok && !url.includes('/api/v1/myInfos')) {
             try {
                 // 사용자 정보 갱신
-                const userInfoResponse = await fetch(`${BASE_URL}/api/v1/myInfos`, {
+                const userInfoResponse = await fetch(`/api/v1/myInfos`, {
                     credentials: 'include',
                 })
 
