@@ -94,7 +94,6 @@ public class CustomRequest {
     public void deleteCookie(String name) {
         ResponseCookie cookie = ResponseCookie.from(name, null)
                 .path("/")
-                .domain("https://www.hakple.site")
                 .sameSite("Strict")
                 .secure(true)
                 .httpOnly(true)

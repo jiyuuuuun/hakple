@@ -31,6 +31,7 @@ export default function Home() {
 
     // 로그인 상태 확인
     useEffect(() => {
+        // 관리자 권한 확인 함수를 useEffect 내부로 이동
         const checkAdminPermission = async () => {
             try {
                 const response = await fetchApi(`/api/v1/admin/check`, {
@@ -60,16 +61,34 @@ export default function Home() {
             }
         }
 
-        
-        // TODO: 실제 로그인 상태 확인 로직 추가 필요
-        // 예시: 토큰 확인 등
-        // setIsLoggedIn(true or false); 
+        const checkLoginStatus = async () => {
+            try {
+                const response = await fetchApi('/api/v1/auth/me', {
+                    method: 'GET',
+                })
 
-        checkAdminPermission() // 관리자 권한 확인 함수 호출
-        // setIsLoading(false) // 로그인 상태 및 관리자 확인 완료 후 로딩 상태 변경
+                console.log('로그인 상태 응답:', response.status)
 
-    }, [router]) // router가 변경될 일은 없지만, linter 경고를 피하기 위해 추가
+                if (response.ok) {
+                    const data = await response.json()
+                    console.log('로그인 상태 성공:', data)
+                    setIsLoggedIn(true)
 
+                    // 로그인 성공 → 관리자 권한 확인
+                    await checkAdminPermission()
+                } else {
+                    console.log('로그인 필요')
+                    setIsLoggedIn(false)
+                    setIsLoading(false)
+                }
+            } catch (error) {
+                console.error('로그인 상태 확인 중 오류:', error)
+                setIsLoggedIn(false)
+                setIsLoading(false)
+            }
+        }
+        checkLoginStatus()
+    }, [router])
 
     // 타이핑 효과 구현
     useEffect(() => {
