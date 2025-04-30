@@ -17,11 +17,17 @@ const API_TIMEOUT = Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 30000
  * 기본 fetch 함수 래퍼
  * @param url API 엔드포인트 URL
  * @param options fetch 옵션
+ * @param preventRedirectOn401 (추가) 401 오류 발생 시 자동 리다이렉트 방지 여부
  * @returns Response 객체
  */
-export async function fetchApi(url: string, options: RequestInit = {}): Promise<Response> {
+export async function fetchApi(
+    url: string, 
+    options: RequestInit = {},
+    preventRedirectOn401: boolean = false // 옵션 추가
+): Promise<Response> {
     // 전체 URL 생성 (상대 경로인 경우에만 BASE_URL 추가)
     const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`
+    console.log(`[fetchApi] Requesting: ${url}, PreventRedirect: ${preventRedirectOn401}`); // Log start
 
     // 기본 옵션
     const defaultOptions: RequestInit = {
@@ -61,19 +67,38 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
 
         clearTimeout(timeoutId)
 
-        // 401 에러 처리
-        if (response.status === 401 && !url.includes('/api/v1/auth/login')) {
-            // 로그인 페이지로 리다이렉트
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login'
+        console.log(`[fetchApi] Response Status for ${url}: ${response.status}`); // Log status
+
+        // 401 에러 처리 (리다이렉트 방지 옵션 확인)
+        if (
+            response.status === 401 && 
+            !url.includes('/api/v1/auth/login')
+        ) {
+             console.log(`[fetchApi] 401 detected for ${url}. PreventRedirect: ${preventRedirectOn401}`); // Log 401 detection
+            if (!preventRedirectOn401) { // 옵션이 true가 아닐 때만 리다이렉트
+                console.log(`[fetchApi] Redirecting to /login due to 401 on ${url}`); // Log redirect decision
+                // 로그인 페이지로 리다이렉트
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/login'
+                }
+                // 리다이렉트 후에도 Promise를 반환해야 할 수 있으므로, response를 그대로 반환하거나
+                // 특정 상태를 나타내는 Promise를 반환하는 것을 고려할 수 있습니다.
+                // 여기서는 일단 리다이렉트 후 response 반환
+            } else {
+                 console.log(`[fetchApi] Redirect prevented for ${url} due to flag.`); // Log prevention
             }
         }
 
-        // myInfos API가 아닌 다른 API 요청에서 200 응답을 받았을 때
-        if (response.ok && !url.includes('/api/v1/myInfos')) {
+        // myInfos API가 아니고, 로그아웃 요청도 아닌 다른 API 요청에서 200 응답을 받았을 때
+        if (
+            response.ok && 
+            !url.includes('/api/v1/myInfos') && 
+            !url.includes('/api/v1/auth/logout') // 로그아웃 URL 제외 조건 추가
+        ) {
+            console.log(`[fetchApi] Triggering internal myInfos update after ${url}`); // 로그 추가
             try {
                 // 사용자 정보 갱신
-                const userInfoResponse = await fetch(`/api/v1/myInfos`, {
+                const userInfoResponse = await fetch(`${BASE_URL}/api/v1/myInfos`, { // BASE_URL 추가
                     credentials: 'include',
                 })
 
@@ -84,14 +109,17 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
                         localStorage.setItem('academyCode', userInfo.academyCode)
                         localStorage.setItem('academyName', userInfo.academyName || '등록된 학원')
                     }
+                } else {
+                    console.log(`[fetchApi] Internal myInfos update failed with status: ${userInfoResponse.status}`); // 실패 로그 추가
                 }
             } catch (error) {
-                console.error('사용자 정보 갱신 실패:', error)
+                console.error('[fetchApi] Internal myInfos update failed:', error)
             }
         }
 
         return response
     } catch (error) {
+        console.error(`[fetchApi] Error during fetch for ${url}:`, error); // Log fetch error
         if (error instanceof Error) {
             if (error.name === 'AbortError') {
                 throw new Error('요청 시간이 초과되었습니다.')
@@ -108,10 +136,13 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
  * @returns 파싱된 JSON 데이터
  */
 export async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+    console.log(`[fetchJson] Calling fetchApi for: ${url}`); // Log fetchJson start
+    // fetchApi 호출 시 preventRedirectOn401 옵션 전달 안 함 (기본값 false 사용됨)
     const response = await fetchApi(url, options)
 
     // 응답이 ok가 아니면 에러 발생
     if (!response.ok) {
+        console.log(`[fetchJson] Response not OK for ${url}. Status: ${response.status}`); // Log not ok
         // 에러 상태에 따른 처리
         if (response.status === 400 || response.status === 403) {
             // 클라이언트 에러는 일반 로그로 처리
