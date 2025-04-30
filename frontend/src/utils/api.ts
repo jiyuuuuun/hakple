@@ -6,18 +6,12 @@
 /**
  * API 요청을 위한 기본 URL
  */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 /**
  * API 요청 타임아웃 시간 (밀리초)
  */
 const API_TIMEOUT = Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 30000
-
-interface ApiResponse {
-    success: boolean
-    message?: string
-    data?: unknown
-}
 
 /**
  * 기본 fetch 함수 래퍼
@@ -79,7 +73,7 @@ export async function fetchApi(url: string, options: RequestInit = {}): Promise<
         if (response.ok && !url.includes('/api/v1/myInfos')) {
             try {
                 // 사용자 정보 갱신
-                const userInfoResponse = await fetch(`${BASE_URL}/api/v1/myInfos`, {
+                const userInfoResponse = await fetch(`/api/v1/myInfos`, {
                     credentials: 'include',
                 })
 

@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { fetchApi } from '@/utils/api'
 import { useRouter } from 'next/navigation'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export default function Signup() {
     const router = useRouter()
@@ -63,7 +63,7 @@ export default function Signup() {
 
         try {
             // 백엔드 API 호출 (직접 fetch 사용)
-            const response = await fetchApi(`${API_BASE_URL}/api/v1/users/check-username?userName=${fieldValue}`, {
+            const response = await fetchApi(`/api/v1/users/check-username?userName=${fieldValue}`, {
                 method: 'GET',
             })
 
@@ -111,12 +111,9 @@ export default function Signup() {
             // 먼저 휴대폰 번호 중복 확인
             let duplicateCheckResponse
             try {
-                duplicateCheckResponse = await fetchApi(
-                    `${API_BASE_URL}/api/v1/users/check-phonenum?phoneNum=${phone}`,
-                    {
-                        method: 'GET',
-                    },
-                )
+                duplicateCheckResponse = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${phone}`, {
+                    method: 'GET',
+                })
 
                 if (!duplicateCheckResponse.ok) {
                     throw new Error(`휴대폰 번호 중복 확인 실패: ${duplicateCheckResponse.status}`)
@@ -243,7 +240,7 @@ export default function Signup() {
 
         try {
             // API 기본 URL 설정
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
             // 백엔드 API 호출
             const requestData = {
