@@ -2,12 +2,14 @@ server:
   port: 8080
 spring:
   datasource:
-    url: jdbc:mysql://mysql_1:3306/blog_prod
+    url: jdbc:mysql://mysql_1:3306/blog_prod?serverTimezone=Asia/Seoul
     username: ll_local
     password: ${custom.prod.db.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       auto-commit: false
+  jackson:
+    time-zone: Asia/Seoul
   jpa:
     hibernate:
       ddl-auto: update
