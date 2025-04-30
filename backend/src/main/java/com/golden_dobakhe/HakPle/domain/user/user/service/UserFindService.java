@@ -4,6 +4,7 @@ import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class UserFindService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setModificationTime(LocalDateTime.now());
         userRepository.save(user);
     }
 
@@ -53,6 +55,7 @@ public class UserFindService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setModificationTime(LocalDateTime.now());
         userRepository.save(user);
     }
 }
