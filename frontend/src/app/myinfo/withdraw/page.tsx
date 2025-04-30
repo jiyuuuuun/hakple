@@ -111,7 +111,7 @@ export default function Withdraw() {
                                     <ul className="text-sm text-amber-700 space-y-1 ml-5 list-disc">
                                         <li>모든 개인정보가 삭제되며 복구할 수 없습니다.</li>
                                         <li>작성하신 게시물은 삭제되지 않습니다.</li>
-                                        <li>탈퇴 후 동일한 이메일로 재가입이 30일간 제한됩니다.</li>
+                                        <li>탈퇴 후 동일한 전화번호로 재가입이 30일간 제한됩니다.</li>
                                     </ul>
                                 </div>
                             </div>

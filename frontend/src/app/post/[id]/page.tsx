@@ -194,6 +194,7 @@ export default function PostDetailPage() {
                     Promise.all([
                         fetchApi(`/api/v1/posts/${params.id}/like-status`, {
                             method: 'GET',
+<<<<<<< HEAD
                         }).then(async res => {
                             if (res.ok) {
                                 const likeData = await res.json();
@@ -232,6 +233,54 @@ export default function PostDetailPage() {
                         }).catch(err => {
                             console.log('게시글 작성자 확인 중 오류:', err);
                             setPost(prev => prev ? { ...prev, isOwner: false } : null);
+=======
+                        })
+                            .then(async (res) => {
+                                if (res.ok) {
+                                    const likeData = await res.json()
+                                    setIsLiked(likeData.isLiked)
+                                } else {
+                                    setIsLiked(false)
+                                }
+                            })
+                            .catch((err) => {
+
+                                setIsLiked(false)
+                            }),
+
+                        fetchApi(`/api/v1/posts/${postId}/report-status`, {
+                            method: 'GET',
+                        })
+                            .then(async (res) => {
+                                if (res.ok) {
+                                    const reportData = await res.json()
+                                    setIsReported(reportData.isReported)
+                                } else {
+                                    setIsReported(false)
+                                }
+                            })
+                            .catch((err) => {
+                                setIsReported(false)
+                            }),
+
+                        fetchApi(`/api/v1/posts/${postId}/is-owner`, {
+                            method: 'GET',
+                        })
+                            .then(async (res) => {
+                                if (res.ok) {
+                                    const ownerData = await res.json()
+                                    setPost((prev) => (prev ? { ...prev, isOwner: ownerData.isOwner } : null))
+                                } else {
+                                    setPost((prev) => (prev ? { ...prev, isOwner: false } : null))
+                                }
+                            })
+                            .catch((err) => {
+                                setPost((prev) => (prev ? { ...prev, isOwner: false } : null))
+                            }),
+
+                        fetchComments(postData.id).then((commentsData) => {
+                            setComments(commentsData)
+>>>>>>> 00903e7a (fix: 버그 수정)
                         }),
 
                         fetchComments(postData.id).then(commentsData => {
@@ -463,10 +512,14 @@ export default function PostDetailPage() {
                     commentsData = JSON.parse(commentsText);
 
                     if (commentsData && commentsData.length > 0) {
+<<<<<<< HEAD
                         const firstComment = commentsData[0];
                         console.log('첫 번째 댓글 객체 구조:', Object.keys(firstComment));
                         console.log('isLiked 속성 타입:', typeof firstComment.isLiked);
                         console.log('isLiked 속성 값:', firstComment.isLiked);
+=======
+                        const firstComment = commentsData[0]
+>>>>>>> 00903e7a (fix: 버그 수정)
                     }
                 } catch (e) {
                     console.error('댓글 목록 JSON 파싱 오류:', e);
@@ -537,7 +590,11 @@ export default function PostDetailPage() {
                 content: commentInput
             };
 
+<<<<<<< HEAD
             console.log('댓글 등록 요청 데이터:', commentData);
+=======
+
+>>>>>>> 00903e7a (fix: 버그 수정)
 
             const response = await fetchApi(`/api/v1/comments`, {
                 method: 'POST',
@@ -604,10 +661,17 @@ export default function PostDetailPage() {
             }
         }
 
+<<<<<<< HEAD
         console.log('댓글 수정 취소');
         setEditingCommentId(null);
         setEditCommentContent('');
     };
+=======
+
+        setEditingCommentId(null)
+        setEditCommentContent('')
+    }
+>>>>>>> 00903e7a (fix: 버그 수정)
 
     const submitCommentEdit = async () => {
         if (!editingCommentId || !editCommentContent.trim() || !post) return;
@@ -623,7 +687,11 @@ export default function PostDetailPage() {
                 content: editCommentContent.trim()
             };
 
+<<<<<<< HEAD
             console.log('댓글 수정 요청 데이터:', commentData, 'commenterId:', editingCommentId);
+=======
+
+>>>>>>> 00903e7a (fix: 버그 수정)
 
             const response = await fetchApi(`/api/v1/comments/update`, {
                 method: 'POST',
@@ -673,10 +741,17 @@ export default function PostDetailPage() {
             });
 
             if (response.ok) {
+<<<<<<< HEAD
                 console.log('댓글 삭제 성공');
                 const updatedComments = await fetchComments(post.id);
                 setComments(updatedComments);
                 setShowCommentMenu(null);
+=======
+                
+                const updatedComments = await fetchComments(post.id)
+                setComments(updatedComments)
+                setShowCommentMenu(null)
+>>>>>>> 00903e7a (fix: 버그 수정)
             } else {
                 console.error('댓글 삭제 실패');
                 alert('댓글 삭제에 실패했습니다.');

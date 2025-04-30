@@ -33,7 +33,7 @@ export default function LoginPage() {
         setIsLoading(true)
 
         try {
-            console.log('로그인 요청 시작')
+           
             const response = await fetchApi('/api/v1/auth/login', {
                 method: 'POST',
                 headers: {
@@ -60,14 +60,14 @@ export default function LoginPage() {
             }
 
             const data = await response.json()
-            console.log('로그인 응답 데이터:', data)
+            
 
             // 응답 데이터 안전하게 확인
             if (!data || !data.accessToken) {
                 throw new Error('서버 응답 데이터가 올바르지 않습니다.')
             }
 
-            console.log('로그인 성공, 토큰 받음', data.accessToken)
+            
 
             // 서버 응답 구조에 맞게 로그인 멤버 정보 설정
             setLoginMember({
@@ -78,23 +78,23 @@ export default function LoginPage() {
             })
 
             // 관리자 권한 확인
-            console.log('관리자 권한 확인 시작')
+            
             const isAdmin = await checkAdminAndRedirect()
-            console.log('관리자 권한 확인 결과:', isAdmin)
+            
 
             // 직접 라우팅 처리
             if (isAdmin) {
-                console.log('관리자로 로그인 - 관리자 페이지로 이동')
+                
                 router.push('/admin')
             } else {
-                console.log('일반 사용자로 로그인 - 홈 페이지로 이동')
+                
                 router.push('/home')
             }
             
             // 로딩 상태 해제
             setIsLoading(false)
         } catch (error) {
-            console.log('로그인 에러:', error)
+            
             setError(error instanceof Error ? error.message : '로그인 중 오류가 발생했습니다.')
             setIsLoading(false)
         }

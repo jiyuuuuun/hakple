@@ -383,7 +383,25 @@ export default function HomePage() {
 
             const data = await response.json()
             if (data && Array.isArray(data.content)) {
-                setPopularPosts(data.content)
+                // 각 게시글의 좋아요 상태 확인
+                const postsWithLikeStatus = await Promise.all(
+                    data.content.map(async (post: Post) => {
+                        try {
+                            const likeStatusResponse = await fetchApi(`/api/v1/posts/${post.id}/like-status`, {
+                                credentials: 'include',
+                            })
+                            if (likeStatusResponse.ok) {
+                                const { isLiked } = await likeStatusResponse.json()
+                                return { ...post, isLiked }
+                            }
+                            return { ...post, isLiked: false }
+                        } catch (error) {
+                            console.error('좋아요 상태 확인 중 오류:', error)
+                            return { ...post, isLiked: false }
+                        }
+                    })
+                )
+                setPopularPosts(postsWithLikeStatus)
             } else {
                 setPopularPosts([])
             }
@@ -491,10 +509,18 @@ export default function HomePage() {
                 isLiked,
                 isLogin,
                 setIsLiked: (newLiked: boolean) => {
-                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? { ...p, isLiked: newLiked } : p)))
+                    // 일반 게시글 목록 업데이트
+                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? { ...p, isLiked: newLiked } : p)));
+                    
+                    // 인기글 목록도 업데이트
+                    setPopularPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? { ...p, isLiked: newLiked } : p)));
                 },
                 setPost: (updateFn: (prev: Post) => Post) => {
-                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? updateFn(p) : p)))
+                    // 일반 게시글 목록 업데이트
+                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? updateFn(p) : p)));
+                    
+                    // 인기글 목록도 업데이트
+                    setPopularPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? updateFn(p) : p)));
                 },
                 setIsLiking: () => {
                     setLikingPosts((prev) => {
@@ -520,7 +546,6 @@ export default function HomePage() {
         try {
             const storedAcademyCode = localStorage.getItem('academyCode')
             if (!storedAcademyCode) {
-                console.log('학원 코드가 없어 공지사항을 불러올 수 없습니다.')
                 setNoticePosts([])
                 return
             }
@@ -629,11 +654,16 @@ export default function HomePage() {
                                                     </h3>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <div className="flex items-center gap-1">
+                                                    <div 
+                                                        onClick={(e) => handleLikeClick(post, e)}
+                                                        className={`flex items-center gap-1 cursor-pointer ${
+                                                            post.isLiked ? 'text-[#9C50D4]' : ''
+                                                        }`}
+                                                    >
                                                         <svg
                                                             xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-4 w-4"
-                                                            fill="none"
+                                                            className={`h-4 w-4 ${likingPosts.has(post.id) ? 'animate-pulse' : ''}`}
+                                                            fill={post.isLiked ? 'currentColor' : 'none'}
                                                             viewBox="0 0 24 24"
                                                             stroke="currentColor"
                                                         >
@@ -861,11 +891,18 @@ export default function HomePage() {
                                         </div>
 
                                         <div className="flex items-center gap-6 text-gray-500">
-                                            <div className="flex items-center gap-2 group/like hover:text-[#9C50D4] transition-all">
+                                            <div 
+                                                onClick={(e) => handleLikeClick(post, e)}
+                                                className={`flex items-center gap-2 group/like transition-all cursor-pointer ${
+                                                    post.isLiked ? 'text-[#9C50D4]' : 'text-gray-500 hover:text-[#9C50D4]'
+                                                }`}
+                                            >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5 group-hover/like:scale-110 transition-transform"
-                                                    fill="none"
+                                                    className={`h-5 w-5 group-hover/like:scale-110 transition-transform ${
+                                                        likingPosts.has(post.id) ? 'animate-pulse' : ''
+                                                    }`}
+                                                    fill={post.isLiked ? 'currentColor' : 'none'}
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
                                                 >
@@ -876,7 +913,7 @@ export default function HomePage() {
                                                         d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                                                     />
                                                 </svg>
-                                                <span className="text-sm group-hover/like:text-[#9C50D4]">{post.likeCount}</span>
+                                                <span className="text-sm">{post.likeCount}</span>
                                             </div>
                                             <div className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
                                                 <svg
