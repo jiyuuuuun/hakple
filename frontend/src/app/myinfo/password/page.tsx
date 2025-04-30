@@ -79,12 +79,18 @@ export default function ChangePasswordPage() {
             return
         }
 
+        // 현재 비밀번호와 새 비밀번호가 같은지 확인
+        if (currentPassword === newPassword) {
+            setPasswordError('현재 비밀번호와 새 비밀번호가 같습니다.')
+            return
+        }
+
         setIsLoading(true)
         setPasswordError('')
         setConfirmError('')
 
         try {
-            await fetchApi('/api/v1/usernames/change-password', {
+            const response = await fetchApi('/api/v1/usernames/change-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -95,6 +101,11 @@ export default function ChangePasswordPage() {
                     newPasswordConfirm: confirmPassword,
                 }),
             })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.message || '비밀번호 변경에 실패했습니다.')
+            }
 
             // 비밀번호 변경 성공 메시지 표시
             setSuccessMessage('비밀번호가 성공적으로 변경되었습니다.')
@@ -112,12 +123,13 @@ export default function ChangePasswordPage() {
             console.error('비밀번호 변경 오류:', error)
 
             if (error instanceof Error) {
-                if (error.message.includes('401')) {
-                    setPasswordError('현재 비밀번호가 올바르지 않습니다.')
+                if (error.message.includes('현재 비밀번호가 일치하지 않음')) {
+                    setPasswordError('현재 비밀번호가 일치하지 않습니다.')
+                    setCurrentPassword('') // 현재 비밀번호 입력 필드 초기화
                 } else if (error.message.includes('400')) {
                     setPasswordError('비밀번호 변경 요청이 올바르지 않습니다.')
                 } else {
-                    setPasswordError('비밀번호 변경에 실패했습니다. 다시 시도해주세요.')
+                    setPasswordError(error.message || '비밀번호 변경에 실패했습니다. 다시 시도해주세요.')
                 }
             } else {
                 setPasswordError('서버 연결에 문제가 발생했습니다. 나중에 다시 시도해주세요.')
@@ -200,10 +212,31 @@ export default function ChangePasswordPage() {
                                             setPasswordError('')
                                         }}
                                         placeholder="현재 비밀번호 입력"
-                                        className="w-full px-5 py-4 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors bg-gray-50"
+                                        className={`w-full px-5 py-4 text-lg border ${
+                                            passwordError ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-gray-50'
+                                        } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9C50D4] focus:border-transparent transition-colors`}
                                         disabled={isLoading || !!successMessage}
                                         required
                                     />
+                                    {passwordError && (
+                                        <p className="text-red-600 text-base mt-3 flex items-center">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-5 w-5 mr-2"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
+                                            </svg>
+                                            {passwordError}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
@@ -216,6 +249,7 @@ export default function ChangePasswordPage() {
                                         value={newPassword}
                                         onChange={(e) => {
                                             setNewPassword(e.target.value)
+                                            setPasswordError('')
                                         }}
                                         placeholder="새 비밀번호 입력"
                                         className={`w-full px-5 py-4 text-lg border ${
@@ -259,6 +293,7 @@ export default function ChangePasswordPage() {
                                         value={confirmPassword}
                                         onChange={(e) => {
                                             setConfirmPassword(e.target.value)
+                                            setConfirmError('')
                                         }}
                                         placeholder="새 비밀번호 다시 입력"
                                         className={`w-full px-5 py-4 text-lg border ${
