@@ -118,14 +118,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             setIsLogin(false)
             return
         }
-
+        
+        // 루트 경로('/')에서는 로그인 체크를 수행하되, 실패해도 리다이렉트하지 않음
         const checkLoginStatus = async () => {
             try {
                 const response = await fetchApi('/api/v1/auth/me', {
                     method: 'GET',
                 })
-
-                
 
                 if (!response.ok) {
                     setNoLoginMember()
@@ -139,11 +138,22 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 setIsLogin(true)
                 return true
             } catch (error) {
-                
                 setNoLoginMember()
                 setIsLogin(false)
                 return false
             }
+        }
+
+        // 루트 경로('/')인 경우 별도 처리
+        if (pathname === '/') {
+            // 로그인 체크는 수행하되, 결과에 관계없이 홈 페이지 접근 허용
+            checkLoginStatus()
+            // 로딩 상태 해제
+            if (isLoginMemberPending) {
+                const event = new CustomEvent('loginMemberLoaded')
+                window.dispatchEvent(event)
+            }
+            return
         }
 
         // 로그인 상태 확인 및 리다이렉트 처리
