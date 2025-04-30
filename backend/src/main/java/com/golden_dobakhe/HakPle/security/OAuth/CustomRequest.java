@@ -94,7 +94,7 @@ public class CustomRequest {
     public void deleteCookie(String name) {
         ResponseCookie cookie = ResponseCookie.from(name, null)
                 .path("/")
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .secure(true)
                 .httpOnly(true)
                 .maxAge(0)

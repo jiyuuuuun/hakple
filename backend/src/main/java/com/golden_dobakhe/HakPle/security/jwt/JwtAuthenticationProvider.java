@@ -63,15 +63,17 @@ public class JwtAuthenticationProvider {
             throw new RuntimeException("유효하지 않은 토큰입니다", e);
         }
 
-//        try {
-//            if (redisTemplate.hasKey(token)) {
-//                log.warn("🚫 블랙리스트 토큰 사용: {}", token);
-//                throw new RuntimeException("로그아웃된 토큰입니다");
-//            }
-//        } catch (Exception e) {
-//            log.error("❌ Redis 연결 실패: {}", e.getMessage(), e);
-//            throw new RuntimeException("내부 서버 오류(Redis 연결 실패)", e);
-//        }
+        try {
+            Boolean isBlacklisted = redisTemplate.hasKey(token);
+            if (Boolean.TRUE.equals(isBlacklisted)) { // Redis에 토큰 키가 존재하면 블랙리스트된 토큰
+                log.warn("🚫 블랙리스트 토큰 사용: {}", token);
+                throw new RuntimeException("로그아웃된 토큰입니다");
+            }
+        } catch (Exception e) {
+            // Redis 연결 실패는 심각한 문제일 수 있으므로 로깅하고, 일단 인증은 진행하지 않음 (혹은 정책에 따라 다르게 처리)
+            log.error("❌ Redis 연결 실패 또는 확인 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("인증 서버 오류 (Redis 확인 실패)", e);
+        }
 
 //        Long userId = extractUserId(claims);
 //        User user = userRepository.findByIdWithRoles(userId)
