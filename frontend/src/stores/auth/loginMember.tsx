@@ -80,14 +80,9 @@ export function useLoginMember() {
     const [loginMember, _setLoginMember] = useState<User>(createEmptyMember())
     const [isLogin, setIsLogin] = useState(false); // 👈 추가
 
-    const removeLoginMember = () => {
-        _setLoginMember(createEmptyMember())
-        setIsLogin(false)
+    const setNoLoginMember = () => {
         setLoginMemberPending(false)
     }
-
-    //pending이 false되어서 로그인이 되었다고 판단함
-
 
     const setLoginMember = (member: BackendUser) => {
         // 백엔드 응답 원본 데이터 확인용 로그 추가
@@ -160,21 +155,44 @@ export function useLoginMember() {
         console.groupEnd()
     }
 
-    const setNoLoginMember = () => {
-        setLoginMemberPending(false)
-    }
-
-
     const logout = (callback: () => void) => {
         fetchApi(`/api/v1/auth/logout`, {
             method: 'DELETE',
+            credentials: 'include', // 쿠키를 포함하도록 설정
+            headers: {
+                'Content-Type': 'application/json',
+            },
         }).then(() => {
-            _setLoginMember(createEmptyMember())
-            setIsLogin(false)
-            setLoginMemberPending(false)
-            callback()
-        })
-    }
+            // 상태 초기화만 수행 (쿠키 삭제는 백엔드에서 처리)
+            _setLoginMember(createEmptyMember());
+            setIsLogin(false);
+            setLoginMemberPending(false);
+            
+            console.log('로그아웃 완료');
+            
+            // localStorage에 저장된 학원 정보 삭제
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('academyCode');
+                localStorage.removeItem('academyName');
+            }
+            
+            callback();
+        }).catch(err => {
+            console.error('로그아웃 중 오류 발생:', err);
+            
+            // 오류가 발생해도 상태는 초기화
+            _setLoginMember(createEmptyMember());
+            setIsLogin(false);
+            setLoginMemberPending(false);
+            
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('academyCode');
+                localStorage.removeItem('academyName');
+            }
+            
+            callback();
+        });
+    };
 
     const logoutAndHome = () => {
         logout(() => router.replace('/'))
@@ -193,7 +211,7 @@ export function useLoginMember() {
 
             const isAdmin = await response.json()
             return isAdmin === true
-        } catch (error) {
+        } catch {
             return false
         }
     }
