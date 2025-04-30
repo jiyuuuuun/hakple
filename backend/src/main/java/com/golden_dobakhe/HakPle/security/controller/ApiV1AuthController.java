@@ -1,31 +1,33 @@
 package com.golden_dobakhe.HakPle.security.controller;
 
 
+import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.service.UserRegistService;
 import com.golden_dobakhe.HakPle.security.OAuth.CustomRequest;
-// import com.golden_dobakhe.HakPle.security.OAuth.SecurityUser; // SecurityUser는 직접 사용하지 않으므로 주석 처리 또는 삭제 가능
-import com.golden_dobakhe.HakPle.security.dto.MeDto;
-import com.golden_dobakhe.HakPle.security.service.AuthService;
-import com.golden_dobakhe.HakPle.domain.user.user.service.UserRegistService; // UserRegistService import 추가
 import com.golden_dobakhe.HakPle.security.dto.LoginDto;
 import com.golden_dobakhe.HakPle.security.dto.LoginResponseDto;
+import com.golden_dobakhe.HakPle.security.dto.MeDto;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
-import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image; // Image import 경로 수정
+import com.golden_dobakhe.HakPle.security.service.AuthService;
 import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.Cookie; // 주석 처리 해제
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession; // HttpSession import 추가
+import jakarta.servlet.http.HttpSession;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication; // Authentication import 추가
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseCookie;
-import java.util.Optional;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 // import java.security.Principal; // Principal은 직접 사용하지 않으므로 주석 처리 또는 삭제 가능
 
@@ -51,45 +53,45 @@ public class ApiV1AuthController {
     public ResponseEntity<?> me(HttpServletRequest request) {
         String cookie = customRequest.getCookieValue("accessToken");
         Claims claims = jwtTokenizer.parseAccessToken(cookie);
-        
-        Object userId = claims.get("userId");
 
+        Object userId = claims.get("userId");
 
         if (userId == null) {
             throw new IllegalStateException("JWT에 userId가 없습니다!");
         }
 
         User user = authService.findById(((Number) userId).longValue())
-            .orElseThrow(() -> {
-                return new IllegalStateException("사용자를 찾을 수 없습니다: " + userId);
-            });
+                .orElseThrow(() -> {
+                    return new IllegalStateException("사용자를 찾을 수 없습니다: " + userId);
+                });
 
         // 프로필 이미지 URL 가져오기 (null 체크 포함)
         String profileImageUrl = Optional.ofNullable(user.getProfileImage()) // User의 Image 객체 가져오기
-                                       .map(Image::getFilePath)      // Image 객체가 있다면 파일 경로 가져오기
-                                       .orElse(null);                     // Image 객체가 null이면 null 반환
+                .map(Image::getFilePath)      // Image 객체가 있다면 파일 경로 가져오기
+                .orElse(null);                     // Image 객체가 null이면 null 반환
 
         // MeDto 생성 시 profileImageUrl 전달
         MeDto meDto = new MeDto(
-            user.getId(),
-            user.getNickName(),
-            user.getCreationTime(),
-            user.getModificationTime(),
-            user.getAcademyId(),
-            profileImageUrl // 가져온 profileImageUrl 전달
+                user.getId(),
+                user.getNickName(),
+                user.getCreationTime(),
+                user.getModificationTime(),
+                user.getAcademyId(),
+                profileImageUrl // 가져온 profileImageUrl 전달
         );
-        
+
         return ResponseEntity.ok(meDto);
     }
 
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginDto req, HttpServletResponse response) {
-        User user= authService.findByUserName(req.getUsername());
+        User user = authService.findByUserName(req.getUsername());
         //일단은 유저가 있는지 없는지 확인
         //없으면 나가리
-        if (user == null)
+        if (user == null) {
             return ResponseEntity.status(404).body("님 없음");
+        }
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("비밀번호가 틀렸습니다.");
         }
@@ -101,7 +103,8 @@ public class ApiV1AuthController {
         authService.addRefreshToken(user, refreshToken);
 
         //만든걸 보내야지
-        LoginResponseDto loginResponseDto = new LoginResponseDto(accessToken, refreshToken, user.getId(), user.getUserName());
+        LoginResponseDto loginResponseDto = new LoginResponseDto(accessToken, refreshToken, user.getId(),
+                user.getUserName());
 
         //만약 쿠키에도 저장하고 싶다면?
         Cookie accesTokenCookie = new Cookie("accessToken", accessToken);
@@ -110,18 +113,15 @@ public class ApiV1AuthController {
         //쿠키의 시간단위는 초단위 ,따라서 ms인 jwt단위에 1000을 나눠야한다
         accesTokenCookie.setMaxAge(Math.toIntExact(JwtTokenizer.ACCESS_TOKEN_EXPIRE_COUNT / 1000));
 
-
         //이는 refresh에도 적용시킨다
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
         refreshTokenCookie.setHttpOnly(true);
         refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(Math.toIntExact(JwtTokenizer.REFRESH_TOKEN_EXPIRE_COUNT/1000));
-
+        refreshTokenCookie.setMaxAge(Math.toIntExact(JwtTokenizer.REFRESH_TOKEN_EXPIRE_COUNT / 1000));
 
         //그리고 응답객체에 그 쿠키를 넣어준다
         response.addCookie(accesTokenCookie);
         response.addCookie(refreshTokenCookie);
-
 
         return ResponseEntity.ok(loginResponseDto);
     }
@@ -150,7 +150,7 @@ public class ApiV1AuthController {
         } else {
             log.warn("로그아웃 요청 시 Access Token 쿠키 없음");
         }
-        
+
         // 4. HTTP 세션 무효화
         HttpSession session = request.getSession(false); // false: 기존 세션 없으면 새로 만들지 않음
         if (session != null) {
@@ -161,7 +161,7 @@ public class ApiV1AuthController {
         // 5. 쿠키 삭제 (직접 ResponseCookie 생성 - 혹시 모르니 유지)
         ResponseCookie accessTokenCookie = ResponseCookie.from("accessToken", null)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .secure(true)
                 .httpOnly(true)
                 .maxAge(0)
@@ -170,13 +170,13 @@ public class ApiV1AuthController {
 
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", null)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .secure(true)
                 .httpOnly(true)
                 .maxAge(0)
                 .build();
         response.addHeader("Set-Cookie", refreshTokenCookie.toString());
-        
+
         log.info("accessToken/refreshToken 쿠키 삭제 헤더 설정 완료");
 
         return ResponseEntity.ok("로그아웃 완료");
