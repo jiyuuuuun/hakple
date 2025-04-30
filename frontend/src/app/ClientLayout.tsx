@@ -60,8 +60,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     )
     const shouldHideFooter = pathname === '/' || shouldHideHeaderFooter;
 
+
     const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
     const protectedPaths = ['/myinfo', '/my-posts', '/my-comments', '/my-likes']
+
 
     useEffect(() => {
         const checkLoginAndHandleRedirect = async () => {
