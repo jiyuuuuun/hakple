@@ -6,7 +6,7 @@
 /**
  * API 요청을 위한 기본 URL
  */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 /**
  * API 요청 타임아웃 시간 (밀리초)
