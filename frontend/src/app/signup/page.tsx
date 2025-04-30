@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { fetchApi } from '@/utils/api'
 import { useRouter } from 'next/navigation'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 export default function Signup() {
     const router = useRouter()
@@ -137,7 +136,7 @@ export default function Signup() {
 
             // 인증번호 요청 - isAvailable이 true일 때만 실행 (사용 가능한 번호)
             try {
-                const smsResponse = await fetchApi('/api/v1/sms/send?phone=${phone}', {
+                const smsResponse = await fetchApi(`/api/v1/sms/send?phone=${formData.phone}`, {
                     method: 'POST',
                 })
 
@@ -173,7 +172,7 @@ export default function Signup() {
 
         try {
             // 인증번호 확인 API 호출
-            const response = await fetchApi('/api/v1/sms/verify?phone=${phone}&code=${verificationCode}', {
+            const response = await fetchApi(`/api/v1/sms/verify?phone=${formData.phone}&code=${formData.verificationCode}`, {
                 method: 'POST',
             })
 
@@ -239,8 +238,6 @@ export default function Signup() {
         setSuccessMessage('회원가입 처리 중...')
 
         try {
-            // API 기본 URL 설정
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
             // 백엔드 API 호출
             const requestData = {
