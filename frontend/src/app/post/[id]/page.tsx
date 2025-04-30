@@ -1,239 +1,199 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { useGlobalLoginMember } from '@/stores/auth/loginMember';
-import { fetchApi } from '@/utils/api';
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import { fetchApi } from '@/utils/api'
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 interface Post {
-    id: number;
-    title: string;
-    content: string;
-    nickname: string;
-    viewCount: number;
-    commentCount: number;
-    likeCount: number;
-    tags: string[];
-    creationTime: string;
-    modificationTime?: string;
-    isReported?: boolean;
-    isLiked?: boolean;
-    isOwner?: boolean;
-    boardType?: string;
-    type?: string;
-    academyCode?: string;
-    profileImageUrl?: string;
+    id: number
+    title: string
+    content: string
+    nickname: string
+    viewCount: number
+    commentCount: number
+    likeCount: number
+    tags: string[]
+    creationTime: string
+    modificationTime?: string
+    isReported?: boolean
+    isLiked?: boolean
+    isOwner?: boolean
+    boardType?: string
+    type?: string
+    academyCode?: string
+    profileImageUrl?: string
 }
 
 interface Comment {
-    id: number;
-    nickname: string;
-    content: string;
-    creationTime: string;
-    likeCount: number;
-    userId: number;
-    isLiked?: boolean;
-    isReported?: boolean;
-    isOwner?: boolean;
-    profileImageUrl?: string;
+    id: number
+    nickname: string
+    content: string
+    creationTime: string
+    likeCount: number
+    userId: number
+    isLiked?: boolean
+    isReported?: boolean
+    isOwner?: boolean
+    profileImageUrl?: string
 }
 
 export default function PostDetailPage() {
-    const { isLogin } = useGlobalLoginMember();
-    const router = useRouter();
-    const params = useParams();
-    const postId = params.id;
-    const searchParams = useSearchParams();
-    const academyCode = searchParams.get('academyCode');
-    const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false);
-    const [post, setPost] = useState<Post | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [comments, setComments] = useState<Comment[]>([]);
-    const [commentInput, setCommentInput] = useState('');
-    const [editCommentContent, setEditCommentContent] = useState('');
-    const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-    const [lastEditedCommentId, setLastEditedCommentId] = useState<number | null>(null);
-    const [isLiked, setIsLiked] = useState(false);
-    const [isLiking, setIsLiking] = useState(false);
-    const [isReported, setIsReported] = useState(false);
-    const [isReporting, setIsReporting] = useState(false);
-    const isMounted = useRef(false);
+    const { isLogin } = useGlobalLoginMember()
+    const router = useRouter()
+    const params = useParams()
+    const postId = params.id
+    const searchParams = useSearchParams()
+    const academyCode = searchParams.get('academyCode')
+    const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState(false)
+    const [post, setPost] = useState<Post | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [comments, setComments] = useState<Comment[]>([])
+    const [commentInput, setCommentInput] = useState('')
+    const [editCommentContent, setEditCommentContent] = useState('')
+    const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
+    const [lastEditedCommentId, setLastEditedCommentId] = useState<number | null>(null)
+    const [isLiked, setIsLiked] = useState(false)
+    const [isLiking, setIsLiking] = useState(false)
+    const [isReported, setIsReported] = useState(false)
+    const [isReporting, setIsReporting] = useState(false)
+    const isMounted = useRef(false)
 
-    const [showPostMenu, setShowPostMenu] = useState(false);
-    const [showCommentMenu, setShowCommentMenu] = useState<number | null>(null);
-    const postMenuRef = useRef<HTMLDivElement>(null);
-    const commentMenuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-    const [commentLikingId, setCommentLikingId] = useState<number | null>(null);
-    const editCommentRef = useRef<HTMLTextAreaElement>(null);
+    const [showPostMenu, setShowPostMenu] = useState(false)
+    const [showCommentMenu, setShowCommentMenu] = useState<number | null>(null)
+    const postMenuRef = useRef<HTMLDivElement>(null)
+    const commentMenuRefs = useRef<{ [key: number]: HTMLDivElement | null }>({})
+    const [commentLikingId, setCommentLikingId] = useState<number | null>(null)
+    const editCommentRef = useRef<HTMLTextAreaElement>(null)
 
-    const [showScrollTopButton, setShowScrollTopButton] = useState(false);
+    const [showScrollTopButton, setShowScrollTopButton] = useState(false)
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
-            const target = event.target as Element;
+            const target = event.target as Element
             if (target.closest('.menu-button') || target.closest('.menu-item')) {
-                return;
+                return
             }
 
             if (postMenuRef.current && !postMenuRef.current.contains(event.target as Node)) {
-                setShowPostMenu(false);
+                setShowPostMenu(false)
             }
 
             if (showCommentMenu !== null) {
-                const activeRef = commentMenuRefs.current[showCommentMenu];
+                const activeRef = commentMenuRefs.current[showCommentMenu]
                 if (activeRef && !activeRef.contains(event.target as Node)) {
-                    setShowCommentMenu(null);
+                    setShowCommentMenu(null)
                 }
             }
         }
 
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('mousedown', handleClickOutside)
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showCommentMenu]);
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [showCommentMenu])
 
-    useEffect(() => {
-    }, [editingCommentId, editCommentContent]);
+    useEffect(() => {}, [editingCommentId, editCommentContent])
 
     useEffect(() => {
         const checkAdmin = async () => {
             if (isLogin) {
                 try {
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/admin/check`, {
+                    const response = await fetchApi(`/api/v1/admin/check`, {
                         method: 'GET',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
-                    });
+                    })
                     if (response.ok) {
-                        const isAdminResult = await response.json();
-                        setIsCurrentUserAdmin(isAdminResult === true);
+                        const isAdminResult = await response.json()
+                        setIsCurrentUserAdmin(isAdminResult === true)
                     } else {
-                        setIsCurrentUserAdmin(false);
+                        setIsCurrentUserAdmin(false)
                     }
                 } catch (e) {
-                    setIsCurrentUserAdmin(false);
+                    setIsCurrentUserAdmin(false)
                 }
             } else {
-                setIsCurrentUserAdmin(false);
+                setIsCurrentUserAdmin(false)
             }
-        };
-        checkAdmin();
-    }, [isLogin]);
+        }
+        checkAdmin()
+    }, [isLogin])
 
     useEffect(() => {
         const fetchPostDetail = async () => {
-            if (!postId) return;
+            if (!postId) return
             if (isMounted.current) {
-                return;
+                return
             }
-            isMounted.current = true;
+            isMounted.current = true
 
-            const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '{}');
-            const postKey = `post_${postId}`;
-            const hasViewed = viewedPosts[postKey];
+            const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '{}')
+            const postKey = `post_${postId}`
+            const hasViewed = viewedPosts[postKey]
 
-            setLoading(true);
-            setError(null);
+            setLoading(true)
+            setError(null)
             try {
-                const searchParams = new URLSearchParams(window.location.search);
-                const currentAcademyCode = academyCode || searchParams.get('academyCode');
+                const searchParams = new URLSearchParams(window.location.search)
+                const currentAcademyCode = academyCode || searchParams.get('academyCode')
 
-
-                let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${postId}?postView=${!hasViewed}`;
+                let url = `/api/v1/posts/${postId}?postView=${!hasViewed}`
                 if (currentAcademyCode) {
-                    url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`;
+                    url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`
                 }
 
                 const response = await fetchApi(url, {
                     method: 'GET',
-                });
+                })
 
                 if (!hasViewed) {
-                    viewedPosts[postKey] = true;
-                    sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+                    viewedPosts[postKey] = true
+                    sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts))
                 }
 
                 if (!response.ok) {
-                    let errorMsg = '게시글을 불러오는데 실패했습니다.';
+                    let errorMsg = '게시글을 불러오는데 실패했습니다.'
 
                     if (response.status === 401) {
-                        errorMsg = '인증이 필요한 기능입니다.';
+                        errorMsg = '인증이 필요한 기능입니다.'
                     } else {
                         try {
-                            const contentType = response.headers.get("content-type");
-                            if (contentType && contentType.indexOf("application/json") !== -1) {
-                                const errorData = await response.json();
-                                errorMsg = errorData.message || errorMsg;
+                            const contentType = response.headers.get('content-type')
+                            if (contentType && contentType.indexOf('application/json') !== -1) {
+                                const errorData = await response.json()
+                                errorMsg = errorData.message || errorMsg
                             } else {
-                                errorMsg = `서버 오류: ${response.status}`;
+                                errorMsg = `서버 오류: ${response.status}`
                             }
                         } catch {
-                            errorMsg = `서버 오류: ${response.status}`;
+                            errorMsg = `서버 오류: ${response.status}`
                         }
                     }
-                    throw new Error(errorMsg);
+                    throw new Error(errorMsg)
                 }
 
-                const contentType = response.headers.get("content-type");
-                if (!contentType || contentType.indexOf("application/json") === -1) {
-                    throw new Error("서버에서 유효한 데이터를 반환하지 않았습니다.");
+                const contentType = response.headers.get('content-type')
+                if (!contentType || contentType.indexOf('application/json') === -1) {
+                    throw new Error('서버에서 유효한 데이터를 반환하지 않았습니다.')
                 }
 
-                const postData = await response.json();
+                const postData = await response.json()
 
                 if (currentAcademyCode && !postData.academyCode) {
-                    postData.academyCode = currentAcademyCode;
+                    postData.academyCode = currentAcademyCode
                 }
 
-                setPost(postData);
+                setPost(postData)
 
                 if (isLogin) {
                     Promise.all([
                         fetchApi(`/api/v1/posts/${params.id}/like-status`, {
                             method: 'GET',
-<<<<<<< HEAD
-                        }).then(async res => {
-                            if (res.ok) {
-                                const likeData = await res.json();
-                                setIsLiked(likeData.isLiked);
-                            } else {
-                                setIsLiked(false);
-                            }
-                        }).catch(err => {
-                            console.log('좋아요 상태 확인 중 오류:', err);
-                            setIsLiked(false);
-                        }),
-
-                        fetchApi(`/api/v1/posts/${postId}/report-status`, {
-                            method: 'GET',
-                        }).then(async res => {
-                            if (res.ok) {
-                                const reportData = await res.json();
-                                setIsReported(reportData.isReported);
-                            } else {
-                                setIsReported(false);
-                            }
-                        }).catch(err => {
-                            console.log('신고 상태 확인 중 오류:', err);
-                            setIsReported(false);
-                        }),
-
-                        fetchApi(`/api/v1/posts/${postId}/is-owner`, {
-                            method: 'GET',
-                        }).then(async res => {
-                            if (res.ok) {
-                                const ownerData = await res.json();
-                                setPost(prev => prev ? { ...prev, isOwner: ownerData.isOwner } : null);
-                            } else {
-                                setPost(prev => prev ? { ...prev, isOwner: false } : null);
-                            }
-                        }).catch(err => {
-                            console.log('게시글 작성자 확인 중 오류:', err);
-                            setPost(prev => prev ? { ...prev, isOwner: false } : null);
-=======
                         })
                             .then(async (res) => {
                                 if (res.ok) {
@@ -280,672 +240,623 @@ export default function PostDetailPage() {
 
                         fetchComments(postData.id).then((commentsData) => {
                             setComments(commentsData)
->>>>>>> 00903e7a (fix: 버그 수정)
                         }),
-
-                        fetchComments(postData.id).then(commentsData => {
-                            setComments(commentsData);
-                        })
-                    ]);
+                    ])
                 } else {
-                    setComments([]);
+                    setComments([])
                 }
             } catch (err) {
-                console.error('게시글 상세 정보를 불러오는 중 오류:', err);
-                setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.');
+                console.error('게시글 상세 정보를 불러오는 중 오류:', err)
+                setError(err instanceof Error ? err.message : '게시글을 불러오는데 실패했습니다.')
             } finally {
-                setLoading(false);
+                setLoading(false)
             }
-        };
-
-        fetchPostDetail();
-
-        return () => { };
-    }, [postId, isLogin, router, academyCode, params.id]);
-
-    const handleLike = async () => {
-        if (!post || isLiking) return;
-
-        if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
         }
 
-        setIsLiking(true);
+        fetchPostDetail()
+
+        return () => {}
+    }, [postId, isLogin, router, academyCode, params.id])
+
+    const handleLike = async () => {
+        if (!post || isLiking) return
+
+        if (!isLogin) {
+            alert('로그인이 필요한 기능입니다.')
+            return
+        }
+
+        setIsLiking(true)
         try {
-            const searchParams = new URLSearchParams(window.location.search);
-            const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+            const searchParams = new URLSearchParams(window.location.search)
+            const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode')
 
-            let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${post.id}/likes`;
+            let url = `/api/v1/posts/${post.id}/likes`
             if (currentAcademyCode) {
-                url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+                url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`
             }
-
 
             const response = await fetchApi(url, {
                 method: 'POST',
-            });
+            })
 
             if (!response.ok) {
-                throw new Error('좋아요 처리에 실패했습니다.');
+                throw new Error('좋아요 처리에 실패했습니다.')
             }
 
-            const newLikedState = !isLiked;
-            setIsLiked(newLikedState);
+            const newLikedState = !isLiked
+            setIsLiked(newLikedState)
 
-            setPost(prev => {
-                if (!prev) return null;
+            setPost((prev) => {
+                if (!prev) return null
                 return {
                     ...prev,
-                    likeCount: newLikedState
-                        ? prev.likeCount + 1
-                        : Math.max(0, prev.likeCount - 1)
-                };
-            });
-
+                    likeCount: newLikedState ? prev.likeCount + 1 : Math.max(0, prev.likeCount - 1),
+                }
+            })
         } catch (err) {
-            console.error('좋아요 처리 중 오류:', err);
+            console.error('좋아요 처리 중 오류:', err)
         } finally {
-            setIsLiking(false);
+            setIsLiking(false)
         }
-    };
+    }
 
     const togglePostMenu = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setShowPostMenu(!showPostMenu);
-        setShowCommentMenu(null);
-    };
+        e.stopPropagation()
+        setShowPostMenu(!showPostMenu)
+        setShowCommentMenu(null)
+    }
 
     const handleEdit = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!post) return;
+        e.preventDefault()
+        e.stopPropagation()
+        if (!post) return
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
         if (!isCurrentUserAdmin && !post.isOwner) {
-            alert('수정 권한이 없습니다.');
-            setShowPostMenu(false);
-            return;
+            alert('수정 권한이 없습니다.')
+            setShowPostMenu(false)
+            return
         }
 
-        setShowPostMenu(false);
+        setShowPostMenu(false)
 
-        const isNotice = post.type === 'notice' || post.boardType === 'notice';
+        const isNotice = post.type === 'notice' || post.boardType === 'notice'
 
-        const searchParams = new URLSearchParams(window.location.search);
-        const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+        const searchParams = new URLSearchParams(window.location.search)
+        const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode')
 
-
-        let editUrl = `/post/${post.id}/edit${isNotice ? '?type=notice' : ''}`;
+        let editUrl = `/post/${post.id}/edit${isNotice ? '?type=notice' : ''}`
         if (currentAcademyCode) {
-            editUrl += `${isNotice ? '&' : '?'}academyCode=${currentAcademyCode}`;
+            editUrl += `${isNotice ? '&' : '?'}academyCode=${currentAcademyCode}`
         }
 
         setTimeout(() => {
-            router.push(editUrl);
-        }, 100);
-    };
+            router.push(editUrl)
+        }, 100)
+    }
 
     const handleDelete = async () => {
-        if (!post || isCurrentUserAdmin) return;
+        if (!post || isCurrentUserAdmin) return
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
         if (!post.isOwner) {
-            alert('자신의 게시글만 삭제할 수 있습니다.');
-            setShowPostMenu(false);
-            return;
+            alert('자신의 게시글만 삭제할 수 있습니다.')
+            setShowPostMenu(false)
+            return
         }
 
-        if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
+        if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return
 
         try {
             const response = await fetchApi(`/api/v1/posts/${post.id}`, {
                 method: 'DELETE',
-            });
+            })
 
             if (!response.ok) {
-                throw new Error('게시글 삭제에 실패했습니다.');
+                throw new Error('게시글 삭제에 실패했습니다.')
             }
 
-            alert('게시글이 삭제되었습니다.');
+            alert('게시글이 삭제되었습니다.')
 
             if (isNoticePost(post)) {
-                const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
-                const noticeUrl = currentAcademyCode ? `/post/notice?academyCode=${currentAcademyCode}&type=notice` : '/post/notice?type=notice';
-                router.push(noticeUrl);
+                const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode')
+                const noticeUrl = currentAcademyCode
+                    ? `/post/notice?academyCode=${currentAcademyCode}&type=notice`
+                    : '/post/notice?type=notice'
+                router.push(noticeUrl)
             } else {
-                router.push('/post');
+                router.push('/post')
             }
         } catch (err) {
-            console.error('게시글 삭제 중 오류:', err);
-            alert(err instanceof Error ? err.message : '게시글 삭제에 실패했습니다.');
+            console.error('게시글 삭제 중 오류:', err)
+            alert(err instanceof Error ? err.message : '게시글 삭제에 실패했습니다.')
         }
-    };
+    }
 
     const handleReport = async (id: number) => {
-        if (!post || isReported || isReporting) return;
+        if (!post || isReported || isReporting) return
 
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
         if (post.isOwner) {
-            alert('자신의 게시글은 신고할 수 없습니다.');
-            setShowPostMenu(false);
-            return;
+            alert('자신의 게시글은 신고할 수 없습니다.')
+            setShowPostMenu(false)
+            return
         }
 
-        setIsReporting(true);
+        setIsReporting(true)
         try {
-            const searchParams = new URLSearchParams(window.location.search);
-            const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+            const searchParams = new URLSearchParams(window.location.search)
+            const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode')
 
-            let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${id}/report`;
+            let url = `/api/v1/posts/${id}/report`
             if (currentAcademyCode) {
-                url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+                url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`
             }
-
 
             const response = await fetchApi(url, {
                 method: 'POST',
-            });
+            })
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`게시글 신고 실패: ${errorText}`);
+                const errorText = await response.text()
+                throw new Error(`게시글 신고 실패: ${errorText}`)
             }
 
-            setIsReported(true);
+            setIsReported(true)
 
-            alert(`게시글을 신고했습니다.`);
-            setShowPostMenu(false);
-            setShowCommentMenu(null);
+            alert(`게시글을 신고했습니다.`)
+            setShowPostMenu(false)
+            setShowCommentMenu(null)
         } catch (error) {
-            console.error('게시글 신고 중 오류:', error);
-            alert('게시글 신고 중 오류가 발생했습니다.');
+            console.error('게시글 신고 중 오류:', error)
+            alert('게시글 신고 중 오류가 발생했습니다.')
         } finally {
-            setIsReporting(false);
+            setIsReporting(false)
         }
-    };
-
+    }
 
     const fetchComments = async (postId: number) => {
         try {
             if (!isLogin) {
-                return [];
+                return []
             }
 
-
             try {
-                const searchParams = new URLSearchParams(window.location.search);
-                const currentAcademyCode = post?.academyCode || academyCode || searchParams.get('academyCode');
+                const searchParams = new URLSearchParams(window.location.search)
+                const currentAcademyCode = post?.academyCode || academyCode || searchParams.get('academyCode')
 
-                let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/by-post/${postId}`;
+                let url = `/api/v1/comments/by-post/${postId}`
                 if (currentAcademyCode) {
-                    url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`;
+                    url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`
                 }
 
                 const commentsResponse = await fetchApi(url, {
                     method: 'GET',
-                });
+                })
 
                 if (!commentsResponse.ok) {
-                    console.error('댓글 목록 조회 실패:', await commentsResponse.text());
-                    return [];
+                    console.error('댓글 목록 조회 실패:', await commentsResponse.text())
+                    return []
                 }
 
-                const commentsText = await commentsResponse.text();
+                const commentsText = await commentsResponse.text()
 
                 if (!commentsText.trim()) {
-                    return [];
+                    return []
                 }
 
-                let commentsData;
+                let commentsData
                 try {
-                    commentsData = JSON.parse(commentsText);
+                    commentsData = JSON.parse(commentsText)
 
                     if (commentsData && commentsData.length > 0) {
-<<<<<<< HEAD
-                        const firstComment = commentsData[0];
-                        console.log('첫 번째 댓글 객체 구조:', Object.keys(firstComment));
-                        console.log('isLiked 속성 타입:', typeof firstComment.isLiked);
-                        console.log('isLiked 속성 값:', firstComment.isLiked);
-=======
                         const firstComment = commentsData[0]
->>>>>>> 00903e7a (fix: 버그 수정)
                     }
                 } catch (e) {
-                    console.error('댓글 목록 JSON 파싱 오류:', e);
-                    return [];
+                    console.error('댓글 목록 JSON 파싱 오류:', e)
+                    return []
                 }
 
                 if (!commentsData || commentsData.length === 0) {
-                    return [];
+                    return []
                 }
 
                 const commentStatusPromises = commentsData.map(async (comment: Comment) => {
                     try {
                         const reportStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/status`, {
                             method: 'GET',
-                        });
+                        })
 
                         if (reportStatusResponse.ok) {
-                            const reportStatus = await reportStatusResponse.json();
-                            comment.isReported = reportStatus.isReported;
+                            const reportStatus = await reportStatusResponse.json()
+                            comment.isReported = reportStatus.isReported
                         } else {
-                            comment.isReported = false;
+                            comment.isReported = false
                         }
 
                         const ownerStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/is-owner`, {
                             method: 'GET',
-                        });
+                        })
 
                         if (ownerStatusResponse.ok) {
-                            const ownerStatus = await ownerStatusResponse.json();
-                            comment.isOwner = ownerStatus.isOwner;
+                            const ownerStatus = await ownerStatusResponse.json()
+                            comment.isOwner = ownerStatus.isOwner
                         } else {
-                            comment.isOwner = false;
+                            comment.isOwner = false
                         }
-
                     } catch (error) {
-                        console.error(`댓글 ID ${comment.id}의 상태 확인 중 오류:`, error);
-                        comment.isReported = false;
-                        comment.isOwner = false;
+                        console.error(`댓글 ID ${comment.id}의 상태 확인 중 오류:`, error)
+                        comment.isReported = false
+                        comment.isOwner = false
                     }
-                    return comment;
-                });
+                    return comment
+                })
 
-                const commentsWithStatus = await Promise.all(commentStatusPromises);
+                const commentsWithStatus = await Promise.all(commentStatusPromises)
 
-                return commentsWithStatus;
-
+                return commentsWithStatus
             } catch (error) {
-                console.error('댓글 정보 로드 중 오류:', error);
-                return [];
+                console.error('댓글 정보 로드 중 오류:', error)
+                return []
             }
         } catch (error) {
-            console.error('댓글 목록 불러오기 오류:', error);
-            return [];
+            console.error('댓글 목록 불러오기 오류:', error)
+            return []
         }
-    };
+    }
 
     const handleCommentSubmit = async () => {
-        if (!commentInput.trim() || !post) return;
+        if (!commentInput.trim() || !post) return
 
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
         try {
             const commentData = {
                 boardId: post.id,
-                content: commentInput
-            };
+                content: commentInput,
+            }
 
-<<<<<<< HEAD
-            console.log('댓글 등록 요청 데이터:', commentData);
-=======
 
->>>>>>> 00903e7a (fix: 버그 수정)
 
-            const response = await fetchApi(`/api/v1/comments`, {
+            const response = await fetchApi(`${API_BASE_URL}/api/v1/comments`, {
                 method: 'POST',
-                body: JSON.stringify(commentData)
-            });
+                body: JSON.stringify(commentData),
+            })
 
-            const responseText = await response.text();
+            const responseText = await response.text()
 
             if (response.ok) {
-                setCommentInput('');
-                const updatedComments = await fetchComments(post.id);
-                setComments(updatedComments);
+                setCommentInput('')
+                const updatedComments = await fetchComments(post.id)
+                setComments(updatedComments)
             } else {
-                alert(`댓글 등록에 실패했습니다: ${responseText}`);
+                alert(`댓글 등록에 실패했습니다: ${responseText}`)
             }
         } catch (error) {
-            console.error('댓글 등록 중 오류:', error);
-            alert('댓글 등록 중 오류가 발생했습니다.');
+            console.error('댓글 등록 중 오류:', error)
+            alert('댓글 등록 중 오류가 발생했습니다.')
         }
-    };
+    }
 
     const toggleCommentMenu = (e: React.MouseEvent, commentId: number) => {
-        e.stopPropagation();
-        setShowCommentMenu(showCommentMenu === commentId ? null : commentId);
-        setShowPostMenu(false);
-    };
+        e.stopPropagation()
+        setShowCommentMenu(showCommentMenu === commentId ? null : commentId)
+        setShowPostMenu(false)
+    }
 
     const startCommentEdit = (commentId: number, content: string) => {
-
-        const comment = comments.find(c => c.id === commentId);
-        if (!comment) return;
+        const comment = comments.find((c) => c.id === commentId)
+        if (!comment) return
 
         if (!isCurrentUserAdmin && !comment.isOwner) {
-            alert('댓글 수정 권한이 없습니다.');
-            setShowCommentMenu(null);
-            return;
+            alert('댓글 수정 권한이 없습니다.')
+            setShowCommentMenu(null)
+            return
         }
 
         if (editingCommentId !== null && editCommentContent !== '' && editingCommentId !== commentId) {
             if (!confirm('다른 댓글 수정 중입니다. 변경 사항을 저장하지 않고 계속하시겠습니까?')) {
-                return;
+                return
             }
         }
 
-        setShowCommentMenu(null);
+        setShowCommentMenu(null)
 
-        setEditingCommentId(commentId);
-        setEditCommentContent(content);
+        setEditingCommentId(commentId)
+        setEditCommentContent(content)
 
         setTimeout(() => {
             if (editCommentRef.current) {
-                editCommentRef.current.focus();
+                editCommentRef.current.focus()
             }
-        }, 100);
-    };
+        }, 100)
+    }
 
     const cancelCommentEdit = () => {
         if (editingCommentId !== null) {
-            const originalComment = comments.find(c => c.id === editingCommentId);
+            const originalComment = comments.find((c) => c.id === editingCommentId)
             if (originalComment && editCommentContent !== originalComment.content) {
                 if (!confirm('변경 사항을 저장하지 않고 취소하시겠습니까?')) {
-                    return;
+                    return
                 }
             }
         }
 
-<<<<<<< HEAD
-        console.log('댓글 수정 취소');
-        setEditingCommentId(null);
-        setEditCommentContent('');
-    };
-=======
 
         setEditingCommentId(null)
         setEditCommentContent('')
     }
->>>>>>> 00903e7a (fix: 버그 수정)
 
     const submitCommentEdit = async () => {
-        if (!editingCommentId || !editCommentContent.trim() || !post) return;
+        if (!editingCommentId || !editCommentContent.trim() || !post) return
 
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
         try {
             const commentData = {
                 commenterId: editingCommentId,
-                content: editCommentContent.trim()
-            };
+                content: editCommentContent.trim(),
+            }
 
-<<<<<<< HEAD
-            console.log('댓글 수정 요청 데이터:', commentData, 'commenterId:', editingCommentId);
-=======
 
->>>>>>> 00903e7a (fix: 버그 수정)
 
-            const response = await fetchApi(`/api/v1/comments/update`, {
+            const response = await fetchApi(`${API_BASE_URL}/api/v1/comments/update`, {
                 method: 'POST',
                 body: JSON.stringify(commentData),
-            });
+            })
 
             if (response.ok) {
-                setLastEditedCommentId(editingCommentId);
-                setEditingCommentId(null);
-                setEditCommentContent('');
-                const updatedComments = await fetchComments(post.id);
-                setComments(updatedComments);
+                setLastEditedCommentId(editingCommentId)
+                setEditingCommentId(null)
+                setEditCommentContent('')
+                const updatedComments = await fetchComments(post.id)
+                setComments(updatedComments)
                 setTimeout(() => {
-                    setLastEditedCommentId(null);
-                }, 5000);
+                    setLastEditedCommentId(null)
+                }, 5000)
             } else {
-                const errorText = await response.text();
-                console.error('댓글 수정 실패:', errorText);
-                alert(`댓글 수정에 실패했습니다. 오류: ${errorText || '알 수 없는 오류'}`);
+                const errorText = await response.text()
+                console.error('댓글 수정 실패:', errorText)
+                alert(`댓글 수정에 실패했습니다. 오류: ${errorText || '알 수 없는 오류'}`)
             }
         } catch (error) {
-            console.error('댓글 수정 중 오류:', error);
-            alert('댓글 수정 중 오류가 발생했습니다.');
+            console.error('댓글 수정 중 오류:', error)
+            alert('댓글 수정 중 오류가 발생했습니다.')
         }
-    };
+    }
 
     const handleCommentDelete = async (commentId: number) => {
-        const comment = comments.find(c => c.id === commentId);
-        if (!comment || isCurrentUserAdmin) return;
+        const comment = comments.find((c) => c.id === commentId)
+        if (!comment || isCurrentUserAdmin) return
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
         if (!comment.isOwner) {
-            alert('자신의 댓글만 삭제할 수 있습니다.');
-            setShowCommentMenu(null);
-            return;
+            alert('자신의 댓글만 삭제할 수 있습니다.')
+            setShowCommentMenu(null)
+            return
         }
 
-        if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) return;
+        if (!confirm('정말 이 댓글을 삭제하시겠습니까?') || !post) return
 
         try {
-
-            const response = await fetchApi(`/api/v1/comments/${commentId}`, {
+            const response = await fetchApi(`${API_BASE_URL}/api/v1/comments/${commentId}`, {
                 method: 'DELETE',
-            });
+            })
 
             if (response.ok) {
-<<<<<<< HEAD
-                console.log('댓글 삭제 성공');
-                const updatedComments = await fetchComments(post.id);
-                setComments(updatedComments);
-                setShowCommentMenu(null);
-=======
                 
                 const updatedComments = await fetchComments(post.id)
                 setComments(updatedComments)
                 setShowCommentMenu(null)
->>>>>>> 00903e7a (fix: 버그 수정)
             } else {
-                console.error('댓글 삭제 실패');
-                alert('댓글 삭제에 실패했습니다.');
+                console.error('댓글 삭제 실패')
+                alert('댓글 삭제에 실패했습니다.')
             }
         } catch (error) {
-            console.error('댓글 삭제 중 오류:', error);
-            alert('댓글 삭제 중 오류가 발생했습니다.');
+            console.error('댓글 삭제 중 오류:', error)
+            alert('댓글 삭제 중 오류가 발생했습니다.')
         }
-    };
+    }
 
     const handleCommentLike = async (commentId: number) => {
-        if (!post || commentLikingId === commentId) return;
+        if (!post || commentLikingId === commentId) return
 
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
-        setCommentLikingId(commentId);
+        setCommentLikingId(commentId)
 
         try {
-            const comment = comments.find(c => c.id === commentId);
-            if (!comment) return;
+            const comment = comments.find((c) => c.id === commentId)
+            if (!comment) return
 
-            const isCurrentlyLiked = Boolean(comment.isLiked);
+            const isCurrentlyLiked = Boolean(comment.isLiked)
 
-            const newLikedState = !isCurrentlyLiked;
-            setComments(prev => prev.map(c =>
-                c.id === commentId
-                    ? {
-                        ...c,
-                        likeCount: newLikedState
-                            ? c.likeCount + 1
-                            : Math.max(0, c.likeCount - 1),
-                        isLiked: newLikedState
-                    }
-                    : c
-            ));
-
-            const response = await fetchApi(`/api/v1/likes/comments/${commentId}/toggle`, {
-                method: 'POST',
-            });
-
-            if (!response.ok) {
-                setComments(prev => prev.map(c =>
+            const newLikedState = !isCurrentlyLiked
+            setComments((prev) =>
+                prev.map((c) =>
                     c.id === commentId
                         ? {
-                            ...c,
-                            likeCount: isCurrentlyLiked
-                                ? c.likeCount + 1
-                                : Math.max(0, c.likeCount - 1),
-                            isLiked: isCurrentlyLiked
-                        }
-                        : c
-                ));
-                throw new Error('좋아요 처리에 실패했습니다.');
+                              ...c,
+                              likeCount: newLikedState ? c.likeCount + 1 : Math.max(0, c.likeCount - 1),
+                              isLiked: newLikedState,
+                          }
+                        : c,
+                ),
+            )
+
+            const response = await fetchApi(`${API_BASE_URL}/api/v1/likes/comments/${commentId}/toggle`, {
+                method: 'POST',
+            })
+
+            if (!response.ok) {
+                setComments((prev) =>
+                    prev.map((c) =>
+                        c.id === commentId
+                            ? {
+                                  ...c,
+                                  likeCount: isCurrentlyLiked ? c.likeCount + 1 : Math.max(0, c.likeCount - 1),
+                                  isLiked: isCurrentlyLiked,
+                              }
+                            : c,
+                    ),
+                )
+                throw new Error('좋아요 처리에 실패했습니다.')
             }
-
-
         } catch (err) {
-            console.error('댓글 좋아요 처리 중 오류:', err);
-            alert('좋아요 처리 중 오류가 발생했습니다.');
+            console.error('댓글 좋아요 처리 중 오류:', err)
+            alert('좋아요 처리 중 오류가 발생했습니다.')
         } finally {
-            setCommentLikingId(null);
+            setCommentLikingId(null)
         }
-    };
+    }
 
     const handleCommentReport = async (commentId: number) => {
-        if (!post) return;
+        if (!post) return
 
         if (!isLogin) {
-            alert('로그인이 필요한 기능입니다.');
-            return;
+            alert('로그인이 필요한 기능입니다.')
+            return
         }
 
-        const comment = comments.find(c => c.id === commentId);
-        if (!comment) return;
+        const comment = comments.find((c) => c.id === commentId)
+        if (!comment) return
 
         if (comment.isOwner) {
-            alert('자신의 댓글은 신고할 수 없습니다.');
-            setShowCommentMenu(null);
-            return;
+            alert('자신의 댓글은 신고할 수 없습니다.')
+            setShowCommentMenu(null)
+            return
         }
 
         if (comment.isReported) {
-            alert('이미 신고한 댓글입니다.');
-            setShowCommentMenu(null);
-            return;
+            alert('이미 신고한 댓글입니다.')
+            setShowCommentMenu(null)
+            return
         }
 
         try {
-
-            const response = await fetchApi(`/api/v1/comments/reports/${commentId}`, {
+            const response = await fetchApi(`${API_BASE_URL}/api/v1/comments/reports/${commentId}`, {
                 method: 'POST',
-            });
+            })
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`댓글 신고 실패: ${errorText}`);
+                const errorText = await response.text()
+                throw new Error(`댓글 신고 실패: ${errorText}`)
             }
 
-            setComments(prev => prev.map(c =>
-                c.id === commentId
-                    ? { ...c, isReported: true }
-                    : c
-            ));
+            setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, isReported: true } : c)))
 
-            alert('댓글을 신고했습니다.');
-            setShowCommentMenu(null);
+            alert('댓글을 신고했습니다.')
+            setShowCommentMenu(null)
         } catch (error) {
-            console.error('댓글 신고 처리 중 오류:', error);
-            alert('댓글 신고 중 오류가 발생했습니다.');
+            console.error('댓글 신고 처리 중 오류:', error)
+            alert('댓글 신고 중 오류가 발생했습니다.')
         }
-    };
+    }
 
     const isNoticePost = useCallback((post: Post | null) => {
-        return post?.type === 'notice' || post?.boardType === 'notice';
-    }, []);
+        return post?.type === 'notice' || post?.boardType === 'notice'
+    }, [])
 
     const handleAdminAction = async (
         itemId: number,
         itemType: 'post' | 'comment',
-        targetStatus: 'inactive' | 'pending'
+        targetStatus: 'inactive' | 'pending',
     ) => {
-        if (!isCurrentUserAdmin) return;
+        if (!isCurrentUserAdmin) return
 
-        const itemTypeName = itemType === 'post' ? '게시글' : '댓글';
-        const actionName = targetStatus === 'inactive' ? '비활성화' : '정지';
-        const confirmMessage = `관리자 권한으로 이 ${itemTypeName}을(를) '${actionName}' 상태로 변경하시겠습니까?`;
+        const itemTypeName = itemType === 'post' ? '게시글' : '댓글'
+        const actionName = targetStatus === 'inactive' ? '비활성화' : '정지'
+        const confirmMessage = `관리자 권한으로 이 ${itemTypeName}을(를) '${actionName}' 상태로 변경하시겠습니까?`
 
-        if (!confirm(confirmMessage)) return;
+        if (!confirm(confirmMessage)) return
 
-        const apiUrl = itemType === 'post'
-            ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${itemId}/admin-status-change`
-            : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${itemId}/admin-status-change`;
+        const apiUrl =
+            itemType === 'post'
+                ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${itemId}/admin-status-change`
+                : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/comments/${itemId}/admin-status-change`
 
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ status: targetStatus })
-            });
+                body: JSON.stringify({ status: targetStatus }),
+            })
 
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`${itemTypeName} 상태 변경 실패: ${errorText || response.status}`);
+                const errorText = await response.text()
+                throw new Error(`${itemTypeName} 상태 변경 실패: ${errorText || response.status}`)
             }
 
-            alert(`${itemTypeName} 상태가 성공적으로 변경되었습니다.`);
-            setShowPostMenu(false);
-            setShowCommentMenu(null);
+            alert(`${itemTypeName} 상태가 성공적으로 변경되었습니다.`)
+            setShowPostMenu(false)
+            setShowCommentMenu(null)
 
             if (itemType === 'post') {
                 const listUrl = isNoticePost(post)
-                    ? `/post/notice?academyCode=${post?.academyCode || academyCode || searchParams.get('academyCode')}&type=notice`
-                    : '/post';
-                router.push(listUrl.replace(/&?academyCode=undefined|&?academyCode=/g, ''));
+                    ? `/post/notice?academyCode=${
+                          post?.academyCode || academyCode || searchParams.get('academyCode')
+                      }&type=notice`
+                    : '/post'
+                router.push(listUrl.replace(/&?academyCode=undefined|&?academyCode=/g, ''))
             } else {
                 if (post) {
-                    const updatedComments = await fetchComments(post.id);
-                    setComments(updatedComments);
+                    const updatedComments = await fetchComments(post.id)
+                    setComments(updatedComments)
                 }
             }
-
         } catch (err) {
-            console.error(`${itemTypeName} 상태 변경 중 오류:`, err);
-            alert(err instanceof Error ? err.message : `${itemTypeName} 상태 변경에 실패했습니다.`);
+            console.error(`${itemTypeName} 상태 변경 중 오류:`, err)
+            alert(err instanceof Error ? err.message : `${itemTypeName} 상태 변경에 실패했습니다.`)
         }
-    };
+    }
 
     // Add/remove scroll event listener
     useEffect(() => {
         const handleScroll = () => {
-          if (window.scrollY > 300) {
-            setShowScrollTopButton(true);
-          } else {
-            setShowScrollTopButton(false);
-          }
-        };
+            if (window.scrollY > 300) {
+                setShowScrollTopButton(true)
+            } else {
+                setShowScrollTopButton(false)
+            }
+        }
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('scroll', handleScroll)
         return () => {
-          window.removeEventListener('scroll', handleScroll);
-        };
-      }, []);
+            window.removeEventListener('scroll', handleScroll)
+        }
+    }, [])
 
     // Scroll to top function
     const scrollToTop = () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
-    };
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+        })
+    }
 
     if (loading) {
         return (
@@ -957,7 +868,7 @@ export default function PostDetailPage() {
                     <div className="h-48 bg-gray-200 rounded mb-4"></div>
                 </div>
             </div>
-        );
+        )
     }
 
     if (error) {
@@ -981,7 +892,7 @@ export default function PostDetailPage() {
                     </div>
                 </div>
             </div>
-        );
+        )
     }
 
     if (!post) {
@@ -997,26 +908,26 @@ export default function PostDetailPage() {
                     </button>
                 </div>
             </div>
-        );
+        )
     }
 
     const createMarkup = () => {
-        return { __html: post.content };
-    };
+        return { __html: post.content }
+    }
 
     const formatTime = (timeString: string) => {
-        const date = new Date(timeString);
-        const now = new Date();
-        const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+        const date = new Date(timeString)
+        const now = new Date()
+        const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
 
         if (diffMinutes < 60) {
-            return `${diffMinutes}분 전`;
+            return `${diffMinutes}분 전`
         } else if (diffMinutes < 24 * 60) {
-            return `${Math.floor(diffMinutes / 60)}시간 전`;
+            return `${Math.floor(diffMinutes / 60)}시간 전`
         } else {
-            return `${date.toLocaleDateString()}`;
+            return `${date.toLocaleDateString()}`
         }
-    };
+    }
 
     return (
         <div className="mx-auto p-5 bg-[#f9fafc] min-h-screen">
@@ -1033,14 +944,13 @@ export default function PostDetailPage() {
                                         alt={`${post.nickname}의 프로필 이미지`}
                                         className="h-full w-full object-cover"
                                         onError={(e) => {
-                                            const target = e.target as HTMLImageElement;
-                                            target.onerror = null; // 추가 오류 이벤트 방지
-                                            target.style.display = 'none'; // 이미지 숨기기
+                                            const target = e.target as HTMLImageElement
+                                            target.onerror = null // 추가 오류 이벤트 방지
+                                            target.style.display = 'none' // 이미지 숨기기
                                             target.parentElement!.innerHTML = `
                                                 <span class="material-icons text-[#980ffa] text-2xl">account_circle</span>
-                                            `;
+                                            `
                                         }}
-
                                     />
                                 ) : (
                                     <span className="material-icons text-[#980ffa] text-2xl">account_circle</span>
@@ -1070,36 +980,76 @@ export default function PostDetailPage() {
                                         {isCurrentUserAdmin ? (
                                             post.isOwner ? (
                                                 <>
-                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={handleEdit}>
-                                                        <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
+                                                    <button
+                                                        className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
+                                                        onClick={handleEdit}
+                                                    >
+                                                        <span className="material-icons text-blue-600 mr-3">edit</span>{' '}
+                                                        수정하기
                                                     </button>
-                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={() => handleAdminAction(post.id, 'post', 'inactive')}>
-                                                        <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
+                                                    <button
+                                                        className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
+                                                        onClick={() => handleAdminAction(post.id, 'post', 'inactive')}
+                                                    >
+                                                        <span className="material-icons text-red-600 mr-3">delete</span>{' '}
+                                                        삭제하기
                                                     </button>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-orange-600 menu-item" onClick={() => handleAdminAction(post.id, 'post', 'inactive')}>
-                                                        <span className="material-icons text-orange-600 mr-3">visibility_off</span> 비활성화
+                                                    <button
+                                                        className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-orange-600 menu-item"
+                                                        onClick={() => handleAdminAction(post.id, 'post', 'inactive')}
+                                                    >
+                                                        <span className="material-icons text-orange-600 mr-3">
+                                                            visibility_off
+                                                        </span>{' '}
+                                                        비활성화
                                                     </button>
-                                                    <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-purple-600 menu-item" onClick={() => handleAdminAction(post.id, 'post', 'pending')}>
-                                                        <span className="material-icons text-purple-600 mr-3">block</span> 정지
+                                                    <button
+                                                        className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-purple-600 menu-item"
+                                                        onClick={() => handleAdminAction(post.id, 'post', 'pending')}
+                                                    >
+                                                        <span className="material-icons text-purple-600 mr-3">
+                                                            block
+                                                        </span>{' '}
+                                                        정지
                                                     </button>
                                                 </>
                                             )
                                         ) : post.isOwner ? (
                                             <>
-                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={handleEdit}>
-                                                    <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
+                                                <button
+                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
+                                                    onClick={handleEdit}
+                                                >
+                                                    <span className="material-icons text-blue-600 mr-3">edit</span>{' '}
+                                                    수정하기
                                                 </button>
-                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={handleDelete}>
-                                                    <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
+                                                <button
+                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
+                                                    onClick={handleDelete}
+                                                >
+                                                    <span className="material-icons text-red-600 mr-3">delete</span>{' '}
+                                                    삭제하기
                                                 </button>
                                             </>
                                         ) : (
-                                            <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item" onClick={() => handleReport(post.id)} disabled={isReported}>
-                                                <span className={`material-icons mr-3 ${isReported ? 'text-gray-400' : 'text-gray-600'}`}>flag</span>
-                                                <span className={isReported ? 'text-gray-400' : 'text-gray-600'}>{isReported ? '신고 완료' : '신고하기'}</span>
+                                            <button
+                                                className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item"
+                                                onClick={() => handleReport(post.id)}
+                                                disabled={isReported}
+                                            >
+                                                <span
+                                                    className={`material-icons mr-3 ${
+                                                        isReported ? 'text-gray-400' : 'text-gray-600'
+                                                    }`}
+                                                >
+                                                    flag
+                                                </span>
+                                                <span className={isReported ? 'text-gray-400' : 'text-gray-600'}>
+                                                    {isReported ? '신고 완료' : '신고하기'}
+                                                </span>
                                             </button>
                                         )}
                                     </div>
@@ -1112,10 +1062,7 @@ export default function PostDetailPage() {
 
                     {/* 게시글 내용 */}
                     <div className="prose prose-lg max-w-none mb-8">
-                        <div
-                            className="tiptap-content-wrapper"
-                            dangerouslySetInnerHTML={createMarkup()}
-                        />
+                        <div className="tiptap-content-wrapper" dangerouslySetInnerHTML={createMarkup()} />
                     </div>
 
                     {/* 상호작용 버튼 영역 */}
@@ -1125,15 +1072,18 @@ export default function PostDetailPage() {
                             <button
                                 onClick={handleLike}
                                 disabled={isLiking}
-                                className={`flex items-center gap-2 group/like transition-all ${isLiked
-                                    ? 'text-[#9C50D4]' // pink-500를 #9C50D4로 변경
-                                    : 'text-gray-500 hover:text-[#9C50D4]'
-                                    }`}
+                                className={`flex items-center gap-2 group/like transition-all ${
+                                    isLiked
+                                        ? 'text-[#9C50D4]' // pink-500를 #9C50D4로 변경
+                                        : 'text-gray-500 hover:text-[#9C50D4]'
+                                }`}
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${isLiking ? 'animate-pulse' : ''}`}
-                                    fill={isLiked ? "currentColor" : "none"}
+                                    className={`h-7 w-7 group-hover/like:scale-110 transition-transform ${
+                                        isLiking ? 'animate-pulse' : ''
+                                    }`}
+                                    fill={isLiked ? 'currentColor' : 'none'}
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
                                 >
@@ -1216,14 +1166,15 @@ export default function PostDetailPage() {
 
                     {/* 태그 목록 */}
                     <div className="flex flex-wrap gap-3 mt-6">
-                        {post.tags && post.tags.map((tag, index) => (
-                            <span
-                                key={index}
-                                className="inline-flex items-center px-4 py-2 rounded-full text-[15px] bg-purple-50 text-[#980ffa] hover:bg-purple-100 transition-colors cursor-pointer"
-                            >
-                                #{tag}
-                            </span>
-                        ))}
+                        {post.tags &&
+                            post.tags.map((tag, index) => (
+                                <span
+                                    key={index}
+                                    className="inline-flex items-center px-4 py-2 rounded-full text-[15px] bg-purple-50 text-[#980ffa] hover:bg-purple-100 transition-colors cursor-pointer"
+                                >
+                                    #{tag}
+                                </span>
+                            ))}
                     </div>
                 </div>
 
@@ -1267,8 +1218,9 @@ export default function PostDetailPage() {
                         {comments.map((comment) => (
                             <div
                                 key={comment.id}
-                                className={`bg-gray-50 rounded-[15px] p-6 transition-all ${lastEditedCommentId === comment.id ? 'ring-2 ring-[#980ffa]' : ''
-                                    }`}
+                                className={`bg-gray-50 rounded-[15px] p-6 transition-all ${
+                                    lastEditedCommentId === comment.id ? 'ring-2 ring-[#980ffa]' : ''
+                                }`}
                             >
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
@@ -1279,14 +1231,13 @@ export default function PostDetailPage() {
                                                     alt={`${comment.nickname}의 프로필 이미지`}
                                                     className="h-full w-full object-cover"
                                                     onError={(e) => {
-                                                        const target = e.target as HTMLImageElement;
-                                                        target.onerror = null; // 추가 오류 이벤트 방지
-                                                        target.style.display = 'none'; // 이미지 숨기기
+                                                        const target = e.target as HTMLImageElement
+                                                        target.onerror = null // 추가 오류 이벤트 방지
+                                                        target.style.display = 'none' // 이미지 숨기기
                                                         target.parentElement!.innerHTML = `
                                                             <span class="material-icons text-[#980ffa]">account_circle</span>
-                                                        `;
+                                                        `
                                                     }}
-
                                                 />
                                             ) : (
                                                 <span className="material-icons text-[#980ffa]">account_circle</span>
@@ -1294,16 +1245,21 @@ export default function PostDetailPage() {
                                         </div>
                                         <div>
                                             <h4 className="font-medium text-gray-900">{comment.nickname}</h4>
-                                            <span className="text-sm text-gray-500">{formatTime(comment.creationTime)}</span>
+                                            <span className="text-sm text-gray-500">
+                                                {formatTime(comment.creationTime)}
+                                            </span>
                                         </div>
                                     </div>
                                     {/* 댓글 메뉴 버튼 */}
                                     {isLogin && (
-                                        <div className="relative" ref={el => {
-                                            if (el) {
-                                                commentMenuRefs.current[comment.id] = el;
-                                            }
-                                        }}>
+                                        <div
+                                            className="relative"
+                                            ref={(el) => {
+                                                if (el) {
+                                                    commentMenuRefs.current[comment.id] = el
+                                                }
+                                            }}
+                                        >
                                             <button
                                                 className="p-2 rounded-full hover:bg-gray-200 transition-colors menu-button"
                                                 onClick={(e) => toggleCommentMenu(e, comment.id)}
@@ -1316,36 +1272,114 @@ export default function PostDetailPage() {
                                                     {isCurrentUserAdmin ? (
                                                         comment.isOwner ? (
                                                             <>
-                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={() => startCommentEdit(comment.id, comment.content)}>
-                                                                    <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
+                                                                <button
+                                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
+                                                                    onClick={() =>
+                                                                        startCommentEdit(comment.id, comment.content)
+                                                                    }
+                                                                >
+                                                                    <span className="material-icons text-blue-600 mr-3">
+                                                                        edit
+                                                                    </span>{' '}
+                                                                    수정하기
                                                                 </button>
-                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={() => handleAdminAction(comment.id, 'comment', 'inactive')}>
-                                                                    <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
+                                                                <button
+                                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
+                                                                    onClick={() =>
+                                                                        handleAdminAction(
+                                                                            comment.id,
+                                                                            'comment',
+                                                                            'inactive',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span className="material-icons text-red-600 mr-3">
+                                                                        delete
+                                                                    </span>{' '}
+                                                                    삭제하기
                                                                 </button>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-orange-600 menu-item" onClick={() => handleAdminAction(comment.id, 'comment', 'inactive')}>
-                                                                    <span className="material-icons text-orange-600 mr-3">visibility_off</span> 비활성화
+                                                                <button
+                                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-orange-600 menu-item"
+                                                                    onClick={() =>
+                                                                        handleAdminAction(
+                                                                            comment.id,
+                                                                            'comment',
+                                                                            'inactive',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span className="material-icons text-orange-600 mr-3">
+                                                                        visibility_off
+                                                                    </span>{' '}
+                                                                    비활성화
                                                                 </button>
-                                                                <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-purple-600 menu-item" onClick={() => handleAdminAction(comment.id, 'comment', 'pending')}>
-                                                                    <span className="material-icons text-purple-600 mr-3">block</span> 정지
+                                                                <button
+                                                                    className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-purple-600 menu-item"
+                                                                    onClick={() =>
+                                                                        handleAdminAction(
+                                                                            comment.id,
+                                                                            'comment',
+                                                                            'pending',
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <span className="material-icons text-purple-600 mr-3">
+                                                                        block
+                                                                    </span>{' '}
+                                                                    정지
                                                                 </button>
                                                             </>
                                                         )
                                                     ) : comment.isOwner ? (
                                                         <>
-                                                            <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item" onClick={() => startCommentEdit(comment.id, comment.content)}>
-                                                                <span className="material-icons text-blue-600 mr-3">edit</span> 수정하기
+                                                            <button
+                                                                className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-blue-600 menu-item"
+                                                                onClick={() =>
+                                                                    startCommentEdit(comment.id, comment.content)
+                                                                }
+                                                            >
+                                                                <span className="material-icons text-blue-600 mr-3">
+                                                                    edit
+                                                                </span>{' '}
+                                                                수정하기
                                                             </button>
-                                                            <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item" onClick={() => handleCommentDelete(comment.id)}>
-                                                                <span className="material-icons text-red-600 mr-3">delete</span> 삭제하기
+                                                            <button
+                                                                className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors text-red-600 menu-item"
+                                                                onClick={() => handleCommentDelete(comment.id)}
+                                                            >
+                                                                <span className="material-icons text-red-600 mr-3">
+                                                                    delete
+                                                                </span>{' '}
+                                                                삭제하기
                                                             </button>
                                                         </>
                                                     ) : (
-                                                        <button className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item" onClick={() => handleCommentReport(comment.id)} disabled={comment.isReported}>
-                                                            <span className={`material-icons mr-3 ${comment.isReported ? 'text-gray-400' : 'text-gray-600'}`}>flag</span>
-                                                            <span className={comment.isReported ? 'text-gray-400' : 'text-gray-600'}>{comment.isReported ? '신고 완료' : '신고하기'}</span>
+                                                        <button
+                                                            className="flex items-center w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors menu-item"
+                                                            onClick={() => handleCommentReport(comment.id)}
+                                                            disabled={comment.isReported}
+                                                        >
+                                                            <span
+                                                                className={`material-icons mr-3 ${
+                                                                    comment.isReported
+                                                                        ? 'text-gray-400'
+                                                                        : 'text-gray-600'
+                                                                }`}
+                                                            >
+                                                                flag
+                                                            </span>
+                                                            <span
+                                                                className={
+                                                                    comment.isReported
+                                                                        ? 'text-gray-400'
+                                                                        : 'text-gray-600'
+                                                                }
+                                                            >
+                                                                {comment.isReported ? '신고 완료' : '신고하기'}
+                                                            </span>
                                                         </button>
                                                     )}
                                                 </div>
@@ -1385,14 +1419,18 @@ export default function PostDetailPage() {
                                             <button
                                                 onClick={() => handleCommentLike(comment.id)}
                                                 disabled={commentLikingId === comment.id}
-                                                className={`flex items-center gap-1.5 group transition-all ${comment.isLiked ? 'text-[#9C50D4]' : 'text-gray-500 hover:text-[#9C50D4]'
-                                                    }`}
+                                                className={`flex items-center gap-1.5 group transition-all ${
+                                                    comment.isLiked
+                                                        ? 'text-[#9C50D4]'
+                                                        : 'text-gray-500 hover:text-[#9C50D4]'
+                                                }`}
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className={`h-5 w-5 group-hover:scale-110 transition-transform ${commentLikingId === comment.id ? 'animate-pulse' : ''
-                                                        }`}
-                                                    fill={comment.isLiked ? "currentColor" : "none"}
+                                                    className={`h-5 w-5 group-hover:scale-110 transition-transform ${
+                                                        commentLikingId === comment.id ? 'animate-pulse' : ''
+                                                    }`}
+                                                    fill={comment.isLiked ? 'currentColor' : 'none'}
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
                                                 >
@@ -1426,14 +1464,15 @@ export default function PostDetailPage() {
                     <button
                         onClick={() => {
                             if (isNoticePost(post)) {
-                                const searchParams = new URLSearchParams(window.location.search);
-                                const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode');
+                                const searchParams = new URLSearchParams(window.location.search)
+                                const currentAcademyCode =
+                                    post.academyCode || academyCode || searchParams.get('academyCode')
                                 const noticeUrl = currentAcademyCode
                                     ? `/post/notice?academyCode=${currentAcademyCode}&type=notice`
-                                    : '/post/notice?type=notice';
-                                router.push(noticeUrl);
+                                    : '/post/notice?type=notice'
+                                router.push(noticeUrl)
                             } else {
-                                router.push('/post');
+                                router.push('/post')
                             }
                         }}
                         className="px-6 py-3 rounded-[15px] text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all flex items-center gap-2"
@@ -1446,14 +1485,14 @@ export default function PostDetailPage() {
 
             {/* Scroll to Top Button */}
             {showScrollTopButton && (
-              <button
-                onClick={scrollToTop}
-                 className="fixed bottom-[300px] right-4 md:right-10 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
-                aria-label="맨 위로 스크롤"
-              >
-                <span className="material-icons">arrow_upward</span>
-              </button>
+                <button
+                    onClick={scrollToTop}
+                    className="fixed bottom-[300px] right-4 md:right-10 z-50 p-3 bg-[#9C50D4] text-white rounded-full shadow-lg hover:bg-[#8544B2] transition-all duration-300"
+                    aria-label="맨 위로 스크롤"
+                >
+                    <span className="material-icons">arrow_upward</span>
+                </button>
             )}
         </div>
-    );
+    )
 }

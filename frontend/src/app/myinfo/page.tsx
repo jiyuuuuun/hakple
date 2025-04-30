@@ -190,7 +190,6 @@ export default function MyInfoPage() {
     const [countLoading, setCountLoading] = useState(true)
 
     // API 기본 URL
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
 
     // 백엔드에서 가져온 데이터와 전역 상태의 데이터를 합친 최종 사용자 정보
     const combinedUserInfo = {
@@ -303,7 +302,6 @@ export default function MyInfoPage() {
             storedAcademyCode = localStorage.getItem('academyCode') || ''
         }
 
-        console.log('myinfo - 사용자 정보 요청 시작')
         // fetch 대신 fetchApi 사용
         fetchApi('/api/v1/myInfos', {
             method: 'GET',
@@ -402,17 +400,17 @@ export default function MyInfoPage() {
                                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white bg-white relative group shadow-sm">
                                     {combinedUserInfo.profileImageUrl ? (
                                         <div className="w-full h-full overflow-hidden">
-                                        <Image
-                                            src={combinedUserInfo.profileImageUrl}
-                                            alt="프로필 이미지"
+                                            <Image
+                                                src={combinedUserInfo.profileImageUrl}
+                                                alt="프로필 이미지"
                                                 width={128}
                                                 height={128}
                                                 className="object-cover w-full h-full"
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement
                                                     target.src = 'https://via.placeholder.com/128?text=사용자'
-                                            }}
-                                        />
+                                                }}
+                                            />
                                         </div>
                                     ) : (
                                         <div className="w-full h-full bg-gray-100 flex items-center justify-center">
@@ -465,7 +463,7 @@ export default function MyInfoPage() {
                                     <UserIcon className="h-5 w-5 text-[#8a63d2] mr-2" />
                                     <h2 className="text-lg font-medium text-gray-800">기본 정보</h2>
                                 </div>
-                                
+
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                         <span className="text-gray-500">닉네임</span>
@@ -502,11 +500,17 @@ export default function MyInfoPage() {
                                             <span className="text-gray-500">등록된 학원</span>
                                             <span className="text-gray-900">
                                                 {combinedUserInfo.academyCode ? (
-                                                    <Link href="/myinfo/academyRegister" className="text-[#8a63d2] hover:text-[#6d4bb1] hover:underline">
+                                                    <Link
+                                                        href="/myinfo/academyRegister"
+                                                        className="text-[#8a63d2] hover:text-[#6d4bb1] hover:underline"
+                                                    >
                                                         {combinedUserInfo.academyName}
                                                     </Link>
                                                 ) : (
-                                                    <Link href="/myinfo/academyRegister" className="text-[#8a63d2] hover:text-[#6d4bb1] hover:underline flex items-center">
+                                                    <Link
+                                                        href="/myinfo/academyRegister"
+                                                        className="text-[#8a63d2] hover:text-[#6d4bb1] hover:underline flex items-center"
+                                                    >
                                                         학원 등록하기
                                                         <ChevronRightIcon className="h-4 w-4 ml-1 inline" />
                                                     </Link>
@@ -525,7 +529,10 @@ export default function MyInfoPage() {
                                 </div>
 
                                 <div>
-                                    <Link href="/myinfo/update" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                    <Link
+                                        href="/myinfo/update"
+                                        className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1"
+                                    >
                                         <div className="flex items-center">
                                             <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
                                             <span className="text-gray-700">프로필 수정</span>
@@ -533,7 +540,10 @@ export default function MyInfoPage() {
                                         <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                                     </Link>
 
-                                    <Link href="/myinfo/password" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                    <Link
+                                        href="/myinfo/password"
+                                        className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1"
+                                    >
                                         <div className="flex items-center">
                                             <LockClosedIcon className="h-5 w-5 text-gray-400 mr-3" />
                                             <span className="text-gray-700">비밀번호 변경</span>
@@ -541,7 +551,10 @@ export default function MyInfoPage() {
                                         <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                                     </Link>
 
-                                    <Link href="/myinfo/withdraw" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                    <Link
+                                        href="/myinfo/withdraw"
+                                        className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1"
+                                    >
                                         <div className="flex items-center">
                                             <ExclamationCircleIcon className="h-5 w-5 text-red-500 mr-3" />
                                             <span className="text-red-500">회원 탈퇴</span>
@@ -572,7 +585,10 @@ export default function MyInfoPage() {
                                     </div>
 
                                     <div>
-                                        <Link href="/my-posts" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                        <Link
+                                            href="/my-posts"
+                                            className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1"
+                                        >
                                             <div className="flex items-center">
                                                 <PencilIcon className="h-5 w-5 text-gray-500 mr-3" />
                                                 <span className="text-gray-700">내가 작성한 게시글</span>
@@ -583,18 +599,26 @@ export default function MyInfoPage() {
                                             </div>
                                         </Link>
 
-                                        <Link href="/my-comments" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                        <Link
+                                            href="/my-comments"
+                                            className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1"
+                                        >
                                             <div className="flex items-center">
                                                 <ChatBubbleLeftIcon className="h-5 w-5 text-gray-500 mr-3" />
                                                 <span className="text-gray-700">내가 작성한 댓글</span>
                                             </div>
                                             <div className="flex items-center">
-                                                <span className="text-[#8a63d2] font-medium mr-2">{commentCount}개</span>
+                                                <span className="text-[#8a63d2] font-medium mr-2">
+                                                    {commentCount}개
+                                                </span>
                                                 <ChevronRightIcon className="h-5 w-5 text-gray-400" />
                                             </div>
                                         </Link>
 
-                                        <Link href="/my-likes" className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1">
+                                        <Link
+                                            href="/my-likes"
+                                            className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors rounded-lg mx-1"
+                                        >
                                             <div className="flex items-center">
                                                 <HeartIcon className="h-5 w-5 text-gray-500 mr-3" />
                                                 <span className="text-gray-700">내가 좋아요한 게시글</span>
@@ -611,5 +635,5 @@ export default function MyInfoPage() {
                 </main>
             </div>
         </div>
-    );
+    )
 }

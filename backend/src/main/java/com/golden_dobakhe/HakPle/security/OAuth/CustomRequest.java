@@ -5,6 +5,9 @@ import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import com.golden_dobakhe.HakPle.security.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,10 +17,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.RequestScope;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 
 
 //응답, 요청, 쿠키, 세션등을 다룬다
@@ -71,10 +70,10 @@ public class CustomRequest {
     public void setCookie(String name, String value, Long maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .path("/")
-                .domain("localhost")
+                .secure(true)
                 .sameSite("Lax") // Strict 대신 Lax로 완화
                 .httpOnly(true)
-                .maxAge(maxAge/1000) // 밀리초 → 초 변환
+                .maxAge(maxAge / 1000) // 밀리초 → 초 변환
                 .build();
         resp.addHeader("Set-Cookie", cookie.toString());
     }
@@ -95,7 +94,6 @@ public class CustomRequest {
     public void deleteCookie(String name) {
         ResponseCookie cookie = ResponseCookie.from(name, null)
                 .path("/")
-                .domain("localhost")
                 .sameSite("Strict")
                 .secure(true)
                 .httpOnly(true)
@@ -130,7 +128,6 @@ public class CustomRequest {
         String accessToken = authService.genAccessToken(user);
         String refreshToken = authService.genRefreshToken(user);
         authService.addRefreshToken(user, refreshToken);
-
 
         //api키는 없이 토큰만 있다고 칩시다
         setCookie("refreshToken", refreshToken, JwtTokenizer.REFRESH_TOKEN_EXPIRE_COUNT);

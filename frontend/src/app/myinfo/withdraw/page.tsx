@@ -116,7 +116,7 @@ export default function Withdraw() {
                                 </div>
                             </div>
                         </div>
-                        localhost
+                        
                         <div className="space-y-6">
                             <div>
                                 <h3 className="text-sm font-medium text-gray-700 mb-3">탈퇴 사유를 선택해 주세요</h3>

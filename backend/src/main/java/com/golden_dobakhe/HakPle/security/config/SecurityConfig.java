@@ -34,33 +34,33 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                                .requestMatchers(
-                                        // OAuth2 및 스웨거 API 문서
-                                "/oauth2/authorization/kakao?redirectUrl=http://localhost:3000",
-                                        "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
+                        .requestMatchers(
+                                // OAuth2 및 스웨거 API 문서 테스트용은 http://localhost:3000
+                                "/oauth2/authorization/kakao?redirectUrl=https://www.hakple.site",
+                                "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**",
 
-                                        // 인증 관련 API
-                                        "/api/v1/auth/login",
-                                        "/api/v1/auth/logout",
+                                // 인증 관련 API
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/logout",
 
-                                        // 관리자 로그인/회원가입
+                                // 관리자 로그인/회원가입
 
-                                        "/api/v1/users/userreg",
-                                        "/api/v1/users/check-username",
-                                        "/api/v1/users/check-nickname",
-                                        "/api/v1/users/check-phonenum",
+                                "/api/v1/users/userreg",
+                                "/api/v1/users/check-username",
+                                "/api/v1/users/check-nickname",
+                                "/api/v1/users/check-phonenum",
 
-   // 추가
+                                // 추가
                                 "/api/v1/usernames/**",
                                 // ✅ 관리자 로그인/회원가입은 열어두기
                                 "/api/v1/admin/login",
-                                "/api/v1/admin/register", "/api/v1/admin/check","/api/v1/sms/**"
+                                "/api/v1/admin/register", "/api/v1/admin/check", "/api/v1/sms/**"
                         ).permitAll()
-                                // 관리자 전용 API
-                                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        // 관리자 전용 API
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                                // 나머지는 모두 인증 필요
-                                .anyRequest().authenticated()
+                        // 나머지는 모두 인증 필요
+                        .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
@@ -97,7 +97,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         //해당 사이트와 매핑? 매치? 한다
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedOrigins(List.of("http://localhost:3000", "https://www.hakple.site"));
         config.addAllowedHeader("*");
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
