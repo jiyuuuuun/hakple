@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link';
+import Link from 'next/link'
 import { fetchApi } from '@/utils/api'
-
 
 export default function Home() {
     const router = useRouter()
@@ -32,7 +31,6 @@ export default function Home() {
 
     // 로그인 상태 확인
     useEffect(() => {
-        // 관리자 권한 확인 함수를 useEffect 내부로 이동
         const checkAdminPermission = async () => {
             try {
                 const response = await fetchApi(`/api/v1/admin/check`, {
@@ -62,10 +60,16 @@ export default function Home() {
             }
         }
 
+        
         // TODO: 실제 로그인 상태 확인 로직 추가 필요
         // 예시: 토큰 확인 등
-        // setIsLoggedIn(true or false);
-    }, [router])
+        // setIsLoggedIn(true or false); 
+
+        checkAdminPermission() // 관리자 권한 확인 함수 호출
+        // setIsLoading(false) // 로그인 상태 및 관리자 확인 완료 후 로딩 상태 변경
+
+    }, [router]) // router가 변경될 일은 없지만, linter 경고를 피하기 위해 추가
+
 
     // 타이핑 효과 구현
     useEffect(() => {
