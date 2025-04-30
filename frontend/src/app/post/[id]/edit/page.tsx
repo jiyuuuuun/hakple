@@ -222,6 +222,7 @@ const EditPostPage = () => {
             
             const loggedInUserName = loginMember?.userName?.trim();
             const postOwnerName = ownerUserName?.trim();
+
             const hasPermission = isAdmin || (loggedInUserName && postOwnerName !== undefined && loggedInUserName === postOwnerName);
 
             if (hasPermission) {
@@ -239,7 +240,6 @@ const EditPostPage = () => {
     }, [postId, isLogin, loginMember, isAdmin]);
 
     useEffect(() => {
-
         if (adminCheckComplete && isLogin && loginMember) {
              fetchPostData();
         } else if (!isLogin) {
@@ -247,7 +247,7 @@ const EditPostPage = () => {
         } else {
              setIsLoading(true); 
         }
-    }, [adminCheckComplete, isLogin, loginMember, fetchPostData]); 
+    }, [adminCheckComplete, isLogin, loginMember, fetchPostData]);
 
     useEffect(() => {
         if (!isLogin) {
@@ -392,7 +392,6 @@ const EditPostPage = () => {
                     </button>
                 </div>
                 <div className="bg-white p-6 sm:p-8 rounded-[20px] shadow-lg border border-[#F9FAFB] transition-shadow hover:shadow-xl">
-                    {/* 제목 입력 */}
                     <div className="w-full mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">제목</label>
                         <div className="relative group">
@@ -412,7 +411,6 @@ const EditPostPage = () => {
                         </div>
                     </div>
 
-                    {/* Tiptap 에디터 적용 */}
                     <div className="w-full mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">내용</label>
                         <div className="border-2 border-gray-100 rounded-[15px] overflow-hidden transition-all duration-300
@@ -428,7 +426,6 @@ const EditPostPage = () => {
                         </div>
                     </div>
 
-                    {/* 태그 입력 - 공지사항이 아닐 때만 표시 */}
                     {boardType !== 'notice' && (
                         <div className="w-full mb-6">
                             <label className="block text-sm font-medium text-gray-700 mb-2 ml-1">태그</label>
@@ -439,14 +436,12 @@ const EditPostPage = () => {
                         </div>
                     )}
 
-                    {/* 에러 메시지 */}
                     {error && (
                         <div className="w-full mb-6 px-4 py-3 rounded-[15px] bg-red-50 border border-red-100">
                             <p className="text-red-600 text-sm">{error}</p>
                         </div>
                     )}
 
-                    {/* 버튼 영역 */}
                     <div className="flex justify-end mt-8">
                         <button
                             onClick={handleSubmit}

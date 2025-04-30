@@ -322,7 +322,6 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
       // 제거된 이미지 찾기: 이전 목록에는 있었지만 현재 목록에는 없는 ID
       prevSet.forEach(prevId => {
         if (!currentTempIds.has(prevId)) {
-          console.log(`Image removed with tempId: ${prevId}`);
           onImageDelete?.(prevId); // 부모 컴포넌트에 삭제 알림
         }
       });
@@ -462,10 +461,8 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
       editor.chain().focus().insertContentAt(insertPos, loadingNode).run();
 
       // 삽입 직후 노드 상태 확인 로그 (유지)
-      console.log('Immediately after insert, checking nodes at pos:', insertPos);
       const nodeRightAfter = editor.state.doc.nodeAt(insertPos);
-      if (nodeRightAfter) {
-        console.log('Found node right after insert:', nodeRightAfter.type.name, nodeRightAfter.attrs);
+      if (nodeRightAfter) {     
       }
 
       // 이미지 업로드 함수
@@ -489,25 +486,25 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
       // 재시도 로직으로 업로드 실행
       const result = await retryOperation(uploadImage);
-      console.log('Image upload response:', result);
+      
 
       // 업로드 성공 시 이미지 노드 업데이트
       if (result && result.tempUrl) {
-        console.log('Attempting to update image node using insertPos:', insertPos, 'with url:', result.tempUrl);
+        
 
         const updateTr = editor.state.tr;
         const nodeAtInsertPos = insertPos !== null ? editor.state.doc.nodeAt(insertPos) : null;
 
         // 저장된 위치의 노드가 유효하고 tempId가 일치하는지 확인
         if (insertPos !== null && nodeAtInsertPos && nodeAtInsertPos.type.name === 'customImage' && nodeAtInsertPos.attrs['data-temp-id'] === tempId) {
-          console.log('Node found at insertPos matches tempId. Updating.');
+          
           const newAttrs = {
             ...nodeAtInsertPos.attrs,
             src: result.tempUrl,
             // 'data-temp-id': null // 필요하다면 업데이트 후 tempId 제거
           };
           updateTr.setNodeMarkup(insertPos, undefined, newAttrs);
-          console.log('Dispatching transaction to update editor view.');
+          
           editor.view.dispatch(updateTr);
           onImageUploadSuccess?.(tempId);
         } else {
@@ -517,7 +514,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           const fallbackTr = editor.state.tr;
           editor.state.doc.descendants((node, pos) => {
             if (node.type.name === 'customImage' && node.attrs['data-temp-id'] === tempId) {
-              console.log('Fallback search found node at pos:', pos);
+              
               const newAttrs = { ...node.attrs, src: result.tempUrl }; // 'data-temp-id': null
               fallbackTr.setNodeMarkup(pos, undefined, newAttrs);
               updatedFallback = true;
@@ -527,7 +524,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           });
 
           if (updatedFallback) {
-            console.log('Dispatching fallback transaction.');
+        
             editor.view.dispatch(fallbackTr);
             onImageUploadSuccess?.(tempId);
           } else {
@@ -577,7 +574,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           }
 
           if (deleted) {
-              console.log('Deleting failed/loading image node.');
+              
               editor.view.dispatch(deleteTr);
           }
       }
@@ -632,7 +629,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
   return (
     <div className="prose max-w-none codemirror-like-editor">
-      <div className="flex items-center p-[12px] border-b w-full bg-[#ffffff]">
+      <div className="flex items-center flex-wrap p-[12px] border-b w-full bg-[#ffffff]">
         <div className="flex mr-2">
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}

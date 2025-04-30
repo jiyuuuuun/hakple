@@ -204,7 +204,7 @@ export default function PostDetailPage() {
                                 }
                             })
                             .catch((err) => {
-                                console.log('좋아요 상태 확인 중 오류:', err)
+
                                 setIsLiked(false)
                             }),
 
@@ -220,7 +220,6 @@ export default function PostDetailPage() {
                                 }
                             })
                             .catch((err) => {
-                                console.log('신고 상태 확인 중 오류:', err)
                                 setIsReported(false)
                             }),
 
@@ -236,7 +235,6 @@ export default function PostDetailPage() {
                                 }
                             })
                             .catch((err) => {
-                                console.log('게시글 작성자 확인 중 오류:', err)
                                 setPost((prev) => (prev ? { ...prev, isOwner: false } : null))
                             }),
 
@@ -464,9 +462,6 @@ export default function PostDetailPage() {
 
                     if (commentsData && commentsData.length > 0) {
                         const firstComment = commentsData[0]
-                        console.log('첫 번째 댓글 객체 구조:', Object.keys(firstComment))
-                        console.log('isLiked 속성 타입:', typeof firstComment.isLiked)
-                        console.log('isLiked 속성 값:', firstComment.isLiked)
                     }
                 } catch (e) {
                     console.error('댓글 목록 JSON 파싱 오류:', e)
@@ -535,7 +530,7 @@ export default function PostDetailPage() {
                 content: commentInput,
             }
 
-            console.log('댓글 등록 요청 데이터:', commentData)
+
 
             const response = await fetchApi(`${API_BASE_URL}/api/v1/comments`, {
                 method: 'POST',
@@ -601,7 +596,7 @@ export default function PostDetailPage() {
             }
         }
 
-        console.log('댓글 수정 취소')
+
         setEditingCommentId(null)
         setEditCommentContent('')
     }
@@ -620,7 +615,7 @@ export default function PostDetailPage() {
                 content: editCommentContent.trim(),
             }
 
-            console.log('댓글 수정 요청 데이터:', commentData, 'commenterId:', editingCommentId)
+
 
             const response = await fetchApi(`${API_BASE_URL}/api/v1/comments/update`, {
                 method: 'POST',
@@ -669,7 +664,7 @@ export default function PostDetailPage() {
             })
 
             if (response.ok) {
-                console.log('댓글 삭제 성공')
+                
                 const updatedComments = await fetchComments(post.id)
                 setComments(updatedComments)
                 setShowCommentMenu(null)
