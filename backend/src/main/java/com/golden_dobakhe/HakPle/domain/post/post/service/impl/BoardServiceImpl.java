@@ -56,6 +56,7 @@ import org.jsoup.safety.Safelist;
 import lombok.extern.slf4j.Slf4j;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import java.net.URLDecoder;
 
 @Service
 @Transactional
@@ -138,8 +139,20 @@ public class BoardServiceImpl implements BoardService {
             }
         }
 
+        // Link images and update content URLs
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
-            fileService.linkImagesToBoard(request.getTempIdList(), board.getId());
+            Map<String, String> urlMapping = fileService.linkImagesToBoard(request.getTempIdList(), board.getId());
+            
+            if (!urlMapping.isEmpty()) {
+                String currentContent = board.getContent();
+                String updatedContent = replaceImageUrlsInContent(currentContent, urlMapping);
+                if (!currentContent.equals(updatedContent)) {
+                    board.setContent(updatedContent); // Update content with permanent URLs
+                    // Re-calculate plain text content if necessary, or ensure it's updated before final save if derived from HTML content
+                    board.setContentText(Jsoup.clean(updatedContent != null ? updatedContent : "", Safelist.none()));
+                    board = boardRepository.save(board); // Save the board again with updated content
+                }
+            }
         }
 
         return createBoardResponse(board);
@@ -275,10 +288,27 @@ public class BoardServiceImpl implements BoardService {
             fileService.cleanUpUnused(id, request.getUsedImageUrls());
         }
 
+        // Link new temporary images and update content URLs
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
-            fileService.linkImagesToBoard(request.getTempIdList(), id);
+            Map<String, String> urlMapping = fileService.linkImagesToBoard(request.getTempIdList(), id);
+            
+            if (!urlMapping.isEmpty()) {
+                String currentContent = board.getContent(); // Get content *after* potential update by board.update()
+                String updatedContent = replaceImageUrlsInContent(currentContent, urlMapping);
+                if (!currentContent.equals(updatedContent)) {
+                    board.setContent(updatedContent); // Update content with permanent URLs
+                    // Update plain text version as well
+                    board.setContentText(Jsoup.clean(updatedContent != null ? updatedContent : "", Safelist.none()));
+                    // No need to save here if relying on dirty checking within the transaction
+                }
+            }
         }
+        
+        // Note: Transactional context should handle saving the updated board entity
+        // If not relying on dirty checking, uncomment the save below:
+        // board = boardRepository.save(board); 
 
+        // Return response based on the updated board
         return createBoardResponse(board);
     }
 
@@ -887,6 +917,38 @@ public class BoardServiceImpl implements BoardService {
 
         board.setStatus(status);
         boardRepository.save(board);
+    }
+
+    // Helper method to replace URLs in HTML content
+    private String replaceImageUrlsInContent(String htmlContent, Map<String, String> urlMapping) {
+        if (htmlContent == null || urlMapping == null || urlMapping.isEmpty()) {
+            return htmlContent;
+        }
+
+        org.jsoup.nodes.Document doc = Jsoup.parseBodyFragment(htmlContent);
+        org.jsoup.select.Elements images = doc.select("img[src]");
+
+        boolean contentChanged = false;
+        for (org.jsoup.nodes.Element img : images) {
+            String currentSrc = img.attr("src");
+            String decodedCurrentSrc = null;
+            try {
+                // Decode the src attribute to match potential keys in the map
+                decodedCurrentSrc = URLDecoder.decode(currentSrc, StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                 log.warn("Failed to decode image src URL: {}", currentSrc, e);
+                 decodedCurrentSrc = currentSrc; // Use original if decoding fails
+            }
+
+            if (decodedCurrentSrc != null && urlMapping.containsKey(decodedCurrentSrc)) {
+                String newSrc = urlMapping.get(decodedCurrentSrc);
+                img.attr("src", newSrc);
+                contentChanged = true;
+                log.debug("Replaced image URL: {} -> {}", decodedCurrentSrc, newSrc);
+            }
+        }
+
+        return contentChanged ? doc.body().html() : htmlContent;
     }
 
 }
