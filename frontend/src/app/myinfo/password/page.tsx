@@ -111,12 +111,10 @@ export default function ChangePasswordPage() {
         } catch (error) {
             console.error('비밀번호 변경 오류:', error)
 
-            const axiosError = error as AxiosError
-
-            if (axiosError.response) {
-                if (axiosError.response.status === 401) {
+            if (error instanceof Error) {
+                if (error.message.includes('401')) {
                     setPasswordError('현재 비밀번호가 올바르지 않습니다.')
-                } else if (axiosError.response.status === 400) {
+                } else if (error.message.includes('400')) {
                     setPasswordError('비밀번호 변경 요청이 올바르지 않습니다.')
                 } else {
                     setPasswordError('비밀번호 변경에 실패했습니다. 다시 시도해주세요.')
