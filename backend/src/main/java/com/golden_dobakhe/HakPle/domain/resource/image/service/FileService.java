@@ -113,43 +113,58 @@ public class FileService {
     }
     
     @Transactional
-    public int linkImagesToBoard(List<String> tempIds, Long boardId) {
+    public Map<String, String> linkImagesToBoard(List<String> tempIds, Long boardId) {
+        Map<String, String> urlMapping = new HashMap<>();
         if (tempIds == null || tempIds.isEmpty() || boardId == null) {
-            return 0;
+            return urlMapping;
         }
-        
+
         if (!boardRepository.existsById(boardId)) {
             throw new RuntimeException("게시글이 존재하지 않습니다: " + boardId);
         }
-        
+
         List<Image> images = imageRepository.findByTempIdIn(tempIds);
         Board board = boardRepository.findById(boardId).orElseThrow();
-        
+
         for (Image image : images) {
             try {
                 String tempS3Url = image.getFilePath();
-                String tempS3Key = extractS3KeyFromUrl(tempS3Url); 
+                if (tempS3Url == null || !tempS3Url.contains("/temp/")) {
+                    log.warn("Skipping image linking for image ID {} as it might already be permanent or has invalid URL: {}", image.getId(), tempS3Url);
+                    continue;
+                }
+                String tempS3Key = extractS3KeyFromUrl(tempS3Url);
+                if (tempS3Key == null) {
+                    log.error("Could not extract S3 key from temporary URL: {}", tempS3Url);
+                    continue;
+                }
                 String fileName = tempS3Key.substring(tempS3Key.lastIndexOf('/') + 1);
-                String permanentS3Key = "board/" + boardId + "/" + fileName; 
+                String permanentS3Key = "board/" + boardId + "/" + fileName;
 
                 CopyObjectRequest copyReq = new CopyObjectRequest(bucketName, tempS3Key, bucketName, permanentS3Key)
-                        .withCannedAccessControlList(CannedAccessControlList.PublicRead); 
+                        .withCannedAccessControlList(CannedAccessControlList.PublicRead);
                 amazonS3.copyObject(copyReq);
+
+                String permanentS3Url = amazonS3.getUrl(bucketName, permanentS3Key).toString();
 
                 amazonS3.deleteObject(new DeleteObjectRequest(bucketName, tempS3Key));
 
-                String permanentS3Url = amazonS3.getUrl(bucketName, permanentS3Key).toString();
                 image.setFilePath(permanentS3Url);
                 image.setBoard(board);
                 image.setIsTemp(false);
+                image.setS3Key(permanentS3Key);
+                image.setExpiresAt(null);
+
+                urlMapping.put(tempS3Url, permanentS3Url);
 
             } catch (Exception e) {
+                log.error("Error processing image ID {} during linking to board ID {}: {}", image.getId(), boardId, e.getMessage(), e);
             }
         }
-        
-        imageRepository.saveAll(images); 
-        
-        return images.size(); 
+
+        imageRepository.saveAll(images);
+
+        return urlMapping;
     }
     
     @Transactional

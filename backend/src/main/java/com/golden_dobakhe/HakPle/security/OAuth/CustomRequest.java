@@ -71,7 +71,7 @@ public class CustomRequest {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .path("/")
                 .secure(true)
-                .sameSite("Lax") // Strict 대신 Lax로 완화
+                .sameSite("Strict") // Strict 대신 Lax로 완화
                 .httpOnly(true)
                 .maxAge(maxAge / 1000) // 밀리초 → 초 변환
                 .build();
