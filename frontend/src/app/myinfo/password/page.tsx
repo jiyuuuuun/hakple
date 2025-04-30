@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import axios, { AxiosError } from 'axios'
+import { fetchApi } from '@/utils/api'
 import Link from 'next/link'
 import { ArrowLeftIcon, KeyIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 
@@ -84,20 +84,17 @@ export default function ChangePasswordPage() {
         setConfirmError('')
 
         try {
-            await axios.post(
-                '/api/v1/usernames/change-password',
-                {
-                    currentPassword: currentPassword,
-                    newPassword: newPassword,
+            await fetchApi('/api/v1/usernames/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword,
                     newPasswordConfirm: confirmPassword,
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    withCredentials: true, // 쿠키 포함하여 요청 (JWT 인증)
-                },
-            )
+                }),
+            })
 
             // 비밀번호 변경 성공 메시지 표시
             setSuccessMessage('비밀번호가 성공적으로 변경되었습니다.')
@@ -137,15 +134,15 @@ export default function ChangePasswordPage() {
             <div className="max-w-2xl mx-auto">
                 {/* 뒤로가기 버튼 */}
                 <div className="mb-8">
-                    <Link 
-                        href="/myinfo" 
+                    <Link
+                        href="/myinfo"
                         className="inline-flex items-center text-gray-600 hover:text-[#9C50D4] transition-colors text-lg"
                     >
                         <ArrowLeftIcon className="h-6 w-6 mr-2" />
                         <span>내 정보로 돌아가기</span>
                     </Link>
                 </div>
-                
+
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
                     {/* 헤더 부분 */}
                     <div className="bg-[#F7F3FD] px-8 py-6 border-b border-gray-100">
@@ -153,9 +150,7 @@ export default function ChangePasswordPage() {
                             <KeyIcon className="h-9 w-9 text-[#9C50D4] mr-4" />
                             <h1 className="text-2xl font-bold text-gray-800">비밀번호 변경</h1>
                         </div>
-                        <p className="text-gray-600 mt-3 text-lg">
-                            현재 비밀번호 확인 후 새 비밀번호를 설정해주세요.
-                        </p>
+                        <p className="text-gray-600 mt-3 text-lg">현재 비밀번호 확인 후 새 비밀번호를 설정해주세요.</p>
                     </div>
 
                     {/* 컨텐츠 부분 */}
@@ -165,7 +160,9 @@ export default function ChangePasswordPage() {
                                 <ShieldCheckIcon className="h-6 w-6 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
                                 <div>
                                     <p className="text-green-600 font-medium text-lg">{successMessage}</p>
-                                    <p className="text-green-600 text-base mt-1">잠시 후 내 정보 페이지로 이동합니다...</p>
+                                    <p className="text-green-600 text-base mt-1">
+                                        잠시 후 내 정보 페이지로 이동합니다...
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -173,8 +170,19 @@ export default function ChangePasswordPage() {
                         {passwordError && (
                             <div className="mb-8 p-5 bg-red-50 rounded-lg border border-red-200">
                                 <div className="flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-6 w-6 text-red-500 mr-3"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
                                     </svg>
                                     <p className="text-red-600 font-medium text-base">{passwordError}</p>
                                 </div>
@@ -224,8 +232,19 @@ export default function ChangePasswordPage() {
                                         } flex items-center`}
                                     >
                                         {validatePassword(newPassword) ? (
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-5 w-5 mr-2"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M5 13l4 4L19 7"
+                                                />
                                             </svg>
                                         ) : null}
                                         비밀번호는 8자 이상이어야 합니다.
@@ -252,16 +271,38 @@ export default function ChangePasswordPage() {
                                     />
                                     {confirmError && (
                                         <p className="text-red-600 text-base mt-3 flex items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-5 w-5 mr-2"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                />
                                             </svg>
                                             {confirmError}
                                         </p>
                                     )}
                                     {newPassword && confirmPassword && newPassword === confirmPassword && (
                                         <p className="text-green-600 text-base mt-3 flex items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-5 w-5 mr-2"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M5 13l4 4L19 7"
+                                                />
                                             </svg>
                                             비밀번호가 일치합니다.
                                         </p>
@@ -288,11 +329,29 @@ export default function ChangePasswordPage() {
                                     } text-white rounded-lg font-medium text-lg min-w-[100px] flex items-center justify-center`}
                                 >
                                     {isLoading ? (
-                                        <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        <svg
+                                            className="animate-spin h-6 w-6 text-white"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <circle
+                                                className="opacity-25"
+                                                cx="12"
+                                                cy="12"
+                                                r="10"
+                                                stroke="currentColor"
+                                                strokeWidth="4"
+                                            ></circle>
+                                            <path
+                                                className="opacity-75"
+                                                fill="currentColor"
+                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                            ></path>
                                         </svg>
-                                    ) : '변경하기'}
+                                    ) : (
+                                        '변경하기'
+                                    )}
                                 </button>
                             </div>
                         </form>
@@ -301,4 +360,4 @@ export default function ChangePasswordPage() {
             </div>
         </div>
     )
-} 
+}
