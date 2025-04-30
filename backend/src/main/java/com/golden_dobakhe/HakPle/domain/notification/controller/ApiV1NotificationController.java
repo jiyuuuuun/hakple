@@ -5,15 +5,18 @@ import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService
 import com.golden_dobakhe.HakPle.security.utils.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
@@ -38,7 +41,6 @@ public class ApiV1NotificationController {
             Pageable pageable
     ) {
         Long userId = getCurrentUserId();
-        log.info("🔔 내 알림 목록 조회 요청 - userId: {}, pageable: {}", userId, pageable);
         Page<NotificationResponseDto> notifications = notificationService.getMyNotifications(userId, pageable);
         return ResponseEntity.ok(notifications);
     }
@@ -47,7 +49,6 @@ public class ApiV1NotificationController {
     @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 상태로 변경합니다.")
     public ResponseEntity<Void> markNotificationAsRead(@PathVariable(name = "id") Long id) {
         Long userId = getCurrentUserId();
-        log.info("📬 알림 읽음 처리 요청 - userId: {}, notificationId: {}", userId, id);
         notificationService.markNotificationAsRead(id, userId);
         return ResponseEntity.ok().build();
     }
@@ -56,7 +57,6 @@ public class ApiV1NotificationController {
     @Operation(summary = "읽지 않은 알림 개수 조회", description = "현재 로그인한 사용자의 읽지 않은 알림 개수를 조회합니다.")
     public ResponseEntity<Map<String, Long>> getUnreadNotificationCount() {
         Long userId = getCurrentUserId();
-        log.info("📊 읽지 않은 알림 개수 조회 요청 - userId: {}", userId);
         long count = notificationService.getUnreadNotificationCount(userId);
         Map<String, Long> response = Map.of("unreadCount", count);
         return ResponseEntity.ok(response);
