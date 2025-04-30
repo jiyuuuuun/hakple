@@ -65,9 +65,6 @@ export default function Home() {
         // 예시: 토큰 확인 등
         // setIsLoggedIn(true or false); 
 
-        checkAdminPermission() // 관리자 권한 확인 함수 호출
-        // setIsLoading(false) // 로그인 상태 및 관리자 확인 완료 후 로딩 상태 변경
-
     }, [router]) // router가 변경될 일은 없지만, linter 경고를 피하기 위해 추가
 
 
