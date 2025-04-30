@@ -65,35 +65,6 @@ export default function Home() {
             }
         }
 
-        const checkLoginStatus = async () => {
-            try {
-                const response = await fetchApi('/api/v1/auth/me', {
-                    method: 'GET',
-                })
-
-                console.log('로그인 상태 응답:', response.status)
-
-                if (response.ok) {
-                    const data = await response.json()
-                    console.log('로그인 상태 성공:', data)
-                    setIsLoggedIn(true)
-
-                    // 로그인 성공 → 관리자 권한 확인
-                    await checkAdminPermission()
-                } else {
-                    console.log('로그인 필요')
-                    setIsLoggedIn(false)
-                    setIsLoading(false)
-                }
-            } catch (error) {
-                console.error('로그인 상태 확인 중 오류:', error)
-                setIsLoggedIn(false)
-                setIsLoading(false)
-            }
-        }
-        checkLoginStatus()
-    }, [router]) 
-
     // 타이핑 효과 구현
     useEffect(() => {
         const typeText = () => {
