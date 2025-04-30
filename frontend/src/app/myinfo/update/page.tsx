@@ -67,18 +67,18 @@ export default function ProfileUpdatePage() {
     useEffect(() => {
         const fetchUserInfo = async () => {
             try {
-                console.log('사용자 정보 요청 시작')
+
                 const response = await fetchApi('/api/v1/myInfos', {
                     method: 'GET',
                 })
 
-                console.log('사용자 정보 응답 상태:', response.status)
+
                 if (!response.ok) {
                     throw new Error('사용자 정보를 불러오지 못했습니다.')
                 }
 
                 const data = await response.json()
-                console.log('사용자 정보 데이터:', data)
+
 
                 setCurrentNickname(data.nickName)
                 setPhoneNumber(data.phoneNum)
@@ -142,7 +142,7 @@ export default function ProfileUpdatePage() {
 
         // 모든 검사 통과
         setIsFormValid(true)
-        console.log('폼 유효성 검사 통과 - 버튼 활성화됨')
+
     }, [nickname, newPhoneNumber, nicknameError, phoneError, isPhoneChecked])
 
     // 닉네임 유효성 검사
@@ -205,7 +205,7 @@ export default function ProfileUpdatePage() {
 
     // 휴대폰 번호 중복 확인
     const checkPhoneDuplicate = async () => {
-        console.log('휴대폰 중복확인 시작:', newPhoneNumber)
+
         if (!validatePhoneNumber(newPhoneNumber)) {
             return
         }
@@ -217,13 +217,13 @@ export default function ProfileUpdatePage() {
             if (newPhoneNumber.replace(/-/g, '') === originalPhoneNumber.replace(/-/g, '')) {
                 setPhoneError('현재 사용 중인, 번호와 동일합니다.')
                 setIsPhoneChecked(true)
-                console.log('휴대폰 번호 검사 - 현재 값과 동일')
+
                 setIsLoading(false)
                 return
             }
 
             // 백엔드에 실제 API 요청
-            console.log('휴대폰 번호 중복 확인 API 요청:', newPhoneNumber)
+
             const response = await fetchApi(
                 `/api/v1/users/check-phonenum?phoneNum=${newPhoneNumber.replace(/-/g, '')}`,
                 {
@@ -237,16 +237,16 @@ export default function ProfileUpdatePage() {
                 if (available) {
                     setPhoneError('사용 가능한 휴대폰 번호입니다.')
                     setIsPhoneChecked(true)
-                    console.log('휴대폰 번호 중복확인 완료 - 사용 가능')
+
                 } else {
                     setPhoneError('이미 사용 중인 휴대폰 번호입니다.')
                     setIsPhoneChecked(false)
-                    console.log('휴대폰 번호 중복확인 완료 - 사용 불가')
+
                 }
             } else {
                 // 에러 응답 분석
                 const errorText = await response.text()
-                console.log('휴대폰 번호 중복확인 실패 응답:', errorText)
+
                 setPhoneError('휴대폰 번호 중복 확인에 실패했습니다.')
                 setIsPhoneChecked(false)
             }
@@ -317,7 +317,6 @@ export default function ProfileUpdatePage() {
                 return
             }
 
-            console.log('프로필 업데이트 요청 데이터:', updateData)
 
             // 백엔드에 업데이트 요청
             const response = await fetchApi('/api/v1/myInfos/update', {
@@ -325,7 +324,6 @@ export default function ProfileUpdatePage() {
                 body: JSON.stringify(updateData),
             })
 
-            console.log('프로필 업데이트 응답 상태:', response.status)
 
             if (!response.ok) {
                 const errorText = await response.text()
@@ -341,11 +339,11 @@ export default function ProfileUpdatePage() {
                 if (contentType && contentType.includes('application/json')) {
                     // JSON 응답인 경우
                     result = await response.json()
-                    console.log('프로필 업데이트 성공 (JSON):', result)
+ 
                 } else {
                     // 텍스트 응답인 경우
                     const textResponse = await response.text()
-                    console.log('프로필 업데이트 성공 (텍스트):', textResponse)
+
                     result = { message: textResponse }
                 }
 

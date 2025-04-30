@@ -67,7 +67,6 @@ export default function AcademyRegister() {
             try {
                 // 먼저 JSON으로 파싱 시도
                 data = (await response.clone().json()) as AcademyResponse // .clone() 사용 주의
-                console.log('학원 등록 응답 데이터 (JSON):', data)
 
                 // JSON 응답에서 학원 이름 추출
                 if (data && data.academyName) {
@@ -75,9 +74,7 @@ export default function AcademyRegister() {
                 }
             } catch (jsonError) {
                 // JSON 파싱 실패 시 텍스트로 처리
-                console.warn('JSON 파싱 실패, 텍스트로 처리 시도:', jsonError)
                 textData = await response.text()
-                console.log('학원 등록 응답 데이터 (텍스트):', textData)
 
                 // 텍스트 응답에서 학원 이름 추출
                 if (textData.includes('학원이 등록되었습니다:')) {

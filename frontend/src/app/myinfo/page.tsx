@@ -64,7 +64,7 @@ const formatDate = (dateString: string): string => {
 
         return `${year}년 ${month}월 ${day}일`
     } catch (error) {
-        console.log('날짜 형식 변환 오류:', error, '원본 날짜:', dateString)
+        
         // 에러가 발생해도 원본 날짜 문자열을 반환
         return dateString
     }
@@ -271,7 +271,6 @@ export default function MyInfoPage() {
 
                     // 인증 실패, 권한 없음, 기타 오류 상태 처리
                     if (!response.ok) {
-                        console.log('서버 오류: 관리자 권한 확인 실패 (상태 코드:', response.status, ')')
                         setIsAdmin(false)
                         return
                     }
@@ -280,14 +279,13 @@ export default function MyInfoPage() {
                     setIsAdmin(isAdminResult === true)
                 } catch (fetchError: any) {
                     if (fetchError.name === 'AbortError') {
-                        console.log('관리자 권한 확인 요청 타임아웃')
+                        
                     } else {
-                        console.log('네트워크 오류:', fetchError)
+                        
                     }
                     setIsAdmin(false)
                 }
             } catch (error) {
-                console.log('관리자 권한 확인 중 예상치 못한 오류:', error)
                 setIsAdmin(false)
             } finally {
                 setAdminChecking(false)
@@ -331,26 +329,6 @@ export default function MyInfoPage() {
                             ? storedAcademyName
                             : getAcademyNameFromCode(data.academyCode))
 
-                    // 토큰에서 추가 정보 확인 (백업)
-                    // const token = localStorage.getItem('accessToken')
-                    // if (token) {
-                    //     try {
-                    //         const payload = JSON.parse(atob(token.split('.')[1]))
-                    //         const academyIdFromToken =
-                    //             payload.academyId || payload.academyCode || payload.academy_code || null
-
-                    //         // 백엔드에 학원 코드가 없지만 토큰에는 있는 경우 토큰 값 사용
-                    //         if (!finalAcademyCode && academyIdFromToken) {
-                    //             finalAcademyCode = String(academyIdFromToken)
-                    //             finalAcademyName = getAcademyNameFromCode(String(academyIdFromToken))
-                    //         }
-                    //     } catch (e) {
-                    //         console.error('토큰 파싱 중 오류:', e)
-                    //     }
-                    // } catch (e) {
-                    //     console.log('토큰 파싱 중 오류:', e);
-                    // }
-
                     // 정보 업데이트
                     localStorage.setItem('academyCode', finalAcademyCode)
                     localStorage.setItem('academyName', finalAcademyName)
@@ -375,7 +353,6 @@ export default function MyInfoPage() {
                 fetchAllCounts()
             })
             .catch((err) => {
-                console.log('myinfo - 에러:', err)
                 setError(err.message)
             })
     }, [isLogin])
