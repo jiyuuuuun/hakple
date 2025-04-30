@@ -8,10 +8,10 @@ import { useRouter } from 'next/navigation'
 import { fetchApi } from '@/utils/api'
 
 // API 기본 URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 const socialLoginForKakaoUrl = '/oauth2/authorization/kakao'
-const redirectUrlAfterSocialLogin = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'
+const redirectUrlAfterSocialLogin = process.env.NEXT_PUBLIC_FRONTEND_URL
 
 export default function LoginPage() {
     const { setLoginMember, checkAdminAndRedirect, isLogin } = useGlobalLoginMember()
