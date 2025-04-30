@@ -240,7 +240,7 @@ export default function LoginPage() {
                     </div>
 
                     <Link
-                        href={`${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
+                        href={`${process.env.NEXT_PUBLIC_API_BASE_URL}${socialLoginForKakaoUrl}?redirectUrl=${redirectUrlAfterSocialLogin}`}
                         className="w-full py-4 text-lg bg-[#FFE500] text-black rounded-lg hover:bg-[#FFD700] transition-colors flex items-center justify-center"
                     >
                         <svg
