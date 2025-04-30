@@ -10,6 +10,7 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +57,7 @@ public class UserRegistService {
         }
 
         user.setStatus(Status.INACTIVE);
+        user.setModificationTime(LocalDateTime.now());
         userRepository.save(user);
         return WithdrawResult.SUCCESS;
     }

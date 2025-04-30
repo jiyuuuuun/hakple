@@ -7,6 +7,7 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.AcademyRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ public class AcademyService {
 
         // 학원코드 저장
         user.setAcademyId(academyCode);
+        user.setModificationTime(LocalDateTime.now());
 
         return academy.getAcademyName();
     }

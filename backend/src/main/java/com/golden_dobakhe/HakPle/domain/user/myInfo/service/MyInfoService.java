@@ -10,6 +10,7 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.AcademyRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -65,6 +66,7 @@ public class MyInfoService {
         if (newNickName != null && !newNickName.equals(user.getNickName())) {
             NickNameValidator.validateNickName(newNickName, user.getNickName(), userRepository);
             user.setNickName(newNickName);
+            user.setModificationTime(LocalDateTime.now());
         }
 
         //PhoneNum 변경
@@ -72,6 +74,7 @@ public class MyInfoService {
         if (newPhoneNum != null && !newPhoneNum.equals(user.getPhoneNum())) {
             PhoneNumValidator.validatePhoneNum(newPhoneNum, user.getPhoneNum(), userRepository);
             user.setPhoneNum(newPhoneNum);
+            user.setModificationTime(LocalDateTime.now());
         }
     }
 }
