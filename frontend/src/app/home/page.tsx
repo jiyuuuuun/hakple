@@ -226,11 +226,16 @@ export default function HomePage() {
     }
 
     useEffect(() => {
-   //     if (!isLogin) {
-   //         router.push('/login')
-   //         return
-   //     }
+        // 로그인 상태가 아닐 경우 API 호출 및 페이지 접근을 막음
+        if (!isLogin) {
+            // 로그인 페이지로 보내는 대신, 로딩 상태를 유지하거나
+            // 혹은 비로그인 상태의 홈 화면을 보여줄 수 있음.
+            // 여기서는 일단 로딩 상태만 해제하고 함수를 종료.
+            setLoading(false);
+            return;
+        }
 
+        // 이하 로직은 isLogin이 true일 때만 실행됨
         fetchUserInfoAndStats()
         fetchLatestPosts()
         fetchEvents()
@@ -238,18 +243,47 @@ export default function HomePage() {
         fetchPopularTags() // 인기 태그 가져오기 추가
         fetchNoticeBoards() // 공지사항 가져오기 추가
 
-
         // 페이지 포커스 이벤트 핸들러
         const handleFocus = () => {
-            checkAndUpdateAcademyInfo()
-            fetchUserInfoAndStats() // 포커스 시 정보 다시 가져오기
+            // 로그인 상태일 때만 실행
+            if (isLogin) {
+                checkAndUpdateAcademyInfo()
+                fetchUserInfoAndStats() // 포커스 시 정보 다시 가져오기
+            }
         }
 
         window.addEventListener('focus', handleFocus)
         return () => {
             window.removeEventListener('focus', handleFocus)
-        }
-    }, [isLogin, router])
+        };
+    }, [isLogin]); // isLogin을 의존성 배열에 추가
+
+    // 로딩 중 표시 강화
+    if (loading && isLogin === null) { // isLogin 상태가 아직 결정되지 않았을 때
+        return (
+             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#9C50D4]"></div>
+             </div>
+        );
+    }
+
+    // 로그인하지 않은 경우 (isLogin이 false로 확정된 경우)
+    if (!isLogin) {
+        // 비로그인 사용자를 위한 홈 화면 컴포넌트 또는 메시지 표시
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center bg-white p-8 rounded-lg shadow">
+                    <p className="text-lg mb-4">로그인이 필요한 서비스입니다.</p>
+                    <Link
+                        href="/login"
+                        className="inline-block px-6 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-purple-500 transition-colors"
+                    >
+                        로그인 페이지로 이동
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // 외부 클릭 감지 - 메뉴 닫기
     useEffect(() => {
@@ -554,24 +588,6 @@ export default function HomePage() {
             console.error('공지사항 로딩 중 오류:', err)
             setNoticePosts([])
         }
-    }
-
-
-    // 로그인하지 않은 경우 로딩 화면 대신 로그인 페이지로 리다이렉트
-    if (!isLogin) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center bg-white p-8 rounded-lg shadow">
-                    <p className="text-lg mb-4">로그인이 필요한 페이지입니다.</p>
-                    <Link
-                        href="/login"
-                        className="inline-block px-6 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-purple-500 transition-colors"
-                    >
-                        로그인 페이지로 이동
-                    </Link>
-                </div>
-            </div>
-        )
     }
 
     return (
