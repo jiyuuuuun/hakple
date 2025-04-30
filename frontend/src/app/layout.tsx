@@ -22,6 +22,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
     title: 'Hakple | 학원생 커뮤니티 플랫폼',
     description: '전국 학원생들을 위한 소통, 정보 공유, 친목 커뮤니티 플랫폼',
+    viewport: 'width=device-width, initial-scale=1.0',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
