@@ -9,7 +9,6 @@ import com.golden_dobakhe.HakPle.domain.post.comment.like.entity.CommentLike;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,7 +40,6 @@ public class LikeService {
         CommentLike commentLike = CommentLike.builder()
                 .comment(comment)
                 .user(user)
-                .modificationTime(LocalDateTime.now())
                 .build();
         likeRepository.save(commentLike);
         return CommentResult.SUCCESS;
@@ -60,8 +58,6 @@ public class LikeService {
         // ✅ 좋아요 취소 (delete)
         likeRepository.delete(like);
         comment.setLikeCount(comment.getLikeCount() - 1);
-        like.setModificationTime(LocalDateTime.now());
-
         return CommentResult.SUCCESS;
     }
 
@@ -85,7 +81,6 @@ public class LikeService {
             CommentLike commentLike = CommentLike.builder()
                     .comment(comment)
                     .user(user)
-                    .modificationTime(LocalDateTime.now())
                     .build();
             likeRepository.save(commentLike);
             return CommentResult.SUCCESS;
