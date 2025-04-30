@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link';
 import { fetchApi } from '@/utils/api'
+
 
 export default function Home() {
     const router = useRouter()
@@ -30,6 +32,9 @@ export default function Home() {
 
     // 로그인 상태 확인
     useEffect(() => {
+       
+
+
         // 관리자 권한 확인 함수를 useEffect 내부로 이동
         const checkAdminPermission = async () => {
             try {
