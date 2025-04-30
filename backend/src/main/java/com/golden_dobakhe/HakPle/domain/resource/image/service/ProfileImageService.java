@@ -77,11 +77,11 @@ public class ProfileImageService {
                 .isDeleted(false)
                 .isTemp(true) // 임시 파일 플래그
                 .user(user)
-                .modificationTime(LocalDateTime.now())
                 .build();
 
         imageRepository.save(newImage);
         user.setProfileImage(newImage);
+        user.setModificationTime(LocalDateTime.now());
 //        userRepository.save(user);
 
         return profileImageUrl;
