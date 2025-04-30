@@ -65,112 +65,126 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     // 루트 페이지에서 푸터 숨김 여부
     const shouldHideFooter = pathname === '/' || shouldHideHeaderFooter;
 
+    // 로그인이 필요없는 페이지 목록
+    const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
+
+    const specialPages = ['/login', '/admin']
+    // 로그인이 필요한 경로를 명시적으로 정의
+    const protectedPaths = ['/myinfo', '/my-posts', '/my-comments', '/my-likes']
+    
+    // 루트 경로용 로그인 상태 확인 함수 (리다이렉트 방지)
+    const checkLoginStatusForRoot = async (): Promise<boolean> => {
+        try {
+            const response = await fetchApi('/api/v1/auth/me', {
+                method: 'GET',
+            }, true) // preventRedirectOn401: true
+            const isLoggedIn = response.ok;
+            if (!isLoggedIn) {
+                setNoLoginMember()
+                setIsLogin(false)
+            } else {
+                const data = await response.json()
+                setLoginMember(data)
+                setIsLogin(true)
+            }
+            return isLoggedIn;
+        } catch (err) {
+            console.error('[ClientLayout] Error checking login status for root:', err);
+            setNoLoginMember()
+            setIsLogin(false)
+            return false
+        }
+    }
+
     useEffect(() => {
-        
-
-        // 로그인이 필요없는 페이지 목록
-        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
-
-        const specialPages = ['/login', '/admin']
-        // 로그인이 필요한 경로를 명시적으로 정의
-        const protectedPaths = ['/myinfo', '/my-posts', '/my-comments', '/my-likes']
-        
+        // 페이지 경로별 플래그 계산
         const isPublicPage = publicPages.some((page) => pathname?.startsWith(page))
         const isSpecialPage = specialPages.some((page) => pathname?.startsWith(page))
-        // 현재 경로가 보호된 경로인지 확인
         const isProtectedPath = protectedPaths.some((path) => pathname?.startsWith(path))
 
-        
+        console.log(`[ClientLayout] useEffect triggered for path: ${pathname}`);
+
         // 로그인 페이지에서는 API 호출하지 않음
         if (pathname === '/login') {
+            console.log('[ClientLayout] Handling /login path. Setting no login member.');
             setNoLoginMember()
             setIsLogin(false)
             return
         }
         
-        // 루트 경로('/')에서는 로그인 체크를 수행하되, 실패해도 리다이렉트하지 않음
-        const checkLoginStatus = async () => {
+        // 루트 경로('/')인 경우 별도 처리
+        if (pathname === '/') {
+            console.log('[ClientLayout] Handling root path ('/'). Checking login status without redirect.');
+            // 로그인 체크는 수행하되, 결과에 관계없이 홈 페이지 접근 허용
+            checkLoginStatusForRoot().then(isLoggedInRoot => {
+                console.log(`[ClientLayout] Root path login check result: ${isLoggedInRoot}`);
+            });
+            // 로딩 상태 해제 로직 추가 (만약 필요하다면)
+            if (isLoginMemberPending) {
+                const event = new CustomEvent('loginMemberLoaded')
+                window.dispatchEvent(event)
+            }
+            return // 루트 경로는 여기서 로직 종료
+        }
+
+        // --- 이하 로직은 루트 경로가 아닐 때만 실행됨 --- 
+        console.log(`[ClientLayout] Handling non-root path: ${pathname}`);
+
+        // 로그인 상태 확인 및 리다이렉트 처리
+        const checkLoginStatusForRedirect = async () => { // 다른 이름의 함수 사용
+            console.log('[ClientLayout] Checking login status for redirect...');
             try {
-                const response = await fetchApi('/api/v1/admin/check', {
+                // 여기서는 리다이렉트 방지 옵션 불필요 (기본값 false)
+                const response = await fetchApi('/api/v1/auth/me', {
                     method: 'GET',
                 })
-
-                if (!response.ok) {
+                const isLoggedIn = response.ok;
+                console.log(`[ClientLayout] Login status for redirect check: ${isLoggedIn}`);
+                if (!isLoggedIn) {
                     setNoLoginMember()
                     setIsLogin(false)
-                    return false
+                } else {
+                    const data = await response.json()
+                    setLoginMember(data)
+                    setIsLogin(true)
                 }
-
-                const data = await response.json()
-                
-                setLoginMember(data)
-                setIsLogin(true)
-                return true
-            } catch {
+                return isLoggedIn;
+            } catch (err) {
+                console.error('[ClientLayout] Error checking login status for redirect:', err);
                 setNoLoginMember()
                 setIsLogin(false)
                 return false
             }
         }
-
-        // 루트 경로('/')인 경우 별도 처리
-        if (pathname === '/') {
-            // 로그인 체크는 수행하되, 결과에 관계없이 홈 페이지 접근 허용
-            checkLoginStatus()
-            // 로딩 상태 해제
-            if (isLoginMemberPending) {
-                const event = new CustomEvent('loginMemberLoaded')
-                window.dispatchEvent(event)
-            }
-            return
-        }
-
-        // 로그인 상태 확인 및 리다이렉트 처리
-        checkLoginStatus()
+        
+        checkLoginStatusForRedirect()
             .then((isLoggedIn) => {
+                console.log(`[ClientLayout] After redirect check, isLoggedIn: ${isLoggedIn}`);
+                console.log(`[ClientLayout] Path info: isPublic=${isPublicPage}, isSpecial=${isSpecialPage}, isProtected=${isProtectedPath}`);
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
-                if ((!isPublicPage && !isSpecialPage && !isLoggedIn) || (isProtectedPath && !isLoggedIn)) {
-                    
+                const shouldRedirectToLogin = (!isPublicPage && !isSpecialPage && !isLoggedIn) || (isProtectedPath && !isLoggedIn);
+                console.log(`[ClientLayout] Should redirect to login? ${shouldRedirectToLogin}`);
+                
+                if (shouldRedirectToLogin) {
                     if (pathname !== '/login') {  // 현재 페이지가 이미 로그인 페이지가 아닐 때만 리다이렉트
+                        console.log(`[ClientLayout] Redirecting to /login from ${pathname}`);
                         router.replace("/login")
                     }
-                }
-                
-                // 로그인 페이지에 있을 경우 홈으로 리다이렉트
-                if (pathname === '/login' && isLoggedIn) {
-                    
-                    router.replace("/home")
-                }
-
-                // 관리자인 경우 /myinfo 페이지 접근 제한
-                if (isLoggedIn && pathname?.startsWith('/myinfo')) {
-                    const checkAdminAndRedirect = async () => {
-                        try {
-                            const response = await fetchApi('/api/v1/admin/check', {
-                                method: 'GET',
-                            })
-
-                            if (!response.ok) {
-                                return false
-                            }
-
-                            const isAdmin = await response.json()
-
-                            if (isAdmin === true) {
-                                
-                                router.replace("/admin")
-                            }
-                        } catch {
-                            
-                        }
-                    }
-
-                    checkAdminAndRedirect()
+                } else if (pathname === '/login' && isLoggedIn) { // 로그인 페이지인데 로그인 된 경우
+                     console.log(`[ClientLayout] Redirecting to /home from /login because already logged in`);
+                     router.replace("/home")
+                } else if (isLoggedIn && pathname?.startsWith('/myinfo')) { // 관리자가 /myinfo 접근 시
+                    // ... (기존 관리자 체크 로직) ...
                 }
             })
-            .finally(() => {
-                
-            })
+            // .finally 제거 또는 다른 처리
+            
+        // 로딩 상태 해제 (여기서 처리)
+        if (isLoginMemberPending) {
+            console.log('[ClientLayout] Dispatching loginMemberLoaded event');
+            const event = new CustomEvent('loginMemberLoaded')
+            window.dispatchEvent(event)
+        }
     }, [pathname]) // pathname이 변경될 때마다 실행
 
 

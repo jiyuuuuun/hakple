@@ -195,7 +195,10 @@ export function useLoginMember() {
     };
 
     const logoutAndHome = () => {
-        logout(() => router.replace('/'))
+        logout(() => {
+            // 로그아웃 후 무조건 루트 페이지('/')로 이동
+            window.location.href = '/';
+        })
     }
 
     // 관리자 권한 확인 함수
