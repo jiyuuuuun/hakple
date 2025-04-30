@@ -12,8 +12,10 @@ export default function Home() {
     const texts = ['함께 성장하는', '함께 배우는', '함께 나누는', '함께 도전하는']
     const [typingSpeed, setTypingSpeed] = useState(150)
 
+
     // 로그인 상태를 useLoginMember 훅으로 가져옴
     const { isLogin } = useLoginMember()
+
 
     // 타이핑 효과 구현
     useEffect(() => {

@@ -11,7 +11,7 @@ import { fetchApi } from '@/utils/api'
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 const socialLoginForKakaoUrl = '/oauth2/authorization/kakao'
-const redirectUrlAfterSocialLogin = process.env.NEXT_PUBLIC_FRONTEND_URL
+const redirectUrlAfterSocialLogin = process.env.NEXT_PUBLIC_FRONT_BASE_URL
 
 export default function LoginPage() {
     const { setLoginMember, checkAdminAndRedirect, isLogin } = useGlobalLoginMember()
