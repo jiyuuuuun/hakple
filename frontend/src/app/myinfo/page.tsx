@@ -190,7 +190,6 @@ export default function MyInfoPage() {
     const [countLoading, setCountLoading] = useState(true)
 
     // API 기본 URL
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
     // 백엔드에서 가져온 데이터와 전역 상태의 데이터를 합친 최종 사용자 정보
     const combinedUserInfo = {
