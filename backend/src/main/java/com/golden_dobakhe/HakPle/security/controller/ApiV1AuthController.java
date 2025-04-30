@@ -70,14 +70,15 @@ public class ApiV1AuthController {
                 .map(Image::getFilePath)      // Image 객체가 있다면 파일 경로 가져오기
                 .orElse(null);                     // Image 객체가 null이면 null 반환
 
-        // MeDto 생성 시 profileImageUrl 전달
+        // MeDto 생성 시 profileImageUrl 및 userName 전달
         MeDto meDto = new MeDto(
                 user.getId(),
                 user.getNickName(),
+                user.getUserName(), // user.getUserName() 값을 userName 필드에 전달
                 user.getCreationTime(),
                 user.getModificationTime(),
                 user.getAcademyId(),
-                profileImageUrl // 가져온 profileImageUrl 전달
+                profileImageUrl
         );
 
         return ResponseEntity.ok(meDto);
