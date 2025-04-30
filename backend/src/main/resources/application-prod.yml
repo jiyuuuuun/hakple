@@ -21,7 +21,7 @@ spring:
       host: redis_1 # 컨테이너 이름으로 설정
       port: 6379
       connect-timeout: 10000 # 연결 타임아웃 10초
-      password: ${custom.prod.db.password}
+      password: ${custom.prod.redis.password}
 logging:
   level:
     com.back: INFO
