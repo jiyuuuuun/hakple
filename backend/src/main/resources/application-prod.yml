@@ -8,6 +8,8 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       auto-commit: false
+  jackson:
+    time-zone: Asia/Seoul
   jpa:
     hibernate:
       ddl-auto: update
