@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { fetchApi } from '@/utils/api'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8090'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
 interface Post {
     id: number
@@ -103,7 +103,7 @@ export default function PostDetailPage() {
         const checkAdmin = async () => {
             if (isLogin) {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/v1/admin/check`, {
+                    const response = await fetchApi(`/api/v1/admin/check`, {
                         method: 'GET',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
@@ -142,7 +142,7 @@ export default function PostDetailPage() {
                 const searchParams = new URLSearchParams(window.location.search)
                 const currentAcademyCode = academyCode || searchParams.get('academyCode')
 
-                let url = `${API_BASE_URL}/api/v1/posts/${postId}?postView=${!hasViewed}`
+                let url = `/api/v1/posts/${postId}?postView=${!hasViewed}`
                 if (currentAcademyCode) {
                     url += `&academyCode=${encodeURIComponent(currentAcademyCode)}`
                 }
@@ -273,7 +273,7 @@ export default function PostDetailPage() {
             const searchParams = new URLSearchParams(window.location.search)
             const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode')
 
-            let url = `${API_BASE_URL}/api/v1/posts/${post.id}/likes`
+            let url = `/api/v1/posts/${post.id}/likes`
             if (currentAcademyCode) {
                 url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`
             }
@@ -357,7 +357,7 @@ export default function PostDetailPage() {
         if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return
 
         try {
-            const response = await fetchApi(`${API_BASE_URL}/api/v1/posts/${post.id}`, {
+            const response = await fetchApi(`/api/v1/posts/${post.id}`, {
                 method: 'DELETE',
             })
 
@@ -401,7 +401,7 @@ export default function PostDetailPage() {
             const searchParams = new URLSearchParams(window.location.search)
             const currentAcademyCode = post.academyCode || academyCode || searchParams.get('academyCode')
 
-            let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/posts/${id}/report`
+            let url = `/api/v1/posts/${id}/report`
             if (currentAcademyCode) {
                 url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`
             }
@@ -438,7 +438,7 @@ export default function PostDetailPage() {
                 const searchParams = new URLSearchParams(window.location.search)
                 const currentAcademyCode = post?.academyCode || academyCode || searchParams.get('academyCode')
 
-                let url = `${API_BASE_URL}/api/v1/comments/by-post/${postId}`
+                let url = `/api/v1/comments/by-post/${postId}`
                 if (currentAcademyCode) {
                     url += `?academyCode=${encodeURIComponent(currentAcademyCode)}`
                 }
@@ -479,12 +479,9 @@ export default function PostDetailPage() {
 
                 const commentStatusPromises = commentsData.map(async (comment: Comment) => {
                     try {
-                        const reportStatusResponse = await fetchApi(
-                            `${API_BASE_URL}/api/v1/comments/reports/${comment.id}/status`,
-                            {
-                                method: 'GET',
-                            },
-                        )
+                        const reportStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/status`, {
+                            method: 'GET',
+                        })
 
                         if (reportStatusResponse.ok) {
                             const reportStatus = await reportStatusResponse.json()
@@ -493,12 +490,9 @@ export default function PostDetailPage() {
                             comment.isReported = false
                         }
 
-                        const ownerStatusResponse = await fetchApi(
-                            `${API_BASE_URL}/api/v1/comments/reports/${comment.id}/is-owner`,
-                            {
-                                method: 'GET',
-                            },
-                        )
+                        const ownerStatusResponse = await fetchApi(`/api/v1/comments/reports/${comment.id}/is-owner`, {
+                            method: 'GET',
+                        })
 
                         if (ownerStatusResponse.ok) {
                             const ownerStatus = await ownerStatusResponse.json()

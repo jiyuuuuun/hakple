@@ -6,18 +6,12 @@
 /**
  * API 요청을 위한 기본 URL
  */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
 /**
  * API 요청 타임아웃 시간 (밀리초)
  */
 const API_TIMEOUT = Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 30000
-
-interface ApiResponse {
-    success: boolean
-    message?: string
-    data?: unknown
-}
 
 /**
  * 기본 fetch 함수 래퍼
