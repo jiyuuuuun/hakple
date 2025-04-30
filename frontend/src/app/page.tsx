@@ -1,13 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link';
-import { fetchApi } from '@/utils/api'
-
+import Link from 'next/link'
+import { useLoginMember } from '@/stores/auth/loginMember'
 
 export default function Home() {
-    const router = useRouter()
     // 타이핑 애니메이션을 위한 상태
     const [typedText, setTypedText] = useState('')
     const [currentTextIndex, setCurrentTextIndex] = useState(0)
@@ -15,84 +12,10 @@ export default function Home() {
     const texts = ['함께 성장하는', '함께 배우는', '함께 나누는', '함께 도전하는']
     const [typingSpeed, setTypingSpeed] = useState(150)
 
-    // CSS 애니메이션 스타일 정의 - 간소화
-    const floatAnimation = {
-        animation: {
-            float: 'float 3s ease-in-out infinite',
-            wave: 'wave 15s -3s linear infinite',
-            'spin-slow': 'spin-slow 15s linear infinite',
-            blink: 'blink 1s step-end infinite',
-        },
-    }
 
-    // 사용자 로그인 상태를 강제로 true로 설정 (테스트용)
-    const [isLoggedIn, setIsLoggedIn] = useState(false)
-    const [isAdmin, setIsAdmin] = useState(false)
-    const [isLoading, setIsLoading] = useState(true)
+    // 로그인 상태를 useLoginMember 훅으로 가져옴
+    const { isLogin } = useLoginMember()
 
-    // 로그인 상태 확인
-    useEffect(() => {
-       
-
-
-        // 관리자 권한 확인 함수를 useEffect 내부로 이동
-        const checkAdminPermission = async () => {
-            try {
-                const response = await fetchApi(`/api/v1/admin/check`, {
-                    method: 'GET',
-                })
-
-                if (response.ok) {
-                    const isAdminResult = await response.json()
-                    console.log('관리자 권한 확인:', isAdminResult)
-
-                    setIsAdmin(isAdminResult === true)
-
-                    // 관리자인 경우 관리자 페이지로 리다이렉트
-                    if (isAdminResult === true) {
-                        console.log('관리자로 로그인 - 관리자 페이지로 이동')
-                        router.push('/admin')
-                    }
-                } else {
-                    console.log('관리자 권한 없음')
-                    setIsAdmin(false)
-                }
-                setIsLoading(false)
-            } catch (error) {
-                console.error('관리자 권한 확인 중 오류:', error)
-                setIsAdmin(false)
-                setIsLoading(false)
-            }
-        }
-
-        const checkLoginStatus = async () => {
-            try {
-                const response = await fetchApi('/api/v1/auth/me', {
-                    method: 'GET',
-                })
-
-                console.log('로그인 상태 응답:', response.status)
-
-                if (response.ok) {
-                    const data = await response.json()
-                    console.log('로그인 상태 성공:', data)
-                    setIsLoggedIn(true)
-
-                    // 로그인 성공 → 관리자 권한 확인
-                    await checkAdminPermission()
-                } else {
-                    console.log('로그인 필요')
-                    setIsLoggedIn(false)
-                    setIsLoading(false)
-                }
-            } catch (error) {
-                console.error('로그인 상태 확인 중 오류:', error)
-                setIsLoggedIn(false)
-                setIsLoading(false)
-            }
-        }
-        checkLoginStatus()
-    }, [router]) 
 
     // 타이핑 효과 구현
     useEffect(() => {
@@ -119,17 +42,6 @@ export default function Home() {
         const timer = setTimeout(typeText, isDeleting ? typingSpeed / 2 : typingSpeed)
         return () => clearTimeout(timer)
     }, [typedText, currentTextIndex, isDeleting, typingSpeed, texts])
-
-    // 로딩 중 표시
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="text-center">
-                    <div className="text-lg">로딩 중...</div>
-                </div>
-            </div>
-        )
-    }
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-white via-purple-50 to-indigo-50">
@@ -302,7 +214,7 @@ export default function Home() {
                                 동료들과 함께 지식을 나누고, 경험을 공유하세요.
                             </p>
                             <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                                {isLoggedIn ? (
+                                {isLogin ? (
                                     // 로그인된 사용자용 버튼
                                     <>
                                         <Link
