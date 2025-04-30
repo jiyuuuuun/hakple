@@ -1015,23 +1015,45 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           border-radius: 2px;
         }
         
-        .tiptap-content-wrapper h1,
-        .tiptap-content-wrapper h2,
-        .tiptap-content-wrapper h3,
-        .tiptap-content-wrapper h4,
-        .tiptap-content-wrapper h5,
-        .tiptap-content-wrapper h6 {
+        /* --- 헤딩 스타일 정리 시작 --- */
+        .ProseMirror h1,
+        .ProseMirror h2,
+        .ProseMirror h3,
+        .ProseMirror h4,
+        .ProseMirror h5,
+        .ProseMirror h6 {
           font-weight: bold;
-          margin: 0.8em 0 0.5em;
+          margin-bottom: 0.5em;
+          color: #000000; /* 헤딩 색상 기본값 */
+        }
+
+        .ProseMirror h1 {
+          font-size: 28px;
+          line-height: 1.2;
+          margin-top: 0.8em;
         }
         
-        .tiptap-content-wrapper blockquote {
+        .ProseMirror h2 {
+          font-size: 24px;
+          line-height: 1.3;
+          margin-top: 0.7em;
+        }
+        
+        .ProseMirror h3 {
+          font-size: 20px;
+          line-height: 1.4;
+          margin-top: 0.6em;
+        }
+        /* --- 헤딩 스타일 정리 끝 --- */
+        
+        .ProseMirror blockquote {
           border-left: 3px solid #000000;
           padding-left: 1em;
           margin-left: 0;
+          color: #000000; /* blockquote 색상 추가 */
         }
         
-        .tiptap-content-wrapper pre {
+        .ProseMirror pre {
           background-color: #f5f5f5;
           padding: 0.5em;
           border-radius: 4px;
@@ -1039,96 +1061,37 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           border: 1px solid #F9FAFB;
         }
         
-        .tiptap-content-wrapper ul,
-        .tiptap-content-wrapper ol {
-          padding-left: 1em;
-        }
-        
-        .tiptap-content-wrapper ul li::marker,
-        .tiptap-content-wrapper ol li::marker {
-          color: #000000 !important;
-        }
-        
-        /* 추가 강화 스타일 */
-        .ProseMirror ul li::marker,
-        .ProseMirror ol li::marker {
-          color: #000000 !important;
-        }
-        
-        /* 추가: 에디터 내부의 모든 마커에 강제 적용 */
-        .ProseMirror ul li::before,
-        .ProseMirror ol li::before,
-        .ProseMirror ul li::marker,
-        .ProseMirror ol li::marker,
-        .ProseMirror ul > li,
-        .ProseMirror ol > li,
-        .tiptap-content-wrapper ul > li,
-        .tiptap-content-wrapper ol > li {
-          color: #000000 !important;
-        }
-        
-        /* 에디터 특정 버튼 클릭 후 생성되는 요소에 직접 적용 */
         .ProseMirror ul,
         .ProseMirror ol {
-          color: #000000 !important;
+          padding-left: 1em;
+          color: #000000; /* 리스트 전체 색상 */
         }
-        
-        /* 특정 리스트 유형에 대한 명시적 스타일 */
+
+        /* 리스트 마커 스타일 */
         .ProseMirror ul {
-          list-style-type: disc !important;
+          list-style-type: disc;
         }
-        
         .ProseMirror ol {
-          list-style-type: decimal !important;
+          list-style-type: decimal;
+        }
+        .ProseMirror ul li::marker,
+        .ProseMirror ol li::marker {
+          color: #000000; /* 마커 색상 명시 */
         }
         
-        /* 에디터 내부 요소들에 대한 색상 정의 강화 */
-        .ProseMirror h1,
-        .ProseMirror h2, 
-        .ProseMirror h3,
+        /* 기존에 있던 색상 강제 적용 부분에서 헤딩 제거 */
         .ProseMirror blockquote,
         .ProseMirror ul li::marker,
         .ProseMirror ol li::marker {
-          color: #000000 !important;
+          /* color: #000000 !important; <- 이 규칙은 각 요소 스타일에 포함시켰으므로 제거 */
         }
 
-        /* 헤딩 태그에 명확한 크기 지정 */
-        .ProseMirror h1 {
-          font-size: 28px !important;
-          line-height: 1.2;
-          margin-top: 0.8em;
-          margin-bottom: 0.5em;
-        }
-        
-        .ProseMirror h2 {
-          font-size: 24px !important;
-          line-height: 1.3;
-          margin-top: 0.7em;
-          margin-bottom: 0.5em;
-        }
-        
-        .ProseMirror h3 {
-          font-size: 20px !important;
-          line-height: 1.4;
-          margin-top: 0.6em;
-          margin-bottom: 0.5em;
-        }
-        
-        /* tiptap-content-wrapper에도 동일하게 적용 */
-        .tiptap-content-wrapper h1 {
-          font-size: 28px !important;
-          line-height: 1.2;
-        }
-        
-        .tiptap-content-wrapper h2 {
-          font-size: 24px !important;
-          line-height: 1.3;
-        }
-        
-        .tiptap-content-wrapper h3 {
-          font-size: 20px !important;
-          line-height: 1.4;
-        }
+        /* 기존 tiptap-content-wrapper 관련 헤딩 스타일 제거 */
+        /*
+        .tiptap-content-wrapper h1 { ... }
+        .tiptap-content-wrapper h2 { ... }
+        .tiptap-content-wrapper h3 { ... }
+        */
         
         /* 이미지 내부 img 태그 스타일 */
         .image-resizer img {
