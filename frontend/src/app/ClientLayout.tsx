@@ -5,7 +5,7 @@ import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import MobileBottomNav from '@/components/MobileBottomNav'
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter, usePathname } from 'next/navigation'
 import { initDOMErrorPrevention } from '@/utils/domErrorFix'
 import { fetchApi } from '@/utils/api'
 
@@ -71,7 +71,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     const specialPages = ['/login', '/admin']
     // 로그인이 필요한 경로를 명시적으로 정의
     const protectedPaths = ['/myinfo', '/my-posts', '/my-comments', '/my-likes']
-    
+
     // 루트 경로용 로그인 상태 확인 함수 (리다이렉트 방지)
     const checkLoginStatusForRoot = async (): Promise<boolean> => {
         try {
@@ -114,7 +114,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         
         // 루트 경로('/')인 경우 별도 처리
         if (pathname === '/') {
-            console.log('[ClientLayout] Handling root path ('/'). Checking login status without redirect.');
             // 로그인 체크는 수행하되, 결과에 관계없이 홈 페이지 접근 허용
             checkLoginStatusForRoot().then(isLoggedInRoot => {
                 console.log(`[ClientLayout] Root path login check result: ${isLoggedInRoot}`);
@@ -127,7 +126,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             return // 루트 경로는 여기서 로직 종료
         }
 
-        // --- 이하 로직은 루트 경로가 아닐 때만 실행됨 --- 
+        // --- 이하 로직은 루트 경로가 아닐 때만 실행됨 ---
         console.log(`[ClientLayout] Handling non-root path: ${pathname}`);
 
         // 로그인 상태 확인 및 리다이렉트 처리
@@ -156,7 +155,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 return false
             }
         }
-        
+
         checkLoginStatusForRedirect()
             .then((isLoggedIn) => {
                 console.log(`[ClientLayout] After redirect check, isLoggedIn: ${isLoggedIn}`);
@@ -164,7 +163,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
                 const shouldRedirectToLogin = (!isPublicPage && !isSpecialPage && !isLoggedIn) || (isProtectedPath && !isLoggedIn);
                 console.log(`[ClientLayout] Should redirect to login? ${shouldRedirectToLogin}`);
-                
+
                 if (shouldRedirectToLogin) {
                     if (pathname !== '/login') {  // 현재 페이지가 이미 로그인 페이지가 아닐 때만 리다이렉트
                         console.log(`[ClientLayout] Redirecting to /login from ${pathname}`);
@@ -178,7 +177,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 }
             })
             // .finally 제거 또는 다른 처리
-            
+
         // 로딩 상태 해제 (여기서 처리)
         if (isLoginMemberPending) {
             console.log('[ClientLayout] Dispatching loginMemberLoaded event');
