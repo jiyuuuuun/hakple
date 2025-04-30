@@ -835,14 +835,14 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
               <p className="text-sm text-gray-500">{formatDate(time, modificationTime)}</p>
             </div>
           </div>
+          {hasImage && (
+            <span className="material-icons text-base text-[#980ffa] align-middle flex-shrink-0 ml-2">image</span>
+          )}
         </div>
 
         <Link href={`/post/${id}`} className="block no-underline">
           <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-[#9C50D4] transition-colors line-clamp-2">
             {title}
-            {hasImage && (
-              <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-            )}
           </h3>
         </Link>
 
@@ -952,66 +952,68 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
       <Link href={`/post/${id}`} className="block">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-            {profileImageUrl ? (
-              <img
-                src={profileImageUrl}
-                alt={`${nickname}의 프로필 이미지`}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null;
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-6 w-6 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    `;
-                  }
-                }}
-              />
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            )}
-          </div>
+        <div className="flex justify-between items-center gap-4 mb-2">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900">{nickname}</span>
-            <span className="text-gray-400">•</span>
-            <span className="text-gray-500">{formatDate(time, modificationTime)}</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={`${nickname}의 프로필 이미지`}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-6 w-6 text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      `;
+                    }
+                  }}
+                />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-900">{nickname}</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-gray-500">{formatDate(time, modificationTime)}</span>
+            </div>
           </div>
+          {hasImage && (
+            <span className="material-icons text-base text-[#980ffa] align-middle flex-shrink-0">image</span>
+          )}
         </div>
 
         <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
           {title}
-          {hasImage && (
-            <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-          )}
         </h2>
 
         <div className="flex flex-wrap gap-2 mb-4">

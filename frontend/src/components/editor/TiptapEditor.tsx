@@ -632,7 +632,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
   return (
     <div className="prose max-w-none codemirror-like-editor">
-      <div className="flex items-center p-[12px] border-b w-full bg-[#ffffff]">
+      <div className="flex items-center flex-wrap p-[12px] border-b w-full bg-[#ffffff]">
         <div className="flex mr-2">
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
