@@ -95,10 +95,10 @@ export async function fetchApi(
             !url.includes('/api/v1/myInfos') && 
             !url.includes('/api/v1/auth/logout') // 로그아웃 URL 제외 조건 추가
         ) {
-            console.log(`[fetchApi] Triggering internal myInfos update after ${url}`); // 로그 추가
+            
             try {
                 // 사용자 정보 갱신
-                const userInfoResponse = await fetch(`${BASE_URL}/api/v1/myInfos`, { // BASE_URL 추가
+                const userInfoResponse = await fetchApi(`/api/v1/myInfos`, { 
                     credentials: 'include',
                 })
 

@@ -7,6 +7,7 @@ import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
 import PostSkeleton from '@/components/PostSkeleton';
+import { formatRelativeTime } from '@/utils/dateUtils'
 
 interface Post {
   id: number;
@@ -1080,43 +1081,11 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
 function formatDate(creationTimeString: string, modificationTimeString?: string): string {
   const useModificationTime = modificationTimeString && modificationTimeString !== creationTimeString;
   const dateStringToFormat = useModificationTime ? modificationTimeString : creationTimeString;
-
+  
   if (!dateStringToFormat) {
     return '';
   }
-
-  const date = new Date(dateStringToFormat);
-  if (isNaN(date.getTime())) {
-    console.warn('Invalid date string provided to formatDate:', dateStringToFormat);
-    return '';
-  }
-
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / (60 * 1000));
-  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-
-  let formattedDate: string;
-
-  if (diffMinutes < 1) {
-    formattedDate = '방금 전';
-  } else if (diffMinutes < 60) {
-    formattedDate = `${diffMinutes}분 전`;
-  } else if (diffHours < 24) {
-    formattedDate = `${diffHours}시간 전`;
-  } else if (diffDays < 7) {
-    formattedDate = `${diffDays}일 전`;
-  } else {
-    formattedDate = new Intl.DateTimeFormat('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(date);
-  }
-
+  
+  const formattedDate = formatRelativeTime(dateStringToFormat);
   return useModificationTime ? `${formattedDate} (수정됨)` : formattedDate;
 }

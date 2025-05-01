@@ -99,10 +99,18 @@ export default function AdminUsersPage() {
       }
 
       const data: PageResponse<User> = await response.json()
-      setUsers(data.content)
+      
+  
+      // 각 사용자 데이터의 상태값 확인 및 정규화
+      const normalizedUsers = data.content.map(user => ({
+        ...user,
+        status: user.status ? user.status.toUpperCase() : 'UNKNOWN'
+      }))
+      
+      setUsers(normalizedUsers)
       setTotalPages(data.totalPages)
       setTotalElements(data.totalElements)
-      sortUsers(data.content, sortField, sortDirection)
+      sortUsers(normalizedUsers, sortField, sortDirection)
     } catch (error) {
       console.error('회원 목록 조회 에러:', error)
       setError('회원 목록을 불러오는데 실패했습니다')
@@ -154,7 +162,7 @@ export default function AdminUsersPage() {
       // 상태 변경 성공 시 해당 사용자 상태 업데이트
       setUsers(prevUsers => 
         prevUsers.map(user => 
-          user.id === id ? { ...user, status: state } : user
+          user.id === id ? { ...user, status: state.toUpperCase() } : user
         )
       )
       
@@ -180,15 +188,23 @@ export default function AdminUsersPage() {
     )
 
   const getStateColor = (state: string) => {
-    switch (state) {
+    if (!state) return 'bg-gray-100 text-gray-800';
+    
+    const status = state.toUpperCase();
+    
+    switch (status) {
       case 'ACTIVE':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-100 text-green-800';
       case 'INACTIVE':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-yellow-100 text-yellow-800';
       case 'PENDING':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-blue-100 text-blue-800';
+      case 'SUSPENDED':
+        return 'bg-red-100 text-red-800';
+      case 'BANNED':
+        return 'bg-red-200 text-red-900';
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800';
     }
   }
 
@@ -242,6 +258,27 @@ export default function AdminUsersPage() {
     const newSize = parseInt(e.target.value)
     setPageSize(newSize)
     setCurrentPage(1) // 페이지 크기 변경 시 첫 페이지로 이동
+  }
+
+  // 상태 표시 텍스트 로컬화 함수 추가
+  const getStatusLabel = (status: string) => {
+    if (!status) return '알 수 없음';
+    
+    const upperStatus = status.toUpperCase();
+    switch (upperStatus) {
+      case 'ACTIVE':
+        return '활성화';
+      case 'INACTIVE':
+        return '비활성화';
+      case 'PENDING':
+        return '대기중';
+      case 'SUSPENDED':
+        return '일시정지';
+      case 'BANNED':
+        return '차단됨';
+      default:
+        return status;
+    }
   }
 
   if (loading) {
@@ -395,7 +432,7 @@ export default function AdminUsersPage() {
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <span className={`px-2 py-1 rounded-full text-xs ${getStateColor(user.status)}`}>
-                            {user.status}
+                            {getStatusLabel(user.status)}
                           </span>
                           <select
                             className="ml-2 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#8C4FF2]"
