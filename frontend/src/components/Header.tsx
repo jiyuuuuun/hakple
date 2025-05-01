@@ -6,8 +6,7 @@ import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { fetchApi } from '@/utils/api'
 import { BellIcon } from '@heroicons/react/24/outline'
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { formatRelativeTime } from '@/utils/dateUtils'
 
 interface Notification {
     id: number;
@@ -463,7 +462,7 @@ export default function Header() {
                                                         {/* {notification.notificationType === 'POPULAR_POST' && '🌟 ' } */}
                                                         {notification.message}
                                                         <span className="block text-xs text-gray-400 mt-1">
-                                                            {formatDistanceToNow(new Date(notification.creationTime), { addSuffix: true, locale: ko })}
+                                                             {formatRelativeTime(notification.creationTime)}
                                                         </span>
                                                     </Link>
                                                 ))

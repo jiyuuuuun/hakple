@@ -52,7 +52,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         '/signup',
         '/forgot-username',
         '/forgot-password',
-        '/reset-password'
+        '/reset-password',
+        '/customer',
+        '/terms'
     ]
 
     const shouldHideHeaderFooter = hideHeaderFooterPages.some(page =>
@@ -61,7 +63,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     const shouldHideFooter = pathname === '/' || shouldHideHeaderFooter;
 
 
-    const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
+    const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home', '/terms','/customer']
     const protectedPaths = ['/myinfo', '/my-posts', '/my-comments', '/my-likes']
 
 

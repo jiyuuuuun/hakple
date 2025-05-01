@@ -506,7 +506,7 @@ export default function Home() {
                     <div className="mt-12 pt-12 border-t border-purple-400/30 flex flex-col md:flex-row justify-between items-center gap-6">
                         <p className="text-purple-200">© 2025 Hakple. All rights reserved.</p>
                         <div className="flex gap-4 text-sm">
-                            <a href="#" className="text-purple-200 hover:text-white transition-colors">
+                            <a href="/terms" className="text-purple-200 hover:text-white transition-colors">
                                 이용약관
                             </a>
                             <a href="#" className="text-purple-200 hover:text-white transition-colors">
