@@ -11,6 +11,7 @@ import com.golden_dobakhe.HakPle.security.dto.MeDto;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
 import com.golden_dobakhe.HakPle.security.service.AuthService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -51,37 +52,64 @@ public class ApiV1AuthController {
     //me api
     @GetMapping("/me")
     public ResponseEntity<?> me(HttpServletRequest request) {
-        String cookie = customRequest.getCookieValue("accessToken");
-        Claims claims = jwtTokenizer.parseAccessToken(cookie);
+        String cookie = null;
+        Claims claims = null;
+        Object userId = null;
+        User user = null;
 
-        Object userId = claims.get("userId");
+        try {
+            // 1. 쿠키에서 accessToken 가져오기
+            cookie = customRequest.getCookieValue("accessToken");
+            if (cookie == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("AccessToken cookie not found"); // 쿠키 없으면 401
+            }
 
-        if (userId == null) {
-            throw new IllegalStateException("JWT에 userId가 없습니다!");
+            // 2. accessToken 파싱해서 claims 얻기
+            claims = jwtTokenizer.parseAccessToken(cookie);
+
+            // 3. claims에서 userId 추출하기
+            userId = claims.get("userId");
+
+
+            // 4. userId가 없으면 에러 발생
+            if (userId == null) {
+                throw new IllegalStateException("JWT에 userId가 없습니다!");
+            }
+
+            long userIdLong = ((Number) userId).longValue();
+
+            // 5. userId로 데이터베이스에서 User 정보 조회
+            user = authService.findById(userIdLong)
+                    .orElseThrow(() -> {
+                        return new IllegalStateException("사용자를 찾을 수 없습니다: " + userIdLong);
+                    });
+
+            // 6. 프로필 이미지 URL 가져오기 (Optional 사용)
+            String profileImageUrl = Optional.ofNullable(user.getProfileImage())
+                    .map(Image::getFilePath)
+                    .orElse(null);
+
+            // 7. MeDto 생성 (프론트엔드로 보낼 데이터 객체)
+            MeDto meDto = new MeDto(
+                    user.getId(),
+                    user.getNickName(), // 👈 User 엔티티의 getNickName() 사용
+                    user.getUserName(), // 👈 User 엔티티의 getUserName() 사용
+                    user.getCreationTime(),
+                    user.getModificationTime(),
+                    user.getAcademyId(),
+                    profileImageUrl
+            );
+
+            // 8. MeDto를 담아서 200 OK 응답 보내기
+            return ResponseEntity.ok(meDto);
+
+        } catch (ExpiredJwtException eje) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token expired");
+        } catch (Exception e) {
+            // 예상치 못한 다른 모든 예외 처리
+            // 원래는 throw new IllegalStateException() 등이었으나, 여기서는 500 에러를 반환하도록 변경
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing request: " + e.getMessage());
         }
-
-        User user = authService.findById(((Number) userId).longValue())
-                .orElseThrow(() -> {
-                    return new IllegalStateException("사용자를 찾을 수 없습니다: " + userId);
-                });
-
-        // 프로필 이미지 URL 가져오기 (null 체크 포함)
-        String profileImageUrl = Optional.ofNullable(user.getProfileImage()) // User의 Image 객체 가져오기
-                .map(Image::getFilePath)      // Image 객체가 있다면 파일 경로 가져오기
-                .orElse(null);                     // Image 객체가 null이면 null 반환
-
-        // MeDto 생성 시 profileImageUrl 및 userName 전달
-        MeDto meDto = new MeDto(
-                user.getId(),
-                user.getNickName(),
-                user.getUserName(), // user.getUserName() 값을 userName 필드에 전달
-                user.getCreationTime(),
-                user.getModificationTime(),
-                user.getAcademyId(),
-                profileImageUrl
-        );
-
-        return ResponseEntity.ok(meDto);
     }
 
 

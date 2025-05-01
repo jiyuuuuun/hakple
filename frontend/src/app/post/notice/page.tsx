@@ -530,18 +530,20 @@ export default function NoticePage() {
                                                         <span className="material-icons text-gray-400 text-2xl">account_circle</span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium text-gray-900">{post.nickname}</span>
-                                                    <span className="text-gray-400">•</span>
-                                                    <span className="text-gray-500">{getFormattedTime(post.creationTime, post.modificationTime)}</span>
+                                                <div className="flex flex-1 items-center gap-2">
+                                                    <div>
+                                                        <span className="font-medium text-gray-900">{post.nickname}</span>
+                                                        <span className="text-gray-400"> • </span>
+                                                        <span className="text-gray-500">{getFormattedTime(post.creationTime, post.modificationTime)}</span>
+                                                    </div>
+                                                    {post.hasImage && (
+                                                        <span className="material-icons text-base text-[#980ffa] ml-auto align-middle">image</span>
+                                                    )}
                                                 </div>
                                             </div>
 
                                             <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-1">
                                                 {post.title}
-                                                {post.hasImage && (
-                                                    <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-                                                )}
                                             </h2>
 
                                             <div className="flex items-center gap-6 text-gray-500">

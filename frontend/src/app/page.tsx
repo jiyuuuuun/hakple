@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useLoginMember } from '@/stores/auth/loginMember'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 
 export default function Home() {
     // 타이핑 애니메이션을 위한 상태
@@ -13,9 +13,10 @@ export default function Home() {
     const [typingSpeed, setTypingSpeed] = useState(150)
 
 
-    // 로그인 상태를 useLoginMember 훅으로 가져옴
-    const { isLogin } = useLoginMember()
+    // 로그인 상태를 useGlobalLoginMember 훅으로 가져옴 (Context 사용)
+    const { isLogin } = useGlobalLoginMember()
 
+    console.log('현재 isLogin 상태(from Context):', isLogin);
 
     // 타이핑 효과 구현
     useEffect(() => {

@@ -1493,6 +1493,220 @@ export default function PostDetailPage() {
                     <span className="material-icons">arrow_upward</span>
                 </button>
             )}
+
+            {/* Tiptap Editor Styles (복사됨) */}
+            <style jsx global>{`
+                @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+                
+                .codemirror-like-editor {
+                  font-family: monospace;
+                  height: 100%;
+                  font-size: 14px;
+                  position: relative;
+                }
+                
+                .CodeMirror-scroll {
+                  min-height: 300px;
+                  border: 1px solid #F9FAFB;
+                  border-radius: 4px;
+                  overflow: auto;
+                  position: relative;
+                  background: #ffffff;
+                  padding: 16px;
+                }
+                
+                .is-editor-empty:first-child::before {
+                  content: attr(data-placeholder);
+                  float: left;
+                  color: #aaa;
+                  pointer-events: none;
+                  height: 0;
+                }
+                
+                .ProseMirror {
+                  outline: none;
+                  padding: 8px;
+                  caret-color: #000;
+                  min-height: calc(100% - 16px);
+                  background: #ffffff;
+                }
+                
+                .ProseMirror p.is-empty:first-child::before {
+                  content: attr(data-placeholder);
+                  float: left;
+                  color: #aaa;
+                  pointer-events: none;
+                  height: 0;
+                }
+                
+                .tiptap-content-wrapper {
+                  background: #ffffff;
+                  border-radius: 15px;
+                  height: 100%;
+                  overflow: hidden;
+                  /* 상세 페이지에서 에디터 스타일 적용을 위해 추가 */
+                  padding: 16px 20px; 
+                  min-height: auto; /* 상세 페이지에서는 최소 높이 불필요 */
+                }
+                
+                .tiptap-content-wrapper .ProseMirror {
+                  outline: none;
+                  height: auto;
+                  overflow-y: visible; /* 상세 페이지에서는 스크롤 불필요 */
+                  min-height: auto; /* 상세 페이지에서는 최소 높이 불필요 */
+                  padding: 0; /* 이미 wrapper에 패딩 적용됨 */
+                  background: #ffffff;
+                }
+                
+                .ProseMirror p.is-empty:first-child::before {
+                  color: #9ca3af;
+                  content: ""; /* 상세 페이지에서는 플레이스홀더 불필요 */
+                }
+                                
+                .tiptap-content-wrapper img {
+                  max-width: 100%;
+                  margin: 0 auto;
+                  display: block;
+                }
+                
+                /* 전역 정렬 스타일 추가 */
+                .tiptap-content-wrapper [data-text-align=center],
+                .tiptap-content-wrapper [style*="text-align: center"] {
+                  text-align: center !important;
+                }
+                
+                .tiptap-content-wrapper [data-text-align=right],
+                .tiptap-content-wrapper [style*="text-align: right"] {
+                  text-align: right !important;
+                }
+                
+                .tiptap-content-wrapper [data-text-align=left],
+                .tiptap-content-wrapper [style*="text-align: left"] {
+                  text-align: left !important;
+                }
+                
+                .tiptap-content-wrapper img {
+                  max-width: 100%;
+                  display: block;
+                }
+                
+                .tiptap-content-wrapper [data-text-align=center] img {
+                  margin-left: auto !important;
+                  margin-right: auto !important;
+                }
+                
+                .tiptap-content-wrapper [data-text-align=right] img {
+                  margin-left: auto !important;
+                  margin-right: 0 !important;
+                }
+                
+                .tiptap-content-wrapper [data-text-align=left] img {
+                  margin-left: 0 !important;
+                  margin-right: auto !important;
+                }
+                
+                /* CSS 커서 스타일 추가 */
+                img {
+                  cursor: pointer; /* 이미지에 마우스 올리면 포인터 커서로 변경 */
+                }
+                
+                /* 이미지 리사이저 스타일 강화 - 상세 페이지에서는 불필요할 수 있음 */
+                .image-resizer {
+                  display: block; /* block 대신 inline-block 이나 다른 값 고려 */
+                  position: relative;
+                  margin-top: 0.5em;
+                  margin-bottom: 0.5em;
+                  max-width: 100%;
+                  box-shadow: none; /* 상세 페이지에서는 외곽선 불필요 */
+                  border-radius: 2px;
+                  overflow: hidden; /* visible 대신 hidden? */
+                }
+
+                /* 리사이즈 핸들 숨김 */
+                .image-resizer .resize-trigger {
+                  display: none !important; 
+                }
+
+                /* 이미지가 선택됐을 때 하이라이트 효과 제거 */
+                .image-resizer.ProseMirror-selectednode {
+                  outline: none;
+                }
+                
+                /* --- 헤딩 스타일 정리 시작 --- */
+                /* 상세 페이지 HTML 구조에 맞게 선택자 조정 필요 가능성 */
+                .tiptap-content-wrapper h1,
+                .tiptap-content-wrapper h2,
+                .tiptap-content-wrapper h3,
+                .tiptap-content-wrapper h4,
+                .tiptap-content-wrapper h5,
+                .tiptap-content-wrapper h6 {
+                  font-weight: bold;
+                  margin-bottom: 0.5em;
+                  color: #000000; 
+                }
+
+                .tiptap-content-wrapper h1 {
+                  font-size: 28px;
+                  line-height: 1.2;
+                  margin-top: 0.8em;
+                }
+                
+                .tiptap-content-wrapper h2 {
+                  font-size: 24px;
+                  line-height: 1.3;
+                  margin-top: 0.7em;
+                }
+                
+                .tiptap-content-wrapper h3 {
+                  font-size: 20px;
+                  line-height: 1.4;
+                  margin-top: 0.6em;
+                }
+                /* --- 헤딩 스타일 정리 끝 --- */
+                
+                .tiptap-content-wrapper blockquote {
+                  border-left: 3px solid #000000;
+                  padding-left: 1em;
+                  margin-left: 0;
+                  color: #000000; 
+                }
+                
+                .tiptap-content-wrapper pre {
+                  background-color: #f5f5f5;
+                  padding: 0.5em;
+                  border-radius: 4px;
+                  font-family: 'Courier New', Courier, monospace;
+                  border: 1px solid #F9FAFB;
+                  overflow-x: auto; /* 코드 블록 가로 스크롤 */
+                }
+                
+                .tiptap-content-wrapper ul,
+                .tiptap-content-wrapper ol {
+                  padding-left: 1.5em; /* 좀 더 들여쓰기 */
+                  color: #000000; 
+                  margin-top: 0.5em;
+                  margin-bottom: 0.5em;
+                }
+
+                /* 리스트 마커 스타일 */
+                .tiptap-content-wrapper ul {
+                  list-style-type: disc;
+                }
+                .tiptap-content-wrapper ol {
+                  list-style-type: decimal;
+                }
+                .tiptap-content-wrapper ul li::marker,
+                .tiptap-content-wrapper ol li::marker {
+                  color: #000000; 
+                }
+                                
+                /* 이미지 내부 img 태그 스타일 */
+                .image-resizer img {
+                  display: block;
+                  max-width: 100%;
+                  border-radius: 2px;
+                }
+              `}</style>
         </div>
     )
 }
