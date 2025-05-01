@@ -1,8 +1,9 @@
 package com.golden_dobakhe.HakPle.global;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Arrays;
+
 
 @Schema(description = "상태")
 public enum Status {
@@ -16,15 +17,18 @@ public enum Status {
         this.value = value;
     }
 
+    @JsonValue //enum → 문자열 응답
     public String getValue() {
         return value;
     }
 
     @JsonCreator
     public static Status fromValue(String value) {
-        return Arrays.stream(Status.values())
-                .filter(status -> status.getValue().equals(value))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Invalid status value: " + value));
+        for (Status status : values()) {
+            if (status.value.equalsIgnoreCase(value)) {
+                return status;
+            }
+        }
+        throw new IllegalArgumentException("Invalid status value: " + value);
     }
 }
