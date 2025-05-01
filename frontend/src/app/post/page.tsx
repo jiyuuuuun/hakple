@@ -33,9 +33,10 @@ interface Tag {
 }
 
 export default function PostPage() {
-  const { isLogin, loginMember } = useGlobalLoginMember();
+  const { isLogin, loginMember, isLoginMemberPending } = useGlobalLoginMember();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const alertShownRef = useRef(false);
   const [postType, setPostType] = useState<'free'|'popular'>(() =>
     searchParams.get('type') === 'popular' ? 'popular' : 'free'
   );
@@ -64,8 +65,6 @@ export default function PostPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [popularTags, setPopularTags] = useState<Tag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(false);
-  const [academyAlertShown, setAcademyAlertShown] = useState(false);
-  const academyAlertRef = useRef(false);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
   const [showScrollTopButton, setShowScrollTopButton] = useState(false);
@@ -75,24 +74,20 @@ export default function PostPage() {
   }, []);
 
   useEffect(() => {
-    if (!isLogin) {
-      router.push('/login');
+    if (isLoginMemberPending) {
+        return;
     }
-  }, [isLogin, router]);
 
-  useEffect(() => {
-    if (isMounted && isLogin && !academyAlertRef.current) {
+    if (isLogin && !loginMember?.academyCode && !alertShownRef.current) {
+        alertShownRef.current = true;
+        alert('학원코드를 먼저 등록하세요.');
+        router.push('/myinfo/academyRegister');
     }
-  }, [isLogin, isMounted, loginMember, academyAlertRef]);
-
-  const showAcademyAlert = () => {
-    if (!academyAlertRef.current) {
-      academyAlertRef.current = true;
-      setAcademyAlertShown(true);
-      alert('먼저 학원을 등록해주세요');
-      router.push('/home');
+    else if (!isLogin && !alertShownRef.current) {
+        alertShownRef.current = true;
+        router.push('/login');
     }
-  };
+  }, [isLogin, loginMember, isLoginMemberPending, router]);
 
   useEffect(() => {
     setSearchKeyword(searchParams.get('keyword') ?? '');
@@ -112,7 +107,7 @@ export default function PostPage() {
   const boardType = searchParams.get('type') === 'popular' ? 'popular' : 'free';
 
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string) => {
-    if (!isMounted || academyAlertRef.current) return;
+    if (!isMounted || (isLogin && !loginMember?.academyCode)) return;
 
     setLoading(true);
     try {
@@ -194,7 +189,7 @@ export default function PostPage() {
   };
 
   const fetchPopularTags = async () => {
-    if (!isMounted || academyAlertShown) return;
+    if (!isMounted || (isLogin && !loginMember?.academyCode)) return;
 
     setTagsLoading(true);
     try {
@@ -219,7 +214,6 @@ export default function PostPage() {
 
         if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
             errorMessage.includes('먼저 학원을 등록해주세요')) {
-            showAcademyAlert();
             return;
         }
         throw new Error(errorMessage);
@@ -251,15 +245,13 @@ export default function PostPage() {
   };
 
   useEffect(() => {
-    if (!isMounted || academyAlertRef.current) return;
+    if (!isMounted || (isLogin && !loginMember?.academyCode)) return;
     fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined);
   }, [isMounted, searchParams, currentPage, pageSize, sortType, searchKeyword, selectedTag]);
 
   useEffect(() => {
     if (isMounted) {
-      if (!academyAlertRef.current) {
-        fetchPopularTags();
-      }
+      fetchPopularTags();
     }
   }, [isMounted, postType]);
 
@@ -392,6 +384,14 @@ export default function PostPage() {
     });
   };
 
+  if (isLoginMemberPending || (isLogin && !loginMember?.academyCode)) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <PostSkeleton count={5} />
+      </div>
+    );
+  }
+
   if (!isMounted) {
     return (
       <main className="bg-[#f9fafc] min-h-screen pb-8">
@@ -399,18 +399,6 @@ export default function PostPage() {
           <div className="text-center py-8">페이지 로딩 중...</div>
         </div>
       </main>
-    );
-  }
-
-  if (!isLogin) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
-          <p className="text-gray-600 mb-6">게시판에 접근하려면 로그인이 필요합니다.</p>
-          <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
-        </div>
-      </div>
     );
   }
 

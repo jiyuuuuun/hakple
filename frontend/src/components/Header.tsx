@@ -266,6 +266,15 @@ export default function Header() {
         }
     };
 
+    // 링크 클릭 처리 함수 추가
+    const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        if (isLogin && !loginMember?.academyCode) {
+            e.preventDefault(); // 기본 링크 동작 방지
+            alert('학원코드를 먼저 등록하세요');
+            router.push('/myinfo/academyRegister');
+        }
+    };
+
     if (isAuthPage) {
         return null
     }
@@ -325,24 +334,28 @@ export default function Header() {
                                     <Link
                                         href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
                                         className={`font-medium text-lg ${pathname?.startsWith('/post/notice') ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
+                                        onClick={handleLinkClick}
                                     >
                                         공지사항
                                     </Link>
                                     <Link
                                         href="/post"
                                         className={`font-medium text-lg ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
+                                        onClick={handleLinkClick}
                                     >
                                         자유게시판
                                     </Link>
                                     <Link
                                         href="/post?type=popular"
                                         className={`font-medium text-lg ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
+                                        onClick={handleLinkClick}
                                     >
                                         인기글
                                     </Link>
                                     <Link
                                         href="/calendar"
                                         className={`font-medium text-lg ${pathname === '/calendar' ? 'text-purple-700 font-semibold' : 'text-gray-700'} hover:text-gray-900 whitespace-nowrap hover:font-semibold transition-all`}
+                                        onClick={handleLinkClick}
                                     >
                                         캘린더
                                     </Link>
@@ -622,24 +635,28 @@ export default function Header() {
                             <Link
                                 href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
                                 className={`font-medium text-base ${pathname?.startsWith('/post/notice') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                onClick={handleLinkClick}
                             >
                                 공지사항
                             </Link>
                             <Link
                                 href="/post"
                                 className={`font-medium text-base ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                onClick={handleLinkClick}
                             >
                                 자유게시판
                             </Link>
                             <Link
                                 href="/post?type=popular"
                                 className={`font-medium text-base ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                onClick={handleLinkClick}
                             >
                                 인기글
                             </Link>
                             <Link
                                 href="/calendar"
                                 className={`font-medium text-base ${pathname === '/calendar' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                onClick={handleLinkClick}
                             >
                                 캘린더
                             </Link>

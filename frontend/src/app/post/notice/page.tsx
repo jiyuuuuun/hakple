@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
@@ -12,6 +12,7 @@ interface LoginMember {
     id: number;
     nickname: string;
     isAdmin: boolean;
+    academyCode?: string;
 }
 
 interface Post {
@@ -30,12 +31,14 @@ interface Post {
 }
 
 export default function NoticePage() {
-    const { isLogin, loginMember } = useGlobalLoginMember() as {
+    const { isLogin, loginMember, isLoginMemberPending } = useGlobalLoginMember() as {
         isLogin: boolean;
         loginMember: LoginMember | null;
+        isLoginMemberPending: boolean;
     };
     const router = useRouter();
     const searchParams = useSearchParams();
+    const alertShownRef = useRef(false);
     const [posts, setPosts] = useState<Post[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -76,6 +79,21 @@ export default function NoticePage() {
 
         checkAdminPermission();
     }, [isLogin, loginMember]);
+
+    useEffect(() => {
+        if (isLoginMemberPending) {
+            return;
+        }
+
+        if (isLogin && !loginMember?.academyCode && !alertShownRef.current) {
+            alertShownRef.current = true;
+            alert('학원코드를 먼저 등록하세요.');
+            router.push('/myinfo/academyRegister');
+        } else if (!isLogin && !alertShownRef.current) {
+            alertShownRef.current = true;
+            router.push('/login');
+        }
+    }, [isLogin, loginMember, isLoginMemberPending, router]);
 
     useEffect(() => {
         if (searchParams) {
@@ -126,15 +144,9 @@ export default function NoticePage() {
     }, [searchParams]);
 
     useEffect(() => {
-        if (!isLogin) {
-            router.push('/login');
-        }
-    }, [isLogin, router]);
-
-    useEffect(() => {
-        if (isLogin && academyCode && postType) {
+        if (isLogin && loginMember?.academyCode && postType) {
             fetchNoticeBoards();
-        } else if (isLogin && (!academyCode || !postType)) {
+        } else if (isLogin && (!loginMember?.academyCode || !postType)) {
             const pathParts = window.location.pathname.split('/');
             const urlHasAcademyCode = pathParts.length > 3 && pathParts[3] && pathParts[3] !== '';
 
@@ -142,7 +154,7 @@ export default function NoticePage() {
                 fetchNoticeBoards();
             }
         }
-    }, [isLogin, currentPage, pageSize, sortType, searchKeyword, academyCode, postType]);
+    }, [isLogin, loginMember, currentPage, pageSize, sortType, searchKeyword, academyCode, postType, isLoginMemberPending]);
 
     const fetchNoticeBoards = async () => {
         setLoading(true);
@@ -167,13 +179,6 @@ export default function NoticePage() {
             }
 
             
-            const response = await fetchApi(url, {
-                method: 'GET',
-            });
-
-            
-
-
             const [postsResponse, likeStatusResponse] = await Promise.all([
                 fetchApi(url, {
                     method: 'GET',
@@ -395,16 +400,8 @@ export default function NoticePage() {
         });
     };
 
-    if (!isLogin) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-                <div className="bg-white p-8 rounded-lg shadow-md text-center">
-                    <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
-                    <p className="text-gray-600 mb-6">공지사항에 접근하려면 로그인이 필요합니다.</p>
-                    <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
-                </div>
-            </div>
-        );
+    if (isLoginMemberPending || (isLogin && !loginMember?.academyCode) || loading) {
+        return <PostListSkeleton />;
     }
 
     return (
