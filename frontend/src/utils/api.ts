@@ -57,6 +57,8 @@ export async function fetchApi(
 
     // API 요청 실행 및 타임아웃 설정
     try {
+        console.log(`[fetchApi DEBUG] Requesting: ${url}, Options:`, mergedOptions, `PreventRedirect: ${preventRedirectOn401}`);
+
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT) // 환경 변수로 설정된 타임아웃
 
@@ -67,25 +69,25 @@ export async function fetchApi(
 
         clearTimeout(timeoutId)
 
-        console.log(`[fetchApi] Response Status for ${url}: ${response.status}`); // Log status
+        console.log(`[fetchApi DEBUG] Response received for ${url}. Status: ${response.status}`);
 
         // 401 에러 처리 (리다이렉트 방지 옵션 확인)
         if (
-            response.status === 401 && 
+            response.status === 401 &&
             !url.includes('/api/v1/auth/login')
         ) {
-             console.log(`[fetchApi] 401 detected for ${url}. PreventRedirect: ${preventRedirectOn401}`); // Log 401 detection
+             // 401 발생 시 로그 강화
+             console.warn(`[fetchApi DEBUG] 401 Unauthorized detected for URL: ${url}. PreventRedirect flag is: ${preventRedirectOn401}`);
+
             if (!preventRedirectOn401) { // 옵션이 true가 아닐 때만 리다이렉트
-                console.log(`[fetchApi] Redirecting to /login due to 401 on ${url}`); // Log redirect decision
-                // 로그인 페이지로 리다이렉트
+                // 리다이렉트 직전 로그 추가
+                console.warn(`[fetchApi DEBUG] !!! Redirecting to /login now !!! due to 401 on ${url}`);
                 if (typeof window !== 'undefined') {
                     window.location.href = '/login'
                 }
-                // 리다이렉트 후에도 Promise를 반환해야 할 수 있으므로, response를 그대로 반환하거나
-                // 특정 상태를 나타내는 Promise를 반환하는 것을 고려할 수 있습니다.
-                // 여기서는 일단 리다이렉트 후 response 반환
             } else {
-                 console.log(`[fetchApi] Redirect prevented for ${url} due to flag.`); // Log prevention
+                 // 리다이렉트 방지 시 로그 추가
+                 console.info(`[fetchApi DEBUG] Redirect to /login prevented for ${url} because preventRedirectOn401 is true.`);
             }
         }
 
@@ -100,7 +102,7 @@ export async function fetchApi(
                 // 사용자 정보 갱신
                 const userInfoResponse = await fetchApi(`/api/v1/myInfos`, { 
                     credentials: 'include',
-                })
+                }, true);
 
                 if (userInfoResponse.ok) {
                     const userInfo = await userInfoResponse.json()
@@ -135,10 +137,14 @@ export async function fetchApi(
  * @param options fetch 옵션
  * @returns 파싱된 JSON 데이터
  */
-export async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-    console.log(`[fetchJson] Calling fetchApi for: ${url}`); // Log fetchJson start
-    // fetchApi 호출 시 preventRedirectOn401 옵션 전달 안 함 (기본값 false 사용됨)
-    const response = await fetchApi(url, options)
+export async function fetchJson<T>(
+    url: string, 
+    options?: RequestInit,
+    preventRedirectOn401: boolean = false // preventRedirectOn401 파라미터 추가 (fetchApi에 전달하기 위함)
+): Promise<T> { 
+    console.log(`[fetchJson] Calling fetchApi for: ${url}, PreventRedirect: ${preventRedirectOn401}`); // Log fetchJson start
+    // fetchApi 호출 시 preventRedirectOn401 옵션 전달
+    const response = await fetchApi(url, options, preventRedirectOn401)
 
     // 응답이 ok가 아니면 에러 발생
     if (!response.ok) {
@@ -165,7 +171,8 @@ export async function fetchJson<T>(url: string, options?: RequestInit): Promise<
     // JSON 파싱 시도
     try {
         return JSON.parse(text) as T
-    } catch (error) {
+    } catch (parseError) { // error -> parseError 변수명 변경 및 사용
+        console.error(`[fetchJson] Error parsing JSON response for ${url}:`, parseError); // 파싱 에러 로그 추가
         throw new Error('서버 응답을 처리할 수 없습니다.')
     }
 }
@@ -173,14 +180,16 @@ export async function fetchJson<T>(url: string, options?: RequestInit): Promise<
 /**
  * GET 요청용 래퍼 함수
  */
-export function get<T>(url: string, options?: RequestInit): Promise<T> {
-    return fetchJson<T>(url, { ...options, method: 'GET' })
+export function get<T>(url: string, options?: RequestInit, preventRedirectOn401: boolean = false): Promise<T> { // preventRedirect 추가
+    // fetchJson 호출 시 preventRedirect 전달
+    return fetchJson<T>(url, { ...options, method: 'GET' }, preventRedirectOn401)
 }
 
 /**
  * POST 요청용 래퍼 함수
  */
-export function post<T>(url: string, data: any, options?: RequestInit): Promise<T> {
+export function post<T>(url: string, data: unknown, options?: RequestInit, preventRedirectOn401: boolean = false): Promise<T> { // data: any -> unknown, preventRedirect 추가
+    // fetchJson 호출 시 preventRedirect 전달
     return fetchJson<T>(url, {
         ...options,
         method: 'POST',
@@ -189,13 +198,14 @@ export function post<T>(url: string, data: any, options?: RequestInit): Promise<
             ...options?.headers,
         },
         body: JSON.stringify(data),
-    })
+    }, preventRedirectOn401)
 }
 
 /**
  * PUT 요청용 래퍼 함수
  */
-export function put<T>(url: string, data: any, options?: RequestInit): Promise<T> {
+export function put<T>(url: string, data: unknown, options?: RequestInit, preventRedirectOn401: boolean = false): Promise<T> { // data: any -> unknown, preventRedirect 추가
+    // fetchJson 호출 시 preventRedirect 전달
     return fetchJson<T>(url, {
         ...options,
         method: 'PUT',
@@ -204,13 +214,14 @@ export function put<T>(url: string, data: any, options?: RequestInit): Promise<T
             ...options?.headers,
         },
         body: JSON.stringify(data),
-    })
+    }, preventRedirectOn401)
 }
 
 /**
  * PATCH 요청용 래퍼 함수
  */
-export function patch<T>(url: string, data: any, options?: RequestInit): Promise<T> {
+export function patch<T>(url: string, data: unknown, options?: RequestInit, preventRedirectOn401: boolean = false): Promise<T> { // data: any -> unknown, preventRedirect 추가
+    // fetchJson 호출 시 preventRedirect 전달
     return fetchJson<T>(url, {
         ...options,
         method: 'PATCH',
@@ -219,14 +230,15 @@ export function patch<T>(url: string, data: any, options?: RequestInit): Promise
             ...options?.headers,
         },
         body: JSON.stringify(data),
-    })
+    }, preventRedirectOn401)
 }
 
 /**
  * DELETE 요청용 래퍼 함수
  */
-export function del<T>(url: string, options?: RequestInit): Promise<T> {
-    return fetchJson<T>(url, { ...options, method: 'DELETE' })
+export function del<T>(url: string, options?: RequestInit, preventRedirectOn401: boolean = false): Promise<T> { // preventRedirect 추가
+    // fetchJson 호출 시 preventRedirect 전달
+    return fetchJson<T>(url, { ...options, method: 'DELETE' }, preventRedirectOn401)
 }
 
 import { ImageUploadResponse } from '../types/image'
