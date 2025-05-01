@@ -187,7 +187,7 @@ export default function ProfileImagePage() {
         if (loginMember?.profileImageUrl) {
             // URL에 캐시 방지용 타임스탬프 추가
             setProfileImageUrl(loginMember.profileImageUrl);
-            console.log('로그인 멤버에서 프로필 이미지 URL 설정:', loginMember.profileImageUrl);
+
         }
     }, [loginMember]);
 
@@ -203,7 +203,7 @@ export default function ProfileImagePage() {
             const formData = new FormData()
             formData.append('multipartFile', selectedFile)
 
-            console.log('프로필 이미지 업로드 요청 시작')
+
             
             const response = await fetchApi('/api/v1/profile-images/upload', {
                 method: 'POST',
@@ -227,23 +227,23 @@ export default function ProfileImagePage() {
             
             // 응답 타입 확인 후 처리
             const contentType = response.headers.get('content-type');
-            console.log('응답 Content-Type:', contentType);
+
             
             let imageUrl = '';
             
             if (contentType && contentType.includes('application/json')) {
                 // JSON 응답인 경우
                 const data = await response.json();
-                console.log('JSON 응답 데이터:', data);
+
                 imageUrl = typeof data === 'string' ? data : (data.profileImageUrl || data.url || '');
             } else {
                 // 텍스트 응답인 경우 - URL이 직접 반환될 수 있음
                 const textData = await response.text();
-                console.log('텍스트 응답 데이터:', textData);
+
                 imageUrl = textData.trim();
             }
             
-            console.log('원본 이미지 URL:', imageUrl);
+
             
             if (!imageUrl) {
                 throw new Error('서버에서 유효한 이미지 URL을 반환하지 않았습니다.');
@@ -261,7 +261,7 @@ export default function ProfileImagePage() {
                     profileImageUrl: freshImageUrl
                 };
                 setLoginMember(updatedUser);
-                console.log('프로필 이미지 상태 업데이트 완료:', freshImageUrl);
+
                 
                 // 로컬 상태 업데이트
                 setProfileImageUrl(freshImageUrl);
@@ -314,7 +314,7 @@ export default function ProfileImagePage() {
             
             // 응답 확인 (텍스트 메시지만 있을 수 있음)
             const responseText = await response.text().catch(() => '프로필 이미지가 삭제되었습니다.');
-            console.log('삭제 응답:', responseText);
+
             
             setProfileImageUrl(null)
             setSuccess('프로필 이미지가 성공적으로 삭제되었습니다.')
@@ -357,7 +357,6 @@ export default function ProfileImagePage() {
             // imagePreview가 Object URL인 경우 해제
             if (imagePreview && imagePreview.startsWith('blob:')) {
                 URL.revokeObjectURL(imagePreview);
-                console.log('Object URL 해제:', imagePreview);
             }
         };
     }, [imagePreview]);
