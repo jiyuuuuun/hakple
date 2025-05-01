@@ -170,7 +170,7 @@ export default function Home() {
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px] md:w-[300px] md:h-[300px] rounded-full border border-indigo-300/30 z-0 animate-spin-slow"></div>
 
                 {/* 부유하는 3D 오브젝트들 */}
-                <div className="absolute top-[20%] left-[45%] z-10 hidden md:block">
+                <div className="absolute top-[20%] left-[45%] z-0 hidden md:block">
                     <div className="relative w-12 h-12 animate-float">
                         <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-lg shadow-lg transform rotate-45"></div>
                         <div className="absolute inset-0 flex items-center justify-center text-white">
@@ -178,7 +178,7 @@ export default function Home() {
                         </div>
                     </div>
                 </div>
-                <div className="absolute top-[35%] right-[20%] z-10 hidden md:block">
+                <div className="absolute top-[35%] right-[20%] z-0 hidden md:block">
                     <div className="relative w-10 h-10 animate-float delay-1000">
                         <div className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full shadow-lg"></div>
                         <div className="absolute inset-0 flex items-center justify-center text-white">
@@ -186,7 +186,7 @@ export default function Home() {
                         </div>
                     </div>
                 </div>
-                <div className="absolute bottom-[40%] left-[15%] z-10 hidden md:block">
+                <div className="absolute bottom-[40%] left-[15%] z-0 hidden md:block">
                     <div className="relative w-14 h-14 animate-float delay-500">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg shadow-lg transform -rotate-12"></div>
                         <div className="absolute inset-0 flex items-center justify-center text-white">

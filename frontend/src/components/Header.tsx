@@ -270,12 +270,10 @@ export default function Header() {
     }
 
     return (
-        <header className="bg-[#f2edf4] py-3 sticky top-0 z-10 shadow-sm">
+        <header className="bg-[#f2edf4] py-3 sticky top-0 z-50 shadow-sm">
             <div className="w-full px-4">
                 <div className="flex items-center justify-between">
-                    {/* 왼쪽: 로고와 네비게이션 */}
                     <div className="flex items-center space-x-4 md:space-x-8">
-                        {/* 모바일 메뉴 버튼 */}
                         <button
                             className="md:hidden p-2 text-gray-500 rounded-md hover:bg-gray-100 focus:outline-none"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -300,7 +298,6 @@ export default function Header() {
                             </svg>
                         </button>
 
-                        {/* 로고 */}
                         {isAdmin ? (
                             <div className="flex items-center flex-shrink-0 cursor-default">
                                 <img src="/logo.png" alt="HAKPLE" width={55} height={55} className="logo" />
@@ -311,7 +308,6 @@ export default function Header() {
                             </Link>
                         )}
 
-                        {/* 데스크탑 메뉴 */}
                         <nav className="hidden md:flex space-x-5 lg:space-x-8">
                             {!isAdmin && (
                                 <>
@@ -355,7 +351,6 @@ export default function Header() {
                                     )}
                                 </>
                             )}
-                            {/* 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
                             {isAdmin && (
                                 <Link
                                     href="/admin"
@@ -368,9 +363,7 @@ export default function Header() {
                         </nav>
                     </div>
 
-                    {/* 오른쪽: 검색, 알림, 로그인/로그아웃 */}
                     <div className="flex items-center space-x-2 md:space-x-3">
-                        {/* 검색 입력창 - 관리자가 아닐 때만 표시 */}
                         {!isAdmin && (
                             <div className="relative w-full max-w-[180px] md:max-w-[220px]">
                                 <form onSubmit={handleSearchSubmit}>
@@ -404,16 +397,14 @@ export default function Header() {
                             </div>
                         )}
 
-                         {/* 알림 영역 - 로그인 상태이고 관리자가 아닐 때만 표시 */}
                         {isLogin && !isAdmin && (
-                            <div className="relative" ref={notificationRef}> {/* 외부 클릭 감지를 위해 ref 추가 */}
+                            <div className="relative" ref={notificationRef}>
                                 <button
-                                    onClick={toggleNotificationDropdown} // 클릭 핸들러 연결
-                                    className="relative p-1 mr-[10px] text-gray-600 hover:text-gray-800 focus:outline-none" // 오른쪽 마진 유지 (10px로 재수정)
+                                    onClick={toggleNotificationDropdown}
+                                    className="relative p-1 mr-[10px] text-gray-600 hover:text-gray-800 focus:outline-none"
                                     aria-label="알림"
                                 >
                                     <BellIcon className="h-6 w-6" />
-                                    {/* notificationCount는 이제 읽지 않은 개수를 의미 */}
                                     {notificationCount > 0 && (
                                         <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                                             {notificationCount > 99 ? '99+' : notificationCount}
@@ -421,19 +412,16 @@ export default function Header() {
                                     )}
                                 </button>
 
-                                {/* 알림 드롭다운 박스 */} 
                                 {isNotificationOpen && (
                                     <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-md shadow-lg overflow-hidden z-20">
                                         <div className="py-2 px-3 text-sm font-semibold text-gray-700 border-b flex justify-between items-center">
                                             <span>알림 목록</span>
-                                            {/* 새로고침 버튼 - handleRefresh 호출 */} 
                                             <button
                                                 onClick={handleRefresh}
-                                                disabled={isLoadingCount || isLoadingNotifications} // 로딩 상태 둘 다 고려
+                                                disabled={isLoadingCount || isLoadingNotifications}
                                                 className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
                                                 aria-label="알림 새로고침"
                                             >
-                                                {/* 아이콘: 로딩 중이면 스핀 */} 
                                                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${(isLoadingCount || isLoadingNotifications) ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0115.357-2m0 0H15" />
                                                 </svg>
@@ -449,17 +437,12 @@ export default function Header() {
                                                         href={notification.link}
                                                         className={`block px-4 py-3 text-sm hover:bg-gray-100 ${notification.isRead ? 'text-gray-500' : 'text-gray-800 font-medium'}`}
                                                         onClick={() => {
-                                                            // 읽지 않은 알림만 읽음 처리 시도
                                                             if (!notification.isRead) {
                                                                 markNotificationAsRead(notification.id);
                                                             }
                                                             setIsNotificationOpen(false);
                                                         }}
                                                     >
-                                                        {/* 알림 타입 아이콘 (선택 사항) */}
-                                                        {/* {notification.notificationType === 'POST_LIKE' && '👍 ' } */}
-                                                        {/* {notification.notificationType === 'POST_COMMENT' && '💬 ' } */}
-                                                        {/* {notification.notificationType === 'POPULAR_POST' && '🌟 ' } */}
                                                         {notification.message}
                                                         <span className="block text-xs text-gray-400 mt-1">
                                                              {formatRelativeTime(notification.creationTime)}
@@ -472,17 +455,13 @@ export default function Header() {
                                                 </div>
                                             )}
                                         </div>
-                                        {/* TODO: 전체 알림 보기 링크는 페이지네이션 구현 후 추가 */}
-                                        {/* {notificationCount > 10 && ( ... ) } */}
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* 로그인 상태에 따른 버튼 표시 */}
                         {isLogin ? (
                             <>
-                                {/* 로그아웃 버튼 */}
                                 <button
                                     onClick={() => logoutAndHome()}
                                     className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-2 px-4 md:px-5 rounded-md text-sm whitespace-nowrap h-[36px]"
@@ -490,7 +469,6 @@ export default function Header() {
                                     로그아웃
                                 </button>
 
-                                {/* 프로필 이미지 - 관리자가 아닐 때만 링크로 */}
                                 {isAdmin ? (
                                     <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center cursor-default">
                                         {profileImageUrl ? (
@@ -500,8 +478,8 @@ export default function Header() {
                                                 className="min-w-full min-h-full object-cover"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement
-                                                    target.onerror = null // 추가 오류 이벤트 방지
-                                                    target.style.display = 'none' // 이미지 숨기기
+                                                    target.onerror = null
+                                                    target.style.display = 'none'
                                                     target.parentElement!.innerHTML = `
                                                         <div class="w-full h-full bg-purple-50 flex items-center justify-center">
                                                             <svg
@@ -551,8 +529,8 @@ export default function Header() {
                                                     className="min-w-full min-h-full object-cover"
                                                     onError={(e) => {
                                                         const target = e.target as HTMLImageElement
-                                                        target.onerror = null // 추가 오류 이벤트 방지
-                                                        target.style.display = 'none' // 이미지 숨기기
+                                                        target.onerror = null
+                                                        target.style.display = 'none'
                                                         target.parentElement!.innerHTML = `
                                                             <div class="w-full h-full bg-purple-50 flex items-center justify-center">
                                                                 <svg
@@ -596,7 +574,6 @@ export default function Header() {
                                 )}
                             </>
                         ) : (
-                            /* 로그인 버튼 */
                             <Link href="/login">
                                 <button className="bg-[#9C50D4] hover:bg-purple-500 text-white font-medium py-2 px-4 md:px-5 rounded-md text-sm whitespace-nowrap h-[36px]">
                                     로그인
@@ -605,67 +582,65 @@ export default function Header() {
                         )}
                     </div>
                 </div>
-
-                {/* 모바일 메뉴 - 햄버거 메뉴 클릭 시 표시됨 */}
-                {isMenuOpen && (
-                    <div className="mt-3 md:hidden">
-                        <nav className="flex flex-col space-y-2 py-2">
-                            {!isAdmin && (
-                                <>
-                                    <Link
-                                href="/home"
-                                className={`font-medium text-base ${pathname === '/home' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                홈
-                            </Link>
-                            <Link
-                                href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
-                                className={`font-medium text-base ${pathname?.startsWith('/post/notice') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                공지사항
-                            </Link>
-                            <Link
-                                href="/post"
-                                className={`font-medium text-base ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                자유게시판
-                            </Link>
-                            <Link
-                                href="/post?type=popular"
-                                className={`font-medium text-base ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                인기글
-                            </Link>
-                            <Link
-                                href="/calendar"
-                                className={`font-medium text-base ${pathname === '/calendar' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
-                            >
-                                캘린더
-                            </Link>
-                            {pathname?.startsWith('/myinfo') && (
-                                <Link
-                                    href="/myinfo"
-                                    className="font-medium text-base text-purple-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
-                                >
-                                    내정보
-                                </Link>
-                            )}
-                        </>
-                    )}
-                    {/* 모바일 관리자 메뉴 - 관리자 권한이 있을 때만 표시 */}
-                    {isAdmin && (
-                        <Link
-                            href="/admin"
-                            className="font-medium text-base text-red-600 hover:text-red-800 px-2 py-2 rounded-md hover:bg-gray-100 flex items-center"
-                        >
-                            <span className="mr-1">👑</span>
-                            관리자
-                        </Link>
-                       )}
-                </nav>
-                 </div>
-        )}
             </div>
+
+            {isMenuOpen && (
+                <div className="mt-3 md:hidden">
+                    <nav className="flex flex-col space-y-2 py-2">
+                        {!isAdmin && (
+                            <>
+                                <Link
+                                    href="/home"
+                                    className={`font-medium text-base ${pathname === '/home' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                >
+                                    홈
+                                </Link>
+                                <Link
+                                    href={isLogin && loginMember?.academyCode ? `/post/notice/${loginMember.academyCode}` : '/post/notice'}
+                                    className={`font-medium text-base ${pathname?.startsWith('/post/notice') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                >
+                                    공지사항
+                                </Link>
+                                <Link
+                                    href="/post"
+                                    className={`font-medium text-base ${pathname === '/post' && !searchParams.get('type') ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                >
+                                    자유게시판
+                                </Link>
+                                <Link
+                                    href="/post?type=popular"
+                                    className={`font-medium text-base ${pathname === '/post' && searchParams.get('type') === 'popular' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                >
+                                    인기글
+                                </Link>
+                                <Link
+                                    href="/calendar"
+                                    className={`font-medium text-base ${pathname === '/calendar' ? 'text-purple-700' : 'text-gray-700'} hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100`}
+                                >
+                                    캘린더
+                                </Link>
+                                {pathname?.startsWith('/myinfo') && (
+                                    <Link
+                                        href="/myinfo"
+                                        className="font-medium text-base text-purple-700 hover:text-gray-900 px-2 py-2 rounded-md hover:bg-gray-100"
+                                    >
+                                        내정보
+                                    </Link>
+                                )}
+                            </>
+                        )}
+                        {isAdmin && (
+                            <Link
+                                href="/admin"
+                                className="font-medium text-base text-red-600 hover:text-red-800 px-2 py-2 rounded-md hover:bg-gray-100 flex items-center"
+                            >
+                                <span className="mr-1">👑</span>
+                                관리자
+                            </Link>
+                        )}
+                    </nav>
+                </div>
+            )}
         </header>
     );
 }
