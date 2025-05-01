@@ -401,25 +401,28 @@ export default function Header() {
                             <div className="relative" ref={notificationRef}>
                                 <button
                                     onClick={toggleNotificationDropdown}
-                                    className="relative p-1 mr-[10px] text-gray-600 hover:text-gray-800 focus:outline-none"
+                                    className="relative p-2 text-gray-600 hover:text-[#9C50D4] focus:outline-none transition-colors rounded-full hover:bg-purple-50"
                                     aria-label="알림"
                                 >
                                     <BellIcon className="h-6 w-6" />
                                     {notificationCount > 0 && (
-                                        <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                                        <span className="absolute top-0 right-0 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white transform translate-x-1/3 -translate-y-1/3 bg-[#9C50D4] rounded-full ring-2 ring-white">
                                             {notificationCount > 99 ? '99+' : notificationCount}
                                         </span>
                                     )}
                                 </button>
 
                                 {isNotificationOpen && (
-                                    <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-md shadow-lg overflow-hidden z-20">
-                                        <div className="py-2 px-3 text-sm font-semibold text-gray-700 border-b flex justify-between items-center">
-                                            <span>알림 목록</span>
+                                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl overflow-hidden z-20 border border-gray-200 transform origin-top-right transition-all duration-200">
+                                        <div className="py-3 px-4 bg-gradient-to-r from-[#9C50D4]/10 to-purple-100/30 flex justify-between items-center border-b border-gray-200">
+                                            <span className="font-medium text-gray-800 flex items-center">
+                                                <BellIcon className="h-5 w-5 mr-2 text-[#9C50D4]" />
+                                                알림
+                                            </span>
                                             <button
                                                 onClick={handleRefresh}
                                                 disabled={isLoadingCount || isLoadingNotifications}
-                                                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                                className="p-1.5 text-gray-500 hover:text-[#9C50D4] disabled:opacity-50 rounded-full hover:bg-purple-50 transition-colors"
                                                 aria-label="알림 새로고침"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${(isLoadingCount || isLoadingNotifications) ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -427,34 +430,110 @@ export default function Header() {
                                                 </svg>
                                             </button>
                                         </div>
-                                        <div className="py-1 max-h-80 overflow-y-auto">
+                                        <div className="py-1 max-h-96 overflow-y-auto">
                                             {isLoadingNotifications ? (
-                                                <div className="px-4 py-3 text-sm text-gray-500 text-center">로딩 중...</div>
+                                                <div className="py-8 flex flex-col items-center justify-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9C50D4] mb-2"></div>
+                                                    <p className="text-sm text-gray-500">알림을 가져오는 중...</p>
+                                                </div>
                                             ) : notifications.length > 0 ? (
-                                                notifications.map((notification) => (
-                                                    <Link
-                                                        key={notification.id}
-                                                        href={notification.link}
-                                                        className={`block px-4 py-3 text-sm hover:bg-gray-100 ${notification.isRead ? 'text-gray-500' : 'text-gray-800 font-medium'}`}
-                                                        onClick={() => {
-                                                            if (!notification.isRead) {
-                                                                markNotificationAsRead(notification.id);
-                                                            }
-                                                            setIsNotificationOpen(false);
-                                                        }}
-                                                    >
-                                                        {notification.message}
-                                                        <span className="block text-xs text-gray-400 mt-1">
-                                                             {formatRelativeTime(notification.creationTime)}
-                                                        </span>
-                                                    </Link>
-                                                ))
+                                                notifications.map((notification) => {
+                                                    // 알림 타입에 따른 아이콘 선택
+                                                    let icon;
+                                                    
+                                                    switch(notification.notificationType) {
+                                                        case 'POST_LIKE':
+                                                            icon = (
+                                                                <div className="bg-red-50 rounded-full p-2 flex-shrink-0">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                </div>
+                                                            );
+                                                            break;
+                                                        case 'POST_COMMENT':
+                                                            icon = (
+                                                                <div className="bg-blue-50 rounded-full p-2 flex-shrink-0">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
+                                                                    </svg>
+                                                                </div>
+                                                            );
+                                                            break;
+                                                        case 'POPULAR_POST':
+                                                            icon = (
+                                                                <div className="bg-yellow-50 rounded-full p-2 flex-shrink-0">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                    </svg>
+                                                                </div>
+                                                            );
+                                                            break;
+                                                        default:
+                                                            icon = (
+                                                                <div className="bg-purple-50 rounded-full p-2 flex-shrink-0">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#9C50D4]" viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                                                                    </svg>
+                                                                </div>
+                                                            );
+                                                    }
+                                                    
+                                                    return (
+                                                        <Link
+                                                            key={notification.id}
+                                                            href={notification.link}
+                                                            className={`flex items-start px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 ${notification.isRead ? 'bg-white' : 'bg-purple-50/30'}`}
+                                                            onClick={() => {
+                                                                if (!notification.isRead) {
+                                                                    markNotificationAsRead(notification.id);
+                                                                }
+                                                                setIsNotificationOpen(false);
+                                                            }}
+                                                        >
+                                                            {icon}
+                                                            <div className="ml-3 flex-1">
+                                                                <p className={`text-sm ${notification.isRead ? 'text-gray-600' : 'text-gray-800 font-medium'}`}>
+                                                                    {notification.message}
+                                                                </p>
+                                                                <p className="text-xs text-gray-400 mt-1 flex items-center">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    {formatRelativeTime(notification.creationTime)}
+                                                                </p>
+                                                            </div>
+                                                            {!notification.isRead && (
+                                                                <span className="h-2 w-2 bg-[#9C50D4] rounded-full flex-shrink-0 mt-1.5"></span>
+                                                            )}
+                                                        </Link>
+                                                    )
+                                                })
                                             ) : (
-                                                <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                                                    새로운 알림이 없습니다.
+                                                <div className="py-12 flex flex-col items-center justify-center text-center px-6">
+                                                    <div className="bg-purple-50 rounded-full p-4 mb-3">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#9C50D4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                                        </svg>
+                                                    </div>
+                                                    <p className="text-gray-500 font-medium mb-1">새로운 알림이 없습니다</p>
+                                                    <p className="text-xs text-gray-400">새로운 소식이 있으면 여기에 알려드릴게요!</p>
                                                 </div>
                                             )}
                                         </div>
+                                        {notifications.length > 0 && (
+                                            <div className="p-3 border-t border-gray-200 bg-gray-50 flex justify-center">
+                                                <button
+                                                    className="text-xs text-[#9C50D4] hover:text-purple-600 transition-colors"
+                                                    onClick={() => {
+                                                        // 모든 알림을 읽음 처리하는 로직을 추가할 수 있음
+                                                        setIsNotificationOpen(false);
+                                                    }}
+                                                >
+                                                    모든 알림 닫기
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
