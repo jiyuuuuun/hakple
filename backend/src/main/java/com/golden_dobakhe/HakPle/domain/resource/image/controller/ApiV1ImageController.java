@@ -103,7 +103,8 @@ public class ApiV1ImageController {
         try {
             fileService.cleanTempImagesNotIn(request.getTempIds(), request.getContent());
 
-            int updatedCount = fileService.linkImagesToBoard(request.getTempIds(), request.getBoardId());
+            Map<String, String> urlMapping = fileService.linkImagesToBoard(request.getTempIds(), request.getBoardId());
+            int updatedCount = urlMapping.size();
             
             if (request.getUsedImageUrls() != null && !request.getUsedImageUrls().isEmpty()) {
                 fileService.cleanUpUnused(request.getBoardId(), request.getUsedImageUrls());

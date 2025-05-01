@@ -90,15 +90,13 @@ export default function Signup() {
     }
 
     const sendVerificationCode = async () => {
-        const phone = formData.phone
-
-        if (!phone) {
+        if (!formData.phone) {
             setErrorMessage('휴대폰 번호를 먼저 입력해주세요.')
             return
         }
 
         // 휴대폰 번호 형식 검사 (숫자만)
-        if (!/^\d+$/.test(phone)) {
+        if (!/^\d+$/.test(formData.phone)) {
             setErrorMessage('휴대폰 번호는 숫자만 입력 가능합니다.')
             return
         }
@@ -110,9 +108,9 @@ export default function Signup() {
             // 먼저 휴대폰 번호 중복 확인
             let duplicateCheckResponse
             try {
-                duplicateCheckResponse = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${phone}`, {
+                duplicateCheckResponse = await fetchApi(`/api/v1/users/check-phonenum?phoneNum=${formData.phone}`, {
                     method: 'GET',
-                })
+                }, true)
 
                 if (!duplicateCheckResponse.ok) {
                     throw new Error(`휴대폰 번호 중복 확인 실패: ${duplicateCheckResponse.status}`)
@@ -138,10 +136,12 @@ export default function Signup() {
             try {
                 const smsResponse = await fetchApi(`/api/v1/sms/send?phone=${formData.phone}`, {
                     method: 'POST',
-                })
+                }, true)
 
                 if (!smsResponse.ok) {
-                    throw new Error(`인증번호 전송 실패: ${smsResponse.status}`)
+                    console.error(`인증번호 전송 실패 (Status: ${smsResponse.status})`);
+                    setErrorMessage(`인증번호 전송에 실패했습니다. (${smsResponse.status})`);
+                    return;
                 }
 
                 setCodeSent(true)
@@ -160,7 +160,7 @@ export default function Signup() {
     }
 
     const verifyCode = async () => {
-        const { phone, verificationCode } = formData
+        const { verificationCode } = formData
 
         if (!verificationCode) {
             setErrorMessage('인증번호를 입력해주세요.')

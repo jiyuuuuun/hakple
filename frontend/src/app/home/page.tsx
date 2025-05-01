@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
 // API 유틸리티 추가
@@ -15,6 +15,7 @@ import PostListSkeleton from '@/components/PostListSkeleton'
 import NoticeSkeleton from '@/components/NoticeSkeleton'
 import ProfileSkeleton from '@/components/ProfileSkeleton'
 import AcademySkeleton from '@/components/AcademySkeleton'
+import { formatRelativeTime } from '@/utils/dateUtils'
 
 // 스타일시트를 위한 import 추가 - CDN 방식으로 헤드에 추가는 layout에서 처리
 // 대신 SVG 아이콘 컴포넌트를 직접 사용합니다
@@ -100,6 +101,7 @@ export default function HomePage() {
     const [popularPosts, setPopularPosts] = useState<Post[]>([])
     const [popularTags, setPopularTags] = useState<{ name: string; count: number }[]>([])
     const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set())
+    const [noticePostsLoaded, setNoticePostsLoaded] = useState<boolean>(false)
 
     // 학원 이름 찾기 함수 (학원 코드로부터)
     const getAcademyNameFromCode = (code: string): string => {
@@ -226,11 +228,16 @@ export default function HomePage() {
     }
 
     useEffect(() => {
-   //     if (!isLogin) {
-   //         router.push('/login')
-   //         return
-   //     }
+        // 로그인 상태가 아닐 경우 API 호출 및 페이지 접근을 막음
+        if (!isLogin) {
+            // 로그인 페이지로 보내는 대신, 로딩 상태를 유지하거나
+            // 혹은 비로그인 상태의 홈 화면을 보여줄 수 있음.
+            // 여기서는 일단 로딩 상태만 해제하고 함수를 종료.
+            setLoading(false);
+            return;
+        }
 
+        // 이하 로직은 isLogin이 true일 때만 실행됨
         fetchUserInfoAndStats()
         fetchLatestPosts()
         fetchEvents()
@@ -238,18 +245,47 @@ export default function HomePage() {
         fetchPopularTags() // 인기 태그 가져오기 추가
         fetchNoticeBoards() // 공지사항 가져오기 추가
 
-
         // 페이지 포커스 이벤트 핸들러
         const handleFocus = () => {
-            checkAndUpdateAcademyInfo()
-            fetchUserInfoAndStats() // 포커스 시 정보 다시 가져오기
+            // 로그인 상태일 때만 실행
+            if (isLogin) {
+                checkAndUpdateAcademyInfo()
+                fetchUserInfoAndStats() // 포커스 시 정보 다시 가져오기
+            }
         }
 
         window.addEventListener('focus', handleFocus)
         return () => {
             window.removeEventListener('focus', handleFocus)
-        }
-    }, [isLogin, router])
+        };
+    }, [isLogin]); // isLogin을 의존성 배열에 추가
+
+    // 로딩 중 표시 강화
+    if (loading && isLogin === null) { // isLogin 상태가 아직 결정되지 않았을 때
+        return (
+             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                 <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#9C50D4]"></div>
+             </div>
+        );
+    }
+
+    // 로그인하지 않은 경우 (isLogin이 false로 확정된 경우)
+    if (!isLogin) {
+        // 비로그인 사용자를 위한 홈 화면 컴포넌트 또는 메시지 표시
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center bg-white p-8 rounded-lg shadow">
+                    <p className="text-lg mb-4">로그인이 필요한 서비스입니다.</p>
+                    <Link
+                        href="/login"
+                        className="inline-block px-6 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-purple-500 transition-colors"
+                    >
+                        로그인 페이지로 이동
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // 외부 클릭 감지 - 메뉴 닫기
     useEffect(() => {
@@ -370,7 +406,9 @@ export default function HomePage() {
     const fetchPopularPosts = async () => {
         try {
             // API 요청 URL 구성 (좋아요 10개 이상, 최대 5개 게시글)
-            const url = `/api/v1/posts?page=1&size=5&sortType=좋아요순&minLikes=10`
+
+            const url = `/api/v1/posts?type=popular&page=1&size=10&sortType=creationTime`
+
 
             const response = await fetchApi(url, {
                 method: 'GET',
@@ -383,7 +421,25 @@ export default function HomePage() {
 
             const data = await response.json()
             if (data && Array.isArray(data.content)) {
-                setPopularPosts(data.content)
+                // 각 게시글의 좋아요 상태 확인
+                const postsWithLikeStatus = await Promise.all(
+                    data.content.map(async (post: Post) => {
+                        try {
+                            const likeStatusResponse = await fetchApi(`/api/v1/posts/${post.id}/like-status`, {
+                                credentials: 'include',
+                            })
+                            if (likeStatusResponse.ok) {
+                                const { isLiked } = await likeStatusResponse.json()
+                                return { ...post, isLiked }
+                            }
+                            return { ...post, isLiked: false }
+                        } catch (error) {
+                            console.error('좋아요 상태 확인 중 오류:', error)
+                            return { ...post, isLiked: false }
+                        }
+                    })
+                )
+                setPopularPosts(postsWithLikeStatus)
             } else {
                 setPopularPosts([])
             }
@@ -410,21 +466,6 @@ export default function HomePage() {
         } catch (error) {
             console.error('인기 태그 로딩 중 오류:', error)
             setPopularTags([])
-        }
-    }
-
-    // 날짜 형식 변환 함수
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-
-        if (diffMinutes < 60) {
-            return `${diffMinutes}분 전`
-        } else if (diffMinutes < 24 * 60) {
-            return `${Math.floor(diffMinutes / 60)}시간 전`
-        } else {
-            return `${date.toLocaleDateString()}`
         }
     }
 
@@ -491,10 +532,18 @@ export default function HomePage() {
                 isLiked,
                 isLogin,
                 setIsLiked: (newLiked: boolean) => {
-                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? { ...p, isLiked: newLiked } : p)))
+                    // 일반 게시글 목록 업데이트
+                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? { ...p, isLiked: newLiked } : p)));
+                    
+                    // 인기글 목록도 업데이트
+                    setPopularPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? { ...p, isLiked: newLiked } : p)));
                 },
                 setPost: (updateFn: (prev: Post) => Post) => {
-                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? updateFn(p) : p)))
+                    // 일반 게시글 목록 업데이트
+                    setPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? updateFn(p) : p)));
+                    
+                    // 인기글 목록도 업데이트
+                    setPopularPosts((prevPosts) => prevPosts.map((p) => (p.id === post.id ? updateFn(p) : p)));
                 },
                 setIsLiking: () => {
                     setLikingPosts((prev) => {
@@ -520,7 +569,6 @@ export default function HomePage() {
         try {
             const storedAcademyCode = localStorage.getItem('academyCode')
             if (!storedAcademyCode) {
-                console.log('학원 코드가 없어 공지사항을 불러올 수 없습니다.')
                 setNoticePosts([])
                 return
             }
@@ -554,24 +602,6 @@ export default function HomePage() {
             console.error('공지사항 로딩 중 오류:', err)
             setNoticePosts([])
         }
-    }
-
-
-    // 로그인하지 않은 경우 로딩 화면 대신 로그인 페이지로 리다이렉트
-    if (!isLogin) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center bg-white p-8 rounded-lg shadow">
-                    <p className="text-lg mb-4">로그인이 필요한 페이지입니다.</p>
-                    <Link
-                        href="/login"
-                        className="inline-block px-6 py-2 bg-[#9C50D4] text-white rounded-md hover:bg-purple-500 transition-colors"
-                    >
-                        로그인 페이지로 이동
-                    </Link>
-                </div>
-            </div>
-        )
     }
 
     return (
@@ -629,11 +659,16 @@ export default function HomePage() {
                                                     </h3>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <div className="flex items-center gap-1">
+                                                    <div 
+                                                        onClick={(e) => handleLikeClick(post, e)}
+                                                        className={`flex items-center gap-1 cursor-pointer ${
+                                                            post.isLiked ? 'text-[#9C50D4]' : ''
+                                                        }`}
+                                                    >
                                                         <svg
                                                             xmlns="http://www.w3.org/2000/svg"
-                                                            className="h-4 w-4"
-                                                            fill="none"
+                                                            className={`h-4 w-4 ${likingPosts.has(post.id) ? 'animate-pulse' : ''}`}
+                                                            fill={post.isLiked ? 'currentColor' : 'none'}
                                                             viewBox="0 0 24 24"
                                                             stroke="currentColor"
                                                         >
@@ -674,65 +709,11 @@ export default function HomePage() {
                                             </div>
                                         </Link>
                                     ))
-                                    : // 인기글이 없을 때 1-5위 자리 표시
-                                    Array.from({ length: 5 }, (_, index) => (
-                                        <div key={index} className="p-3 rounded-md bg-gray-50">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span
-                                                    className={`font-bold ${index < 3 ? 'text-[#9C50D4]' : 'text-gray-400'
-                                                        }`}
-                                                >
-                                                    {index + 1}
-                                                </span>
-                                                <div className="flex-1">
-                                                    <div className="h-5 bg-gray-200 rounded w-full animate-pulse"></div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                <div className="flex items-center gap-1">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-4 w-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                                                        />
-                                                    </svg>
-                                                    -
-                                                </div>
-                                                <span className="text-gray-300">•</span>
-                                                <div className="flex items-center gap-1">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-4 w-4"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                        />
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                        />
-                                                    </svg>
-                                                    -
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                                    : // 인기글이 없을 때 메시지 표시
+                                    <div className="p-6 text-center">
+                                        <p className="text-gray-500 text-md">인기글이 없습니다</p>
+                                    </div>
+                                }
                             </div>
                         </div>
 
@@ -832,7 +813,7 @@ export default function HomePage() {
                                             </div>
                                             <div>
                                                 <p className="font-medium text-gray-900">{post.nickname}</p>
-                                                <p className="text-sm text-gray-500">{formatDate(post.creationTime)}</p>
+                                                <p className="text-sm text-gray-500">{formatRelativeTime(post.creationTime)}</p>
                                             </div>
                                         </div>
 
@@ -861,11 +842,18 @@ export default function HomePage() {
                                         </div>
 
                                         <div className="flex items-center gap-6 text-gray-500">
-                                            <div className="flex items-center gap-2 group/like hover:text-[#9C50D4] transition-all">
+                                            <div 
+                                                onClick={(e) => handleLikeClick(post, e)}
+                                                className={`flex items-center gap-2 group/like transition-all cursor-pointer ${
+                                                    post.isLiked ? 'text-[#9C50D4]' : 'text-gray-500 hover:text-[#9C50D4]'
+                                                }`}
+                                            >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-5 w-5 group-hover/like:scale-110 transition-transform"
-                                                    fill="none"
+                                                    className={`h-5 w-5 group-hover/like:scale-110 transition-transform ${
+                                                        likingPosts.has(post.id) ? 'animate-pulse' : ''
+                                                    }`}
+                                                    fill={post.isLiked ? 'currentColor' : 'none'}
                                                     viewBox="0 0 24 24"
                                                     stroke="currentColor"
                                                 >
@@ -876,7 +864,7 @@ export default function HomePage() {
                                                         d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
                                                     />
                                                 </svg>
-                                                <span className="text-sm group-hover/like:text-[#9C50D4]">{post.likeCount}</span>
+                                                <span className="text-sm">{post.likeCount}</span>
                                             </div>
                                             <div className="flex items-center gap-2 group/comment hover:text-[#9C50D4] transition-all">
                                                 <svg

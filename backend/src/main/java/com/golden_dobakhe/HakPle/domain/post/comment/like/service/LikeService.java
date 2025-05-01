@@ -4,21 +4,15 @@ import com.golden_dobakhe.HakPle.domain.post.comment.CommentResult;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.entity.Comment;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentRepository;
 import com.golden_dobakhe.HakPle.domain.post.comment.exception.CommentException;
-import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikedCommentDto;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.dto.LikeStatusResponseDto;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.entity.CommentLike;
 import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
-import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -31,10 +25,10 @@ public class LikeService {
 
     //좋아요 +
     @Transactional
-    public CommentResult likeComment(Long commentId,User user) {
+    public CommentResult likeComment(Long commentId, User user) {
 
-        Comment comment=commentRepository.findById(commentId).orElse(null);
-        if(comment==null){
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        if (comment == null) {
             throw new CommentException(CommentResult.COMMENT_NOT_FOUND);
         }
 
@@ -42,7 +36,7 @@ public class LikeService {
         if (existingLike.isPresent()) { //이미 같은 댓글에 좋아요를 눌렀으면
             throw new CommentException(CommentResult.ALREADY_LIKED);
         }
-        comment.setLikeCount(comment.getLikeCount()+1);
+        comment.setLikeCount(comment.getLikeCount() + 1);
         CommentLike commentLike = CommentLike.builder()
                 .comment(comment)
                 .user(user)
@@ -63,8 +57,7 @@ public class LikeService {
 
         // ✅ 좋아요 취소 (delete)
         likeRepository.delete(like);
-        comment.setLikeCount(comment.getLikeCount()-1);
-
+        comment.setLikeCount(comment.getLikeCount() - 1);
         return CommentResult.SUCCESS;
     }
 
@@ -99,17 +92,17 @@ public class LikeService {
         // 댓글 존재 여부 확인
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
-        
+
         // 좋아요 상태 확인
         boolean isLiked = likeRepository.findByCommentIdAndUserId(commentId, user.getId()).isPresent();
-        
+
         return new LikeStatusResponseDto(isLiked);
     }
 
     //댓글 당 좋아요 수
     public int likeCount(Long commentId) {
-        Comment comment=commentRepository.findById(commentId).orElse(null);
-        if(comment==null) {
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        if (comment == null) {
             throw new CommentException(CommentResult.COMMENT_NOT_FOUND);
         }
         return comment.getLikeCount();

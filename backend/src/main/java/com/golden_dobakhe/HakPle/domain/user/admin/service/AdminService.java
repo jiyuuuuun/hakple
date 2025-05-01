@@ -8,7 +8,12 @@ import com.golden_dobakhe.HakPle.domain.post.post.dto.TotalBoardResponse;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.exception.BoardException;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
-import com.golden_dobakhe.HakPle.domain.user.admin.dto.*;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyRequestDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AcademyWithUserCountDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminLoginDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminRegisterDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.AdminUserListDto;
+import com.golden_dobakhe.HakPle.domain.user.admin.dto.UserListDto;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.Academy;
@@ -18,6 +23,11 @@ import com.golden_dobakhe.HakPle.domain.user.user.repository.AcademyRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
 import com.golden_dobakhe.HakPle.security.jwt.JwtTokenizer;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,8 +35,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -148,20 +156,25 @@ public class AdminService {
         academyRepository.save(academy);
         return code;
     }
+
     //게시물 삭제 처리
     @Transactional
     public void setBoardPending(Long boardId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound("해당 게시물이 존재하지 않습니다"));
         board.setStatus(Status.PENDING);
+        board.setModificationTime(LocalDateTime.now());
     }
+
     //댓글 삭제 처리
     @Transactional
     public void setCommentPending(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
         comment.setStatus(Status.PENDING);
+        comment.setModificationTime(LocalDateTime.now());
     }
+
     //관리자 목록 조회
     public Page<AdminUserListDto> getAdminUsers(Pageable pageable) {
         return userRepository.findAllByRoles(Role.ADMIN, pageable)
@@ -192,6 +205,7 @@ public class AdminService {
 
     /**
      * 학원 코드로 학원 정보 조회
+     *
      * @param academyCode 학원 코드
      * @return 학원 정보
      */
@@ -224,9 +238,10 @@ public class AdminService {
 
     //회원 상태 바꾸기
     @Transactional
-    public void changeUserStatus(Long userId,Status status) {
-        User user=userRepository.findById(userId).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+    public void changeUserStatus(Long userId, Status status) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
         user.setStatus(status);
+        user.setModificationTime(LocalDateTime.now());
     }
 
 }

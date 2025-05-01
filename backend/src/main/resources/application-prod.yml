@@ -2,12 +2,14 @@ server:
   port: 8080
 spring:
   datasource:
-    url: jdbc:mysql://mysql_1:3306/blog_prod
+    url: jdbc:mysql://mysql_1:3306/blog_prod?serverTimezone=Asia/Seoul
     username: ll_local
     password: ${custom.prod.db.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       auto-commit: false
+  jackson:
+    time-zone: Asia/Seoul
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,6 +18,12 @@ spring:
         format_sql: false
         highlight_sql: false
         use_sql_comments: false
+  data:
+    redis:
+      host: redis_1 # 컨테이너 이름으로 설정
+      port: 6379
+      connect-timeout: 10000 # 연결 타임아웃 10초
+      password: ${custom.prod.redis.password}
 logging:
   level:
     com.back: INFO

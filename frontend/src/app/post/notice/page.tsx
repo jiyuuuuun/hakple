@@ -1,17 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
+import { formatRelativeTime } from '@/utils/dateUtils';
 import PostListSkeleton from '@/components/PostListSkeleton';
 
 interface LoginMember {
     id: number;
     nickname: string;
     isAdmin: boolean;
+    academyCode?: string;
 }
 
 interface Post {
@@ -30,12 +32,14 @@ interface Post {
 }
 
 export default function NoticePage() {
-    const { isLogin, loginMember } = useGlobalLoginMember() as {
+    const { isLogin, loginMember, isLoginMemberPending } = useGlobalLoginMember() as {
         isLogin: boolean;
         loginMember: LoginMember | null;
+        isLoginMemberPending: boolean;
     };
     const router = useRouter();
     const searchParams = useSearchParams();
+    const alertShownRef = useRef(false);
     const [posts, setPosts] = useState<Post[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -66,7 +70,7 @@ export default function NoticePage() {
                     if (response.ok) {
                         const isAdminResult = await response.json();
                         setIsAdminState(isAdminResult === true);
-                        console.log('관리자 권한 확인 결과:', isAdminResult);
+                        
                     }
                 } catch (error) {
                     console.error('관리자 권한 확인 중 오류 발생:', error);
@@ -76,6 +80,21 @@ export default function NoticePage() {
 
         checkAdminPermission();
     }, [isLogin, loginMember]);
+
+    useEffect(() => {
+        if (isLoginMemberPending) {
+            return;
+        }
+
+        if (isLogin && !loginMember?.academyCode && !alertShownRef.current) {
+            alertShownRef.current = true;
+            alert('학원코드를 먼저 등록하세요.');
+            router.push('/myinfo/academyRegister');
+        } else if (!isLogin && !alertShownRef.current) {
+            alertShownRef.current = true;
+            router.push('/login');
+        }
+    }, [isLogin, loginMember, isLoginMemberPending, router]);
 
     useEffect(() => {
         if (searchParams) {
@@ -126,15 +145,9 @@ export default function NoticePage() {
     }, [searchParams]);
 
     useEffect(() => {
-        if (!isLogin) {
-            router.push('/login');
-        }
-    }, [isLogin, router]);
-
-    useEffect(() => {
-        if (isLogin && academyCode && postType) {
+        if (isLogin && loginMember?.academyCode && postType) {
             fetchNoticeBoards();
-        } else if (isLogin && (!academyCode || !postType)) {
+        } else if (isLogin && (!loginMember?.academyCode || !postType)) {
             const pathParts = window.location.pathname.split('/');
             const urlHasAcademyCode = pathParts.length > 3 && pathParts[3] && pathParts[3] !== '';
 
@@ -142,7 +155,7 @@ export default function NoticePage() {
                 fetchNoticeBoards();
             }
         }
-    }, [isLogin, currentPage, pageSize, sortType, searchKeyword, academyCode, postType]);
+    }, [isLogin, loginMember, currentPage, pageSize, sortType, searchKeyword, academyCode, postType, isLoginMemberPending]);
 
     const fetchNoticeBoards = async () => {
         setLoading(true);
@@ -166,14 +179,7 @@ export default function NoticePage() {
                 url += `&type=${encodeURIComponent(currentPostType)}`;
             }
 
-            console.log('공지사항 API 요청 URL:', url);
-            const response = await fetchApi(url, {
-                method: 'GET',
-            });
-
-            console.log(response);
-
-
+            
             const [postsResponse, likeStatusResponse] = await Promise.all([
                 fetchApi(url, {
                     method: 'GET',
@@ -273,48 +279,11 @@ export default function NoticePage() {
     };
 
     const resetAllFilters = () => {
-        setSearchMode(false);
         setSearchKeyword('');
-        setSortType('creationTime');
-        setPageSize('10');
+        setSearchMode(false);
         setCurrentPage(1);
         setFilterType('title');
     };
-
-    function formatRelativeTime(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-
-        if (diffMs < 60 * 1000) {
-            return '방금 전';
-        }
-
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-        if (diffMinutes < 60) {
-            return `${diffMinutes}분 전`;
-        } else if (diffHours < 24) {
-            const minutes = diffMinutes % 60;
-            if (minutes === 0) {
-                return `${diffHours}시간 전`;
-            }
-            return `${diffHours}시간 ${minutes}분 전`;
-        } else if (diffDays < 7) {
-            return `${diffDays}일 전`;
-        } else {
-            const year = date.getFullYear();
-            const currentYear = now.getFullYear();
-
-            if (year === currentYear) {
-                return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-            } else {
-                return `${year}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-            }
-        }
-    }
 
     function getFormattedTime(creationTime: string, modificationTime?: string): string {
         if (modificationTime) {
@@ -395,16 +364,8 @@ export default function NoticePage() {
         });
     };
 
-    if (!isLogin) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-                <div className="bg-white p-8 rounded-lg shadow-md text-center">
-                    <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
-                    <p className="text-gray-600 mb-6">공지사항에 접근하려면 로그인이 필요합니다.</p>
-                    <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
-                </div>
-            </div>
-        );
+    if (isLoginMemberPending || (isLogin && !loginMember?.academyCode) || loading) {
+        return <PostListSkeleton />;
     }
 
     return (
@@ -533,18 +494,20 @@ export default function NoticePage() {
                                                         <span className="material-icons text-gray-400 text-2xl">account_circle</span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium text-gray-900">{post.nickname}</span>
-                                                    <span className="text-gray-400">•</span>
-                                                    <span className="text-gray-500">{getFormattedTime(post.creationTime, post.modificationTime)}</span>
+                                                <div className="flex flex-1 items-center gap-2">
+                                                    <div>
+                                                        <span className="font-medium text-gray-900">{post.nickname}</span>
+                                                        <span className="text-gray-400"> • </span>
+                                                        <span className="text-gray-500">{getFormattedTime(post.creationTime, post.modificationTime)}</span>
+                                                    </div>
+                                                    {post.hasImage && (
+                                                        <span className="material-icons text-base text-[#980ffa] ml-auto align-middle">image</span>
+                                                    )}
                                                 </div>
                                             </div>
 
                                             <h2 className="text-xl font-semibold text-gray-900 mb-2 line-clamp-1">
                                                 {post.title}
-                                                {post.hasImage && (
-                                                    <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-                                                )}
                                             </h2>
 
                                             <div className="flex items-center gap-6 text-gray-500">

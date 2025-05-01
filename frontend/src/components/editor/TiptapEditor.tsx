@@ -13,49 +13,59 @@ import type { Node as ProseMirrorNode } from 'prosemirror-model';
 import { HTMLAttributes } from 'react';
 import { Plugin, PluginKey, NodeSelection } from 'prosemirror-state';
 import { fetchApi } from '@/utils/api';
+import { BubbleMenu } from '@tiptap/react';
 
 // --- 사용자 정의 이미지 속성 인터페이스 ---
 interface CustomImageAttributes extends HTMLAttributes<HTMLElement> {
   'data-id'?: string | null;
   'data-temp-id'?: string | null;
+  'data-align'?: 'left' | 'center' | 'right';
 }
 
 /* 리사이즈 핸들 CSS 스타일 */
 const resizeHandleStyles = {
   position: 'absolute',
-  right: '-8px',
-  bottom: '-8px',
-  width: '16px',
-  height: '16px',
+  width: '12px',
+  height: '12px',
   borderRadius: '50%',
   backgroundColor: '#4263EB',
   border: '2px solid white',
-  color: 'white',
-  fontSize: '10px',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  cursor: 'se-resize',
   zIndex: 100,
+  cursor: 'nwse-resize',
 };
 
-/* 이미지 리사이즈 핸들을 렌더링하는 함수 */
+/* 이미지 리사이즈 핸들을 렌더링하는 함수 - 전방향 핸들 추가 */
 const renderResizeHandle = () => {
+  // 새 구조에 맞게 이미지 리사이저 선택자 수정
   const resizeHandles = document.querySelectorAll('.image-resizer');
+  
   resizeHandles.forEach(container => {
-    // 이미 핸들이 있으면 추가하지 않음
-    if (container.querySelector('.resize-trigger')) return;
+    // 이미 핸들이 있으면 제거 후 다시 추가
+    const existingHandles = container.querySelectorAll('.resize-trigger');
+    existingHandles.forEach(handle => handle.remove());
     
-    // 핸들 요소 생성
-    const handle = document.createElement('div');
-    handle.className = 'resize-trigger';
-    handle.innerHTML = '⊙';
+    // 8방향 핸들 생성 - 위치와 커서 스타일 다르게 적용
+    const handlePositions = [
+      { className: 'nw', style: { top: '-6px', left: '-6px', cursor: 'nw-resize' } },
+      { className: 'n', style: { top: '-6px', left: '50%', transform: 'translateX(-50%)', cursor: 'n-resize' } },
+      { className: 'ne', style: { top: '-6px', right: '-6px', cursor: 'ne-resize' } },
+      { className: 'w', style: { top: '50%', left: '-6px', transform: 'translateY(-50%)', cursor: 'w-resize' } },
+      { className: 'e', style: { top: '50%', right: '-6px', transform: 'translateY(-50%)', cursor: 'e-resize' } },
+      { className: 'sw', style: { bottom: '-6px', left: '-6px', cursor: 'sw-resize' } },
+      { className: 's', style: { bottom: '-6px', left: '50%', transform: 'translateX(-50%)', cursor: 's-resize' } },
+      { className: 'se', style: { bottom: '-6px', right: '-6px', cursor: 'se-resize' } }
+    ];
     
-    // 인라인 스타일 적용
-    Object.assign(handle.style, resizeHandleStyles);
-    
-    // 이미지 컨테이너에 핸들 추가
-    container.appendChild(handle);
+    handlePositions.forEach(({ className, style }) => {
+      const handle = document.createElement('div');
+      handle.className = `resize-trigger resize-${className}`;
+      
+      // 기본 스타일과 특정 위치 스타일 합치기
+      Object.assign(handle.style, resizeHandleStyles, style);
+      
+      // 컨테이너에 핸들 추가
+      container.appendChild(handle);
+    });
   });
 };
 
@@ -98,6 +108,25 @@ const CustomImage = Image.extend({
         },
       },
 
+      // 이미지 정렬 속성 추가
+      'data-align': {
+        default: 'center',
+        parseHTML: (element: HTMLElement) => {
+          // 상위 요소의 data-align 속성도 확인
+          if (element.parentElement?.parentElement) {
+            const wrapperAlign = element.parentElement.parentElement.getAttribute('data-align');
+            if (wrapperAlign) return wrapperAlign;
+          }
+          return element.getAttribute('data-align');
+        },
+        renderHTML: (attributes: CustomImageAttributes) => {
+          if (!attributes['data-align']) {
+            return {};
+          }
+          return { 'data-align': attributes['data-align'] };
+        },
+      },
+
       // 임시 이미지 식별용 ID
       'data-id': {
         default: null,
@@ -124,13 +153,14 @@ const CustomImage = Image.extend({
     };
   },
 
-  // 렌더링 HTML 수정 - 이미지 리사이저 래퍼 추가
+  // 렌더링 HTML 수정 - 원래 구조로 돌아가기 (복잡한 구조는 오히려 문제를 일으킴)
   renderHTML({ HTMLAttributes }) {
     const attrs = { ...HTMLAttributes };
+    const alignClass = attrs['data-align'] ? `image-align-${attrs['data-align']}` : '';
     
     return [
       'div',
-      { class: 'image-resizer' },
+      { class: `image-resizer ${alignClass}`, 'data-align': attrs['data-align'] || 'center' },
       ['img', attrs],
     ];
   },
@@ -140,7 +170,7 @@ const CustomImage = Image.extend({
 
     return [
       new Plugin({
-        key: new PluginKey('customImageResize'), // 키 이름 변경
+        key: new PluginKey('customImageResize'),
         props: {
           handleDOMEvents: {
             mousedown: (view, event) => {
@@ -158,17 +188,35 @@ const CustomImage = Image.extend({
                 if (!img) return false;
 
                 const startX = event.pageX;
+                const startY = event.pageY;
                 const startWidth = img.offsetWidth;
                 const startHeight = img.offsetHeight;
                 const aspectRatio = startHeight > 0 ? startWidth / startHeight : 1;
+                
+                // 리사이즈 방향 결정
+                const direction = Array.from(target.classList)
+                  .find(cls => cls.startsWith('resize-') && cls !== 'resize-trigger')
+                  ?.replace('resize-', '') || 'se';
 
-                // ProseMirror 노드 위치 찾기
+                // keepRatio: 가로세로 비율 유지 여부 (shift 키 누르고 있는지)
+                const keepRatio = event.shiftKey;
+
+                // ProseMirror 노드 위치 찾기 (개선된 방법)
                 let imgPos = -1;
+                
+                // DOM에서 ProseMirror 위치 찾기 (개선된 접근 방식)
+                // 이미지 요소가 포함된 div.image-resizer 찾기
                 view.state.doc.descendants((node, pos) => {
-                  if (node.type.name === 'customImage') {
-                    const dom = view.nodeDOM(pos) as HTMLElement | null;
-                    // nodeDOM이 imgWrapper를 포함하는지 확인
-                    if (dom && dom === imgWrapper) {
+                  if (node.type.name === 'customImage') {  // 하드코딩된 'customImage' 사용
+                    // 현재 노드의 DOM 요소 찾기
+                    const domAtPos = view.domAtPos(pos);
+                    const nodeDOM = domAtPos.node;
+                    
+                    // nodeDOM이 imgWrapper를 포함하거나 그 자체인지 확인
+                    if (nodeDOM && 
+                        (nodeDOM === imgWrapper || 
+                         nodeDOM.contains(imgWrapper) || 
+                         imgWrapper.contains(nodeDOM))) {
                       imgPos = pos;
                       return false; // 찾으면 중단
                     }
@@ -177,11 +225,17 @@ const CustomImage = Image.extend({
                 });
 
                 if (imgPos === -1) {
-                  console.error("Failed to find image node position.");
-                  return false;
+                  // fallback 방법: 이미지 부모 요소에서 직접 위치 찾기 시도
+                  const domPos = view.posAtDOM(imgWrapper, 0);
+                  if (domPos && domPos >= 0) {
+                    imgPos = domPos;
+                  } else {
+                    console.error("Failed to find image node position.");
+                    return false;
+                  }
                 }
 
-                // 이미지 노드 선택 (선택적, 시각적 피드백)
+                // 이미지 노드 선택 
                 try {
                    const selection = NodeSelection.create(view.state.doc, imgPos);
                    const trSelect = view.state.tr.setSelection(selection);
@@ -190,22 +244,62 @@ const CustomImage = Image.extend({
                    console.warn("Could not select image node during resize start", e);
                 }
 
-
                 imgWrapper.classList.add('resizing');
 
                 const mousemove = (e: MouseEvent) => {
-                  const newWidth = Math.max(minWidth, startWidth + (e.pageX - startX));
-                  const newHeight = aspectRatio > 0 ? Math.max(minWidth / aspectRatio, newWidth / aspectRatio) : startHeight; // Aspect ratio 유지
-
+                  // 마우스 이동 거리
+                  const deltaX = e.pageX - startX;
+                  const deltaY = e.pageY - startY;
+                  
+                  // 각 방향에 따라 너비와 높이 계산 로직
+                  let newWidth = startWidth;
+                  let newHeight = startHeight;
+                  
+                  // 방향에 따른 크기 조절
+                  switch(direction) {
+                    case 'se': // 오른쪽 아래
+                      newWidth = Math.max(minWidth, startWidth + deltaX);
+                      newHeight = keepRatio ? newWidth / aspectRatio : Math.max(minWidth, startHeight + deltaY);
+                      break;
+                    case 'sw': // 왼쪽 아래
+                      newWidth = Math.max(minWidth, startWidth - deltaX);
+                      newHeight = keepRatio ? newWidth / aspectRatio : Math.max(minWidth, startHeight + deltaY);
+                      break;
+                    case 'ne': // 오른쪽 위
+                      newWidth = Math.max(minWidth, startWidth + deltaX);
+                      newHeight = keepRatio ? newWidth / aspectRatio : Math.max(minWidth, startHeight - deltaY);
+                      break;
+                    case 'nw': // 왼쪽 위
+                      newWidth = Math.max(minWidth, startWidth - deltaX);
+                      newHeight = keepRatio ? newWidth / aspectRatio : Math.max(minWidth, startHeight - deltaY);
+                      break;
+                    case 'n': // 위
+                      newHeight = Math.max(minWidth, startHeight - deltaY);
+                      newWidth = keepRatio ? newHeight * aspectRatio : startWidth;
+                      break;
+                    case 's': // 아래
+                      newHeight = Math.max(minWidth, startHeight + deltaY);
+                      newWidth = keepRatio ? newHeight * aspectRatio : startWidth;
+                      break;
+                    case 'e': // 오른쪽
+                      newWidth = Math.max(minWidth, startWidth + deltaX);
+                      newHeight = keepRatio ? newWidth / aspectRatio : startHeight;
+                      break;
+                    case 'w': // 왼쪽
+                      newWidth = Math.max(minWidth, startWidth - deltaX);
+                      newHeight = keepRatio ? newWidth / aspectRatio : startHeight;
+                      break;
+                  }
+                  
+                  // 프로세미러 노드 가져오기
                   const node = view.state.doc.nodeAt(imgPos);
-                  if (!node) return; // 노드가 유효한지 확인
+                  if (!node) return;
 
-                  // 트랜잭션 생성 및 디스패치 (ProseMirror 상태 업데이트)
+                  // 트랜잭션 생성 및 디스패치
                   const tr = view.state.tr.setNodeMarkup(imgPos, undefined, {
                       ...node.attrs,
                       width: Math.round(newWidth),
                       height: Math.round(newHeight),
-                      // 스타일 속성도 업데이트 (선택적)
                       style: `width: ${Math.round(newWidth)}px; height: ${Math.round(newHeight)}px;`,
                   });
                   view.dispatch(tr);
@@ -215,15 +309,14 @@ const CustomImage = Image.extend({
                   document.removeEventListener('mousemove', mousemove);
                   document.removeEventListener('mouseup', mouseup);
                   imgWrapper.classList.remove('resizing');
-                  // 리사이즈 완료 후 추가 작업 (예: 최종 상태 저장 API 호출)
                 };
 
                 document.addEventListener('mousemove', mousemove);
                 document.addEventListener('mouseup', mouseup);
 
-                return true; // 이벤트 처리 완료
+                return true;
               }
-              return false; // 다른 mousedown 이벤트는 처리 안 함
+              return false;
             },
           },
         },
@@ -322,7 +415,6 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
       // 제거된 이미지 찾기: 이전 목록에는 있었지만 현재 목록에는 없는 ID
       prevSet.forEach(prevId => {
         if (!currentTempIds.has(prevId)) {
-          console.log(`Image removed with tempId: ${prevId}`);
           onImageDelete?.(prevId); // 부모 컴포넌트에 삭제 알림
         }
       });
@@ -462,10 +554,8 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
       editor.chain().focus().insertContentAt(insertPos, loadingNode).run();
 
       // 삽입 직후 노드 상태 확인 로그 (유지)
-      console.log('Immediately after insert, checking nodes at pos:', insertPos);
       const nodeRightAfter = editor.state.doc.nodeAt(insertPos);
-      if (nodeRightAfter) {
-        console.log('Found node right after insert:', nodeRightAfter.type.name, nodeRightAfter.attrs);
+      if (nodeRightAfter) {     
       }
 
       // 이미지 업로드 함수
@@ -489,25 +579,25 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
 
       // 재시도 로직으로 업로드 실행
       const result = await retryOperation(uploadImage);
-      console.log('Image upload response:', result);
+      
 
       // 업로드 성공 시 이미지 노드 업데이트
       if (result && result.tempUrl) {
-        console.log('Attempting to update image node using insertPos:', insertPos, 'with url:', result.tempUrl);
+        
 
         const updateTr = editor.state.tr;
         const nodeAtInsertPos = insertPos !== null ? editor.state.doc.nodeAt(insertPos) : null;
 
         // 저장된 위치의 노드가 유효하고 tempId가 일치하는지 확인
         if (insertPos !== null && nodeAtInsertPos && nodeAtInsertPos.type.name === 'customImage' && nodeAtInsertPos.attrs['data-temp-id'] === tempId) {
-          console.log('Node found at insertPos matches tempId. Updating.');
+          
           const newAttrs = {
             ...nodeAtInsertPos.attrs,
             src: result.tempUrl,
             // 'data-temp-id': null // 필요하다면 업데이트 후 tempId 제거
           };
           updateTr.setNodeMarkup(insertPos, undefined, newAttrs);
-          console.log('Dispatching transaction to update editor view.');
+          
           editor.view.dispatch(updateTr);
           onImageUploadSuccess?.(tempId);
         } else {
@@ -517,7 +607,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           const fallbackTr = editor.state.tr;
           editor.state.doc.descendants((node, pos) => {
             if (node.type.name === 'customImage' && node.attrs['data-temp-id'] === tempId) {
-              console.log('Fallback search found node at pos:', pos);
+              
               const newAttrs = { ...node.attrs, src: result.tempUrl }; // 'data-temp-id': null
               fallbackTr.setNodeMarkup(pos, undefined, newAttrs);
               updatedFallback = true;
@@ -527,7 +617,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           });
 
           if (updatedFallback) {
-            console.log('Dispatching fallback transaction.');
+        
             editor.view.dispatch(fallbackTr);
             onImageUploadSuccess?.(tempId);
           } else {
@@ -577,7 +667,7 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           }
 
           if (deleted) {
-              console.log('Deleting failed/loading image node.');
+              
               editor.view.dispatch(deleteTr);
           }
       }
@@ -628,11 +718,17 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
     setLinkUrl('');
   }, [editor, linkUrl]);
 
+  // 이미지 정렬 함수
+  const alignImage = useCallback((align: 'left' | 'center' | 'right') => {
+    if (!editor) return;
+    editor.chain().focus().updateAttributes('customImage', { 'data-align': align }).run();
+  }, [editor]);
+  
   if (!editor || !isMounted) return null;
 
   return (
     <div className="prose max-w-none codemirror-like-editor">
-      <div className="flex items-center p-[12px] border-b w-full bg-[#ffffff]">
+      <div className="flex items-center flex-wrap p-[12px] border-b w-full bg-[#ffffff]">
         <div className="flex mr-2">
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -786,6 +882,34 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
         </div>
       </div>
 
+      {/* 이미지를 위한 버블 메뉴 추가 */}
+      {editor && <BubbleMenu
+        editor={editor}
+        tippyOptions={{ duration: 100 }}
+        shouldShow={({ editor }) => editor.isActive('customImage')}
+      >
+        <div className="flex bg-white shadow-lg rounded-lg p-2">
+          <button 
+            onClick={() => alignImage('left')} 
+            className={`p-1 mx-1 hover:bg-gray-200 rounded ${editor.isActive('customImage', { 'data-align': 'left' }) ? 'bg-gray-300' : ''}`}
+          >
+            <span className="material-icons" style={{ fontSize: '20px' }}>format_align_left</span>
+          </button>
+          <button 
+            onClick={() => alignImage('center')} 
+            className={`p-1 mx-1 hover:bg-gray-200 rounded ${editor.isActive('customImage', { 'data-align': 'center' }) ? 'bg-gray-300' : ''}`}
+          >
+            <span className="material-icons" style={{ fontSize: '20px' }}>format_align_center</span>
+          </button>
+          <button 
+            onClick={() => alignImage('right')} 
+            className={`p-1 mx-1 hover:bg-gray-200 rounded ${editor.isActive('customImage', { 'data-align': 'right' }) ? 'bg-gray-300' : ''}`}
+          >
+            <span className="material-icons" style={{ fontSize: '20px' }}>format_align_right</span>
+          </button>
+        </div>
+      </BubbleMenu>}
+
       {/* 링크 삽입 모달 */}
       {showLinkModal && (
         <div className="absolute z-50" style={{
@@ -914,58 +1038,46 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           text-align: left !important;
         }
         
-        /* 이미지 정렬 관련 스타일 수정 */
-        .tiptap-content-wrapper [data-text-align=center],
-        .tiptap-content-wrapper [style*="text-align: center"] {
-          text-align: center !important;
-        }
-        
-        .tiptap-content-wrapper [data-text-align=right],
-        .tiptap-content-wrapper [style*="text-align: right"] {
-          text-align: right !important;
-        }
-        
-        .tiptap-content-wrapper [data-text-align=left],
-        .tiptap-content-wrapper [style*="text-align: left"] {
-          text-align: left !important;
-        }
-        
-        .tiptap-content-wrapper img {
-          max-width: 100%;
-          display: block;
-        }
-        
-        .tiptap-content-wrapper [data-text-align=center] img {
-          margin-left: auto !important;
-          margin-right: auto !important;
-        }
-        
-        .tiptap-content-wrapper [data-text-align=right] img {
-          margin-left: auto !important;
-          margin-right: 0 !important;
-        }
-        
-        .tiptap-content-wrapper [data-text-align=left] img {
+        /* 이미지 정렬 관련 스타일 - .image-resizer에 직접 적용 */
+        .image-resizer.image-align-left {
           margin-left: 0 !important;
           margin-right: auto !important;
         }
         
-        /* CSS 커서 스타일 추가 */
-        img {
-          cursor: pointer; /* 이미지에 마우스 올리면 포인터 커서로 변경 */
+        .image-resizer.image-align-center {
+          margin-left: auto !important;
+          margin-right: auto !important;
         }
         
-        /* 이미지 리사이저 스타일 강화 */
+        .image-resizer.image-align-right {
+          margin-left: auto !important;
+          margin-right: 0 !important;
+        }
+        
+        /* 이미지 리사이저 스타일 - display: table 로 변경 */
         .image-resizer {
-          display: block;
+          /* display: block; */
+          display: table; /* 변경: 너비를 콘텐츠(이미지)에 맞춤 */
           position: relative;
-          margin-top: 0.5em;
-          margin-bottom: 0.5em;
+          /* margin-top/bottom 제거 - 필요 시 img에 적용 */
+          /* margin-top: 0.5em; */
+          /* margin-bottom: 0.5em; */
           max-width: 100%;
-          /* 이미지 외곽선 추가로 리사이즈 대상 명확하게 표시 */
-          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+          /* box-shadow 제거 - 선택 시에만 표시 */
+          /* box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1); */
           border-radius: 2px;
           overflow: visible;
+          line-height: 0; /* 이미지 아래 여백 제거 */
+        }
+        
+        /* 이미지 자체의 스타일 */
+        .image-resizer img {
+          display: block; /* 유지 */
+          max-width: 100%;
+          border-radius: 2px;
+          /* 필요 시 여기에 마진 추가 */
+           margin-top: 0.5em;
+           margin-bottom: 0.5em;
         }
         
         /* 리사이징 중인 이미지에 강조 표시 */
@@ -974,37 +1086,28 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           box-shadow: 0 0 8px rgba(66, 99, 235, 0.5);
         }
         
-        /* 리사이즈 핸들 스타일 더 두드러지게 */
+        /* 전방향 리사이즈 핸들 스타일 */
         .image-resizer .resize-trigger {
           position: absolute !important;
-          right: -8px !important;
-          bottom: -8px !important;
-          width: 16px !important;
-          height: 16px !important;
+          width: 12px !important;
+          height: 12px !important;
           border-radius: 50% !important;
           background-color: #4263EB !important;
           border: 2px solid white !important;
-          color: white !important;
-          font-size: 10px !important;
-          display: flex !important;
-          justify-content: center !important;
-          align-items: center !important;
-          cursor: se-resize !important;
+          z-index: 9999 !important;
           opacity: 0;
           transition: opacity 0.3s ease;
-          z-index: 9999 !important;
           box-shadow: 0 0 3px rgba(0, 0, 0, 0.5) !important;
-          transform: translate(0, 0) !important;
           pointer-events: auto !important;
         }
         
         .image-resizer:hover .resize-trigger {
-          opacity: 1 !important; /* !important 추가 */
+          opacity: 1 !important;
         }
         
         /* 드래그 중에는 항상 표시 */
         .image-resizer:active .resize-trigger {
-          opacity: 1 !important; /* !important 추가 */
+          opacity: 1 !important;
         }
         
         /* ProseMirror 선택 노드일 때 항상 표시 */
@@ -1012,29 +1115,52 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           opacity: 1 !important;
         }
         
-        /* 이미지가 선택됐을 때 하이라이트 효과 */
+        /* 이미지가 선택됐을 때 하이라이트 효과 - .image-resizer에 적용 */
         .image-resizer.ProseMirror-selectednode {
           outline: 2px solid #4263EB;
+          box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1); /* 선택 시 그림자 추가 */
           border-radius: 2px;
         }
-        
-        .tiptap-content-wrapper h1,
-        .tiptap-content-wrapper h2,
-        .tiptap-content-wrapper h3,
-        .tiptap-content-wrapper h4,
-        .tiptap-content-wrapper h5,
-        .tiptap-content-wrapper h6 {
+
+        /* --- 헤딩 스타일 정리 시작 --- */
+        .ProseMirror h1,
+        .ProseMirror h2,
+        .ProseMirror h3,
+        .ProseMirror h4,
+        .ProseMirror h5,
+        .ProseMirror h6 {
           font-weight: bold;
-          margin: 0.8em 0 0.5em;
+          margin-bottom: 0.5em;
+          color: #000000; /* 헤딩 색상 기본값 */
+        }
+
+        .ProseMirror h1 {
+          font-size: 28px;
+          line-height: 1.2;
+          margin-top: 0.8em;
         }
         
-        .tiptap-content-wrapper blockquote {
+        .ProseMirror h2 {
+          font-size: 24px;
+          line-height: 1.3;
+          margin-top: 0.7em;
+        }
+        
+        .ProseMirror h3 {
+          font-size: 20px;
+          line-height: 1.4;
+          margin-top: 0.6em;
+        }
+        /* --- 헤딩 스타일 정리 끝 --- */
+        
+        .ProseMirror blockquote {
           border-left: 3px solid #000000;
           padding-left: 1em;
           margin-left: 0;
+          color: #000000; /* blockquote 색상 추가 */
         }
         
-        .tiptap-content-wrapper pre {
+        .ProseMirror pre {
           background-color: #f5f5f5;
           padding: 0.5em;
           border-radius: 4px;
@@ -1042,96 +1168,37 @@ const TiptapEditor = ({ content = '', onChange, onImageUploadSuccess, onImageDel
           border: 1px solid #F9FAFB;
         }
         
-        .tiptap-content-wrapper ul,
-        .tiptap-content-wrapper ol {
-          padding-left: 1em;
-        }
-        
-        .tiptap-content-wrapper ul li::marker,
-        .tiptap-content-wrapper ol li::marker {
-          color: #000000 !important;
-        }
-        
-        /* 추가 강화 스타일 */
-        .ProseMirror ul li::marker,
-        .ProseMirror ol li::marker {
-          color: #000000 !important;
-        }
-        
-        /* 추가: 에디터 내부의 모든 마커에 강제 적용 */
-        .ProseMirror ul li::before,
-        .ProseMirror ol li::before,
-        .ProseMirror ul li::marker,
-        .ProseMirror ol li::marker,
-        .ProseMirror ul > li,
-        .ProseMirror ol > li,
-        .tiptap-content-wrapper ul > li,
-        .tiptap-content-wrapper ol > li {
-          color: #000000 !important;
-        }
-        
-        /* 에디터 특정 버튼 클릭 후 생성되는 요소에 직접 적용 */
         .ProseMirror ul,
         .ProseMirror ol {
-          color: #000000 !important;
+          padding-left: 1em;
+          color: #000000; /* 리스트 전체 색상 */
         }
-        
-        /* 특정 리스트 유형에 대한 명시적 스타일 */
+
+        /* 리스트 마커 스타일 */
         .ProseMirror ul {
-          list-style-type: disc !important;
+          list-style-type: disc;
         }
-        
         .ProseMirror ol {
-          list-style-type: decimal !important;
+          list-style-type: decimal;
+        }
+        .ProseMirror ul li::marker,
+        .ProseMirror ol li::marker {
+          color: #000000; /* 마커 색상 명시 */
         }
         
-        /* 에디터 내부 요소들에 대한 색상 정의 강화 */
-        .ProseMirror h1,
-        .ProseMirror h2, 
-        .ProseMirror h3,
+        /* 기존에 있던 색상 강제 적용 부분에서 헤딩 제거 */
         .ProseMirror blockquote,
         .ProseMirror ul li::marker,
         .ProseMirror ol li::marker {
-          color: #000000 !important;
+          /* color: #000000 !important; <- 이 규칙은 각 요소 스타일에 포함시켰으므로 제거 */
         }
 
-        /* 헤딩 태그에 명확한 크기 지정 */
-        .ProseMirror h1 {
-          font-size: 28px !important;
-          line-height: 1.2;
-          margin-top: 0.8em;
-          margin-bottom: 0.5em;
-        }
-        
-        .ProseMirror h2 {
-          font-size: 24px !important;
-          line-height: 1.3;
-          margin-top: 0.7em;
-          margin-bottom: 0.5em;
-        }
-        
-        .ProseMirror h3 {
-          font-size: 20px !important;
-          line-height: 1.4;
-          margin-top: 0.6em;
-          margin-bottom: 0.5em;
-        }
-        
-        /* tiptap-content-wrapper에도 동일하게 적용 */
-        .tiptap-content-wrapper h1 {
-          font-size: 28px !important;
-          line-height: 1.2;
-        }
-        
-        .tiptap-content-wrapper h2 {
-          font-size: 24px !important;
-          line-height: 1.3;
-        }
-        
-        .tiptap-content-wrapper h3 {
-          font-size: 20px !important;
-          line-height: 1.4;
-        }
+        /* 기존 tiptap-content-wrapper 관련 헤딩 스타일 제거 */
+        /*
+        .tiptap-content-wrapper h1 { ... }
+        .tiptap-content-wrapper h2 { ... }
+        .tiptap-content-wrapper h3 { ... }
+        */
         
         /* 이미지 내부 img 태그 스타일 */
         .image-resizer img {

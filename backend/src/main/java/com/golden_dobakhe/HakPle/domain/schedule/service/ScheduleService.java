@@ -6,12 +6,11 @@ import com.golden_dobakhe.HakPle.domain.schedule.entity.Schedule;
 import com.golden_dobakhe.HakPle.domain.schedule.repository.ScheduleRepository;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 // ScheduleService.java
 @Transactional(readOnly = true)

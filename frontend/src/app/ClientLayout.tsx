@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useLoginMember, LoginMemberContext } from '@/stores/auth/loginMember'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import { LoginMemberContext, User, createEmptyMember } from '@/stores/auth/loginMember'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import MobileBottomNav from '@/components/MobileBottomNav'
@@ -10,30 +10,93 @@ import { initDOMErrorPrevention } from '@/utils/domErrorFix'
 import { fetchApi } from '@/utils/api'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-    const {
-        loginMember,
-        setLoginMember,
-        setNoLoginMember,
-        isLoginMemberPending,
-        isLogin,
-        logout,
-        logoutAndHome,
-        checkAdminAndRedirect,
-        setIsLogin
-    } = useLoginMember()
+    const [loginMember, _setLoginMember] = useState<User>(createEmptyMember());
+    const [isLogin, setIsLogin] = useState(false);
+    const [isLoginMemberPending, setLoginMemberPending] = useState(true);
 
     const router = useRouter()
+    const [profileImageFetchAttempted, setProfileImageFetchAttempted] = useState(false);
 
-    // DOM removeChild 오류 방지를 위한 초기화
+    const setLoginMember = useCallback((member: BackendUser) => {
+        console.group('ClientLayout - setLoginMember')
+
+        const nickname = member.nickName ?? (typeof member.nickname === 'string' ? member.nickname : '') ?? '';
+        const academyCode = member.academyCode ?? member.academyId ?? '';
+        let profileImageUrl = '';
+        if (typeof member.profileImageUrl === 'string') {
+             profileImageUrl = member.profileImageUrl.trim();
+        }
+
+        const user: User = {
+            id: member.id ?? member.memberId,
+            nickname: nickname,
+            userName: member.userName ?? '',
+            phoneNum: member.phoneNum,
+            creationTime: member.creationTime || '',
+            modificationTime: member.modificationTime || '',
+            academyCode: academyCode,
+            academyName: member.academyName || '',
+            profileImageUrl: profileImageUrl,
+            isAdmin: member.isAdmin
+        };
+
+        _setLoginMember(user);
+        const isValidLogin = !!user.userName || !!user.nickname;
+        setIsLogin(isValidLogin);
+
+        console.log('Set login member:', user);
+        console.log('Set isLogin:', isValidLogin);
+        console.groupEnd();
+    }, []);
+
+    const setNoLoginMember = useCallback(() => {
+        console.log('ClientLayout - setNoLoginMember');
+        _setLoginMember(createEmptyMember());
+        setIsLogin(false);
+    }, []);
+
+    const logout = useCallback((callback: () => void) => {
+        console.log('ClientLayout - logout');
+        fetchApi(`/api/v1/auth/logout`, { method: 'DELETE' }, true)
+            .then(() => console.log('로그아웃 API 호출 성공'))
+            .catch(err => console.error('로그아웃 API 호출 중 오류 발생:', err))
+            .finally(() => {
+                setNoLoginMember();
+                console.log('로그아웃 완료 (프론트엔드 상태 초기화)');
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('academyCode');
+                    localStorage.removeItem('academyName');
+                }
+                callback();
+            });
+    }, [setNoLoginMember]);
+
+    const logoutAndHome = useCallback(() => {
+        console.log('ClientLayout - logoutAndHome');
+        logout(() => {
+            window.location.href = '/';
+        });
+    }, [logout]);
+
+    const checkAdminAndRedirect = useCallback(async () => {
+        console.log('ClientLayout - checkAdminAndRedirect');
+        try {
+            const response = await fetchApi(`/api/v1/admin/check`, { method: 'GET' }, true);
+            if (!response.ok) return false;
+            const data = await response.json();
+            return data === true;
+        } catch {
+            return false;
+        }
+    }, []);
+
     useEffect(() => {
-        // 클라이언트 사이드에서만 실행
         if (typeof window !== 'undefined') {
-            
             initDOMErrorPrevention();
         }
     }, []);
 
-    const loginMemberContextValue = {
+    const loginMemberContextValue = useMemo(() => ({
         loginMember,
         setLoginMember,
         setNoLoginMember,
@@ -43,205 +106,133 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         logout,
         logoutAndHome,
         checkAdminAndRedirect
-    }
+    }), [
+        loginMember, setLoginMember, setNoLoginMember, isLoginMemberPending, isLogin, setIsLogin,
+        logout, logoutAndHome, checkAdminAndRedirect
+    ]);
 
-    // Next.js의 현재 경로 감지
     const pathname = usePathname()
-    
-    // 헤더와 푸터를 숨길 페이지 목록
+
     const hideHeaderFooterPages = [
-        '/login', 
-        '/signup', 
-        '/forgot-username', 
+        '/login',
+        '/signup',
+        '/forgot-username',
         '/forgot-password',
-        '/reset-password'
+        '/reset-password',
+        '/customer',
+        '/terms'
     ]
-    
-    // 현재 페이지에서 헤더와 푸터를 숨길지 여부 (Next.js의 pathname 사용)
-    const shouldHideHeaderFooter = hideHeaderFooterPages.some(page => 
+
+    const shouldHideHeaderFooter = hideHeaderFooterPages.some(page =>
         pathname?.startsWith(page)
     )
-
-    // 루트 페이지에서 푸터 숨김 여부
     const shouldHideFooter = pathname === '/' || shouldHideHeaderFooter;
 
-    
-    const checkLoginStatus = async () => {
-    try {
-        
-        const response = await fetchApi('/api/v1/admin/check')
 
-        
-
-        if (response.ok) {
-            const data = await response.json()
-            
-
-            const userInfoResponse = await fetchApi('/api/v1/myInfos')
-
-            if (userInfoResponse.ok) {
-                const userInfo = await userInfoResponse.json()
-                console.log('추가 사용자 정보:', userInfo)
-                setLoginMember(userInfo)
-            } else {
-                setLoginMember(data)
-            }
-        } else {
-            setNoLoginMember()
-        }
-    } catch (error) {
-        console.error('로그인 상태 확인 중 오류:', error)
-        setNoLoginMember()
-    }
-}
+    const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home', '/terms','/customer']
+    const protectedPaths = ['/myinfo', '/my-posts', '/my-comments', '/my-likes']
 
 
     useEffect(() => {
-        
+        const checkLoginAndHandleRedirect = async () => {
+            setLoginMemberPending(true);
+            let isLoggedIn = false;
+            let userData = null;
 
-        // 로그인이 필요없는 페이지 목록
-        const publicPages = ['/login', '/signup', '/', '/about', '/signup/success','/forgot-username','/forgot-password','/reset-password', '/home']
-
-        const specialPages = ['/login', '/admin']
-        // 로그인이 필요한 경로를 명시적으로 정의
-        const protectedPaths = ['/myinfo', '/my-posts', '/my-comments', '/my-likes']
-        
-        const isPublicPage = publicPages.some((page) => pathname?.startsWith(page))
-        const isSpecialPage = specialPages.some((page) => pathname?.startsWith(page))
-        // 현재 경로가 보호된 경로인지 확인
-        const isProtectedPath = protectedPaths.some((path) => pathname?.startsWith(path))
-
-        
-        // 로그인 페이지에서는 API 호출하지 않음
-        if (pathname === '/login') {
-            setNoLoginMember()
-            setIsLogin(false)
-            return
-        }
-        
-        // 루트 경로('/')에서는 로그인 체크를 수행하되, 실패해도 리다이렉트하지 않음
-        const checkLoginStatus = async () => {
             try {
-                const response = await fetchApi('/api/v1/auth/me', {
-                    method: 'GET',
-                })
+                console.log(`[ClientLayout] Checking login status for ${pathname}...`);
+                const response = await fetchApi('/api/v1/auth/me', { method: 'GET' }, true);
+                isLoggedIn = response.ok;
 
-                if (!response.ok) {
-                    setNoLoginMember()
-                    setIsLogin(false)
-                    return false
+                if (isLoggedIn) {
+                    userData = await response.json();
+                    setLoginMember(userData);
+                    console.log(`[ClientLayout] User is logged in on ${pathname}.`);
+                } else {
+                    setNoLoginMember();
+                    console.log(`[ClientLayout] User is not logged in on ${pathname} (Status: ${response.status}).`);
                 }
-
-                const data = await response.json()
-                
-                setLoginMember(data)
-                setIsLogin(true)
-                return true
-            } catch (error) {
-                setNoLoginMember()
-                setIsLogin(false)
-                return false
-            }
-        }
-
-        // 루트 경로('/')인 경우 별도 처리
-        if (pathname === '/') {
-            // 로그인 체크는 수행하되, 결과에 관계없이 홈 페이지 접근 허용
-            checkLoginStatus()
-            // 로딩 상태 해제
-            if (isLoginMemberPending) {
-                const event = new CustomEvent('loginMemberLoaded')
-                window.dispatchEvent(event)
-            }
-            return
-        }
-
-        // 로그인 상태 확인 및 리다이렉트 처리
-        checkLoginStatus()
-            .then((isLoggedIn) => {
-                // 로그인이 필요한 페이지인데 로그인이 안 되어 있으면 로그인 페이지로 리다이렉트
-                if ((!isPublicPage && !isSpecialPage && !isLoggedIn) || (isProtectedPath && !isLoggedIn)) {
-                    
-                    if (pathname !== '/login') {  // 현재 페이지가 이미 로그인 페이지가 아닐 때만 리다이렉트
-                        router.replace("/login")
-                    }
-                }
-                
-                // 로그인 페이지에 있을 경우 홈으로 리다이렉트
-                if (pathname === '/login' && isLoggedIn) {
-                    
-                    router.replace("/home")
-                }
-
-                // 관리자인 경우 /myinfo 페이지 접근 제한
-                if (isLoggedIn && pathname?.startsWith('/myinfo')) {
-                    const checkAdminAndRedirect = async () => {
-                        try {
-                            const response = await fetchApi('/api/v1/admin/check', {
-                                method: 'GET',
-                            })
-
-                            if (!response.ok) {
-                                return false
-                            }
-
-                            const isAdmin = await response.json()
-
-                            if (isAdmin === true) {
-                                
-                                router.replace("/admin")
-                            }
-                        } catch (error) {
-                            
-                        }
-                    }
-
-                    checkAdminAndRedirect()
-                }
-            })
-            .finally(() => {
-                
-            })
-    }, [pathname]) // pathname이 변경될 때마다 실행
-
-
-    // ✅ 로그인 상태가 변경된 후 (렌더 기준) 로그 출력
-    useEffect(() => {
-        
-        
-        // 로그인 상태이고 프로필 이미지가 없는 경우 API에서 정보 다시 가져오기
-        if (isLogin && !loginMember.profileImageUrl) {
-
-            const fetchUserInfo = async () => {
-            try {
-            const response = await fetchApi('/api/v1/myInfos', {
-                method: 'GET',
-            });
-
-            if (!response.ok) {
-                throw new Error('사용자 정보를 가져올 수 없습니다.');
-            }
-
-            const data = await response.json();
-            
-
-            if (data.profileImageUrl) {
-                
-                setLoginMember(data);
-            }
             } catch (err) {
-            
+                console.error('[ClientLayout] Error checking login status:', err);
+                setNoLoginMember();
+                isLoggedIn = false;
+            } finally {
+                 setLoginMemberPending(false);
+                 console.log('[ClientLayout] Dispatching loginMemberLoaded event (if needed).');
+                 const event = new CustomEvent('loginMemberLoaded')
+                 window.dispatchEvent(event)
+            }
+
+            const isPublicPage = publicPages.some((page) => pathname?.startsWith(page));
+            const isLoginPage = pathname === '/login';
+            const isSignupPage = pathname === '/signup';
+            const isProtectedPath = protectedPaths.some((path) => pathname?.startsWith(path));
+
+            console.log(`[ClientLayout] Redirection logic: isLoggedIn=${isLoggedIn}, pathname=${pathname}, isPublic=${isPublicPage}, isProtected=${isProtectedPath}, isLogin=${isLoginPage}, isSignup=${isSignupPage}`);
+
+            if (!isLoggedIn) {
+                if (isProtectedPath) {
+                    console.log('[ClientLayout] Accessing protected path while logged out. Redirecting to /login.');
+                    router.replace("/login");
+                }
+                else {
+                     console.log('[ClientLayout] Accessing non-protected path while logged out. Allowing access.');
+                }
+            } else {
+                if (isLoginPage || isSignupPage) {
+                    console.log(`[ClientLayout] Accessing ${pathname} while logged in. Redirecting to /home.`);
+                    router.replace("/home");
+                }
+                else {
+                     console.log('[ClientLayout] Accessing allowed path while logged in.');
+                }
             }
         };
 
-            fetchUserInfo();
+        checkLoginAndHandleRedirect();
+
+    }, [pathname, router, setLoginMember, setNoLoginMember]);
+
+    useEffect(() => {
+        if (isLogin && !loginMember.profileImageUrl && !profileImageFetchAttempted) {
+            console.log('[ClientLayout] Attempting to fetch profile image...');
+            setProfileImageFetchAttempted(true);
+
+            const fetchUserInfoAndUpdate = async () => {
+                try {
+                    const response = await fetchApi('/api/v1/myInfos', { method: 'GET' }, true);
+
+                    if (!response.ok) {
+                        console.warn('[ClientLayout] Could not fetch user info to update profile image.');
+                        return;
+                    }
+
+                    const data = await response.json();
+
+                    if (data.profileImageUrl) {
+                        console.log('[ClientLayout] Profile image found, updating loginMember state.');
+                        _setLoginMember(prev => ({ ...prev, profileImageUrl: data.profileImageUrl }));
+                    } else {
+                         console.log('[ClientLayout] Fetched user info, but profile image is still missing.');
+                    }
+                } catch(err) {
+                    console.error('[ClientLayout] Error fetching user info for profile image:', err);
+                }
+            };
+            fetchUserInfoAndUpdate();
         }
-    }, [isLogin, loginMember]);
+
+        if (!isLogin && profileImageFetchAttempted) {
+            console.log('[ClientLayout] User logged out, resetting profile image fetch flag.');
+            setProfileImageFetchAttempted(false);
+        }
+
+    }, [isLogin, loginMember.profileImageUrl, profileImageFetchAttempted, _setLoginMember]);
 
     if (isLoginMemberPending) {
         return (
             <div className="flex justify-center items-center h-screen">
-                로그인 중...
+                로그인 확인 중...
             </div>
         )
     }
@@ -252,9 +243,26 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 {!shouldHideHeaderFooter && <Header />}
                 <div className="flex-grow">{children}</div>
                 {!shouldHideFooter && <Footer />}
-                {/* ✅ 모바일 하단 탭 추가 */}
                 {!shouldHideHeaderFooter && <MobileBottomNav />}
             </div>
         </LoginMemberContext.Provider>
     )
 }
+
+type BackendUser = {
+    id?: number;
+    memberId?: number;
+    nickName?: string;
+    userName?: string;
+    phoneNum?: string;
+    academyId?: string;
+    academyCode?: string;
+    academyName?: string;
+    profileImageUrl?: string;
+    creationTime?: string;
+    modificationTime?: string;
+    isAdmin?: boolean;
+    accessToken?: string;
+    nickname?: string;
+    [key: string]: unknown;
+};
