@@ -23,8 +23,7 @@ public interface BoardReportRepository extends JpaRepository<BoardReport, Long> 
     SELECT br FROM BoardReport br
     JOIN FETCH br.board b
     JOIN FETCH br.user u
-    WHERE b.status = 'INACTIVE'
-    """) //INACTIVE 조건 추가
+    """)
     Page<BoardReport> findAllWithUserAndBoard(Pageable pageable);
 
 

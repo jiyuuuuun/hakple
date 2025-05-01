@@ -21,7 +21,6 @@ public interface CommentReportRepository extends JpaRepository<CommentReport, Lo
     SELECT cr FROM CommentReport cr
     JOIN FETCH cr.comment c
     JOIN FETCH cr.reporter u
-    WHERE c.status = 'INACTIVE'
     """)//INACTIVE 조건 추가
     Page<CommentReport> findAllWithUserAndComment(Pageable pageable);
 
