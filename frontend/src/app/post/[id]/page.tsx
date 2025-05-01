@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { fetchApi } from '@/utils/api'
+import { formatRelativeTime } from '@/utils/dateUtils'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 
@@ -916,17 +917,7 @@ export default function PostDetailPage() {
     }
 
     const formatTime = (timeString: string) => {
-        const date = new Date(timeString)
-        const now = new Date()
-        const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-
-        if (diffMinutes < 60) {
-            return `${diffMinutes}분 전`
-        } else if (diffMinutes < 24 * 60) {
-            return `${Math.floor(diffMinutes / 60)}시간 전`
-        } else {
-            return `${date.toLocaleDateString()}`
-        }
+        return formatRelativeTime(timeString);
     }
 
     return (

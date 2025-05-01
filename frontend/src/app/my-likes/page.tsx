@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 // 전역 로그인 상태 관리 훅 import 추가
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { fetchApi } from '@/utils/api'
+import { formatRelativeTime } from '@/utils/dateUtils'
 
 // 게시물 타입 정의
 interface Post {
@@ -60,18 +61,6 @@ export default function MyLikesPage() {
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
     const pageSize = 10
-
-    // 날짜 포맷팅 함수
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString)
-        const year = date.getFullYear()
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        const hours = String(date.getHours()).padStart(2, '0')
-        const minutes = String(date.getMinutes()).padStart(2, '0')
-
-        return `${year}-${month}-${day} ${hours}:${minutes}`
-    }
 
     // 좋아요한 게시물 데이터 가져오기
     const fetchLikedPosts = async (page = currentPage) => {
@@ -229,7 +218,7 @@ export default function MyLikesPage() {
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        <span>{formatDate(post.createdAt)}</span>
+                                        <span>{formatRelativeTime(post.createdAt)}</span>
                                     </div>
                                     
                                     <div className="flex items-center">

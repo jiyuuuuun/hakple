@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
+import { formatRelativeTime } from '@/utils/dateUtils';
 import PostListSkeleton from '@/components/PostListSkeleton';
 
 interface LoginMember {
@@ -273,48 +274,11 @@ export default function NoticePage() {
     };
 
     const resetAllFilters = () => {
-        setSearchMode(false);
         setSearchKeyword('');
-        setSortType('creationTime');
-        setPageSize('10');
+        setSearchMode(false);
         setCurrentPage(1);
         setFilterType('title');
     };
-
-    function formatRelativeTime(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-
-        if (diffMs < 60 * 1000) {
-            return '방금 전';
-        }
-
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-        if (diffMinutes < 60) {
-            return `${diffMinutes}분 전`;
-        } else if (diffHours < 24) {
-            const minutes = diffMinutes % 60;
-            if (minutes === 0) {
-                return `${diffHours}시간 전`;
-            }
-            return `${diffHours}시간 ${minutes}분 전`;
-        } else if (diffDays < 7) {
-            return `${diffDays}일 전`;
-        } else {
-            const year = date.getFullYear();
-            const currentYear = now.getFullYear();
-
-            if (year === currentYear) {
-                return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-            } else {
-                return `${year}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
-            }
-        }
-    }
 
     function getFormattedTime(creationTime: string, modificationTime?: string): string {
         if (modificationTime) {
