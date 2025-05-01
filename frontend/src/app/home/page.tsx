@@ -370,7 +370,7 @@ export default function HomePage() {
     const fetchPopularPosts = async () => {
         try {
             // API 요청 URL 구성 (좋아요 10개 이상, 최대 5개 게시글)
-            const url = `/api/v1/posts?page=1&size=5&sortType=좋아요순&minLikes=10`
+            const url = `/api/v1/posts?page=1&size=5&sortType=좋아요순&type=pupulor`
 
             const response = await fetchApi(url, {
                 method: 'GET',
