@@ -112,6 +112,8 @@ export function useLoginMember() {
         const nickname = member.nickName ?? (typeof member.nickname === 'string' ? member.nickname : '') ?? '';
         const academyCode = member.academyCode ?? member.academyId ?? '';
         let profileImageUrl = '';
+}
+
         if (typeof member.profileImageUrl === 'string') {
              profileImageUrl = member.profileImageUrl.trim();
              // 캐시 방지 로직은 이미지 로드 시 처리하는 것이 더 일반적
