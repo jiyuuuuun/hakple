@@ -61,7 +61,7 @@ export const LoginMemberContext = createContext<{
 })
 
 //나머지들은 메서드를 블록화
-function createEmptyMember(): User {
+export function createEmptyMember(): User {
     return {
         nickname: '',
         userName: '',
