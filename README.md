@@ -51,12 +51,8 @@
   <summary>메인 페이지 화면 보기</summary>
 
   <p align="center">
-    <img src="https://github.com/user-attachments/assets/fe70fdf7-c212-46c3-a15c-9ea6f9dab755" width="400" />
+    <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/265aac14-88cc-4774-9f2c-c2cdfc1bceb2" />
   </p>
-
-<p align="center">
-  <img width="1249" alt="hakple_main" src="https://github.com/user-attachments/assets/24809221-d5bc-450e-9aa0-6471697f00e1" />
- </p>
 
 </details>
 
