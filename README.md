@@ -9,6 +9,47 @@
 **Hakple**는 학원 수강생들이 소통하고, 질문하고, 정보를 공유할 수 있는 커뮤니티 플랫폼입니다.  
 주요 기능으로는 회원가입, 게시판(질문/인기), 공지사항 열람, 댓글/좋아요 기능과, 실시간 알림 서비스 등이 있습니다.
 
+## 👥 팀원 소개
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://avatars.githubusercontent.com/u/00000001?v=4" width="100"/><br/>
+      <b>박주호</b><br/>
+      팀장/얼굴마담<br/><br/>
+      <span style="font-size:14px;">역할:<br/>인증, 인가, 응원</span><br/><br/>
+      <a href="https://github.com/JAWSP">GitHub</a>
+    </td>
+    <td align="center">
+      <img src="https://avatars.githubusercontent.com/u/00000005?v=4" width="100"/><br/>
+      <b>김명수</b><br/>
+      부팀장<br/><br/>
+      <span style="font-size:14px;">역할:<br/>유저 등록</span><br/><br/>
+      <a href="https://github.com/Kim-ms527">GitHub</a>
+    </td>
+    <td align="center">
+      <img src="https://avatars.githubusercontent.com/u/00000004?v=4" width="100"/><br/>
+      <b>고희은</b><br/><br/>
+      <span style="font-size:14px;">역할:<br/>사용자 프로필 관리, 배포</span><br/><br/>
+      <a href="https://github.com/heeeun-ko">GitHub</a>
+    </td>
+    <td align="center">
+      <img src="https://avatars.githubusercontent.com/u/00000002?v=4" width="100"/><br/>
+      <b>도상원</b><br/><br/>
+      <span style="font-size:14px;">역할:<br/>게시글 기능</span><br/><br/>
+      <a href="https://github.com/dark2138">GitHub</a>
+    </td>
+    <td align="center">
+      <img src="https://avatars.githubusercontent.com/u/00000003?v=4" width="100"/><br/>
+      <b>황지윤</b><br/><br/>
+      <span style="font-size:14px;">역할:<br/>댓글 기능, 관리자 기능</span><br/><br/>
+      <a href="https://github.com/jiyuuuuun">GitHub</a>
+    </td>
+  </tr>
+</table>
+
+
+
 ## 📸 UI 스크린샷
 
 <details>
