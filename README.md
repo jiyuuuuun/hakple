@@ -59,6 +59,10 @@
     <img src="https://github.com/user-attachments/assets/fe70fdf7-c212-46c3-a15c-9ea6f9dab755" width="400" />
   </p>
 
+<p align="center">
+  <img width="1249" alt="hakple_main" src="https://github.com/user-attachments/assets/24809221-d5bc-450e-9aa0-6471697f00e1" />
+ </p>
+
 </details>
 
 ---
@@ -139,6 +143,30 @@ npm run dev
   - 회원 목록 조회 등등
  
 ---
+
+## :open_file_folder: Project Structure
+
+```markdown
+backend
+└── src
+    └── main
+        └── java
+            └── com
+                └── golden_dobakhe
+                    └── HakPle
+                        ├── config          # AWS S3 설정 등
+                        ├── domain          # 핵심 도메인 로직
+                        │   ├── notification # 알림
+                        │   ├── post         # 게시글 (board, comment, like, report)
+                        │   ├── resource     # 리소스 (image)
+                        │   └── user         # 사용자 (admin, exception, myInfo, user)
+                        ├── global          # 전역 설정 (entity, exception, Status enum 등)
+                        └── security        # Spring Security 관련 (config, controller, dto, exception, jwt, OAuth, service, utils
+```
+
+---
+
+
  
 ## 🌐 배포 주소
 - [Hakple 웹사이트 링크](https://www.hakple.site)
