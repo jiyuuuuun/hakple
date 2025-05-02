@@ -14,36 +14,31 @@
 <table>
   <tr>
     <td align="center">
-      <img src="https://avatars.githubusercontent.com/u/00000001?v=4" width="100"/><br/>
+      <img src="https://github.com/JAWSP.png" width="100"/><br/>
       <b>박주호</b><br/>
       팀장/얼굴마담<br/><br/>
-      <span style="font-size:14px;">역할:<br/>인증, 인가, 응원</span><br/><br/>
-      <a href="https://github.com/JAWSP">GitHub</a>
+      역할:<br/>인증, 인가, 응원
     </td>
     <td align="center">
-      <img src="https://avatars.githubusercontent.com/u/00000005?v=4" width="100"/><br/>
+      <img src="https://github.com/Kim-ms527.png" width="100"/><br/>
       <b>김명수</b><br/>
       부팀장<br/><br/>
-      <span style="font-size:14px;">역할:<br/>유저 등록</span><br/><br/>
-      <a href="https://github.com/Kim-ms527">GitHub</a>
+      역할:<br/>유저 등록
     </td>
     <td align="center">
-      <img src="https://avatars.githubusercontent.com/u/00000004?v=4" width="100"/><br/>
+      <img src="https://github.com/heeeun-ko.png" width="100"/><br/>
       <b>고희은</b><br/><br/>
-      <span style="font-size:14px;">역할:<br/>사용자 프로필 관리, 배포</span><br/><br/>
-      <a href="https://github.com/heeeun-ko">GitHub</a>
+      역할:<br/>사용자 프로필 관리, 배포
     </td>
     <td align="center">
-      <img src="https://avatars.githubusercontent.com/u/00000002?v=4" width="100"/><br/>
+      <img src="https://github.com/dark2138.png" width="100"/><br/>
       <b>도상원</b><br/><br/>
-      <span style="font-size:14px;">역할:<br/>게시글 기능</span><br/><br/>
-      <a href="https://github.com/dark2138">GitHub</a>
+      역할:<br/>게시글 기능
     </td>
     <td align="center">
-      <img src="https://avatars.githubusercontent.com/u/00000003?v=4" width="100"/><br/>
+      <img src="https://github.com/jiyuuuuun.png" width="100"/><br/>
       <b>황지윤</b><br/><br/>
-      <span style="font-size:14px;">역할:<br/>댓글 기능, 관리자 기능</span><br/><br/>
-      <a href="https://github.com/jiyuuuuun">GitHub</a>
+      역할:<br/>댓글 기능, 관리자 기능
     </td>
   </tr>
 </table>
