@@ -18,6 +18,10 @@
     <img src="https://github.com/user-attachments/assets/fe70fdf7-c212-46c3-a15c-9ea6f9dab755" width="400" />
   </p>
 
+<p align="center">
+  <img width="1249" alt="hakple_main" src="https://github.com/user-attachments/assets/24809221-d5bc-450e-9aa0-6471697f00e1" />
+ </p>
+
 </details>
 
 ---
