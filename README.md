@@ -11,40 +11,14 @@
 
 ## 👥 팀원 소개
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="https://github.com/JAWSP.png" width="100"/><br/>
-      <b>박주호</b><br/>
-      팀장/얼굴마담<br/><br/>
-      역할:<br/>인증, 인가, 응원
-    </td>
-    <td align="center">
-      <img src="https://github.com/Kim-ms527.png" width="100"/><br/>
-      <b>김명수</b><br/>
-      부팀장<br/><br/>
-      역할:<br/>유저 등록
-    </td>
-    <td align="center">
-      <img src="https://github.com/heeeun-ko.png" width="100"/><br/>
-      <b>고희은</b><br/><br/>
-      역할:<br/>사용자 프로필 관리, 배포
-    </td>
-    <td align="center">
-      <img src="https://github.com/dark2138.png" width="100"/><br/>
-      <b>도상원</b><br/><br/>
-      역할:<br/>게시글 기능
-    </td>
-    <td align="center">
-      <img src="https://github.com/jiyuuuuun.png" width="100"/><br/>
-      <b>황지윤</b><br/><br/>
-      역할:<br/>댓글 기능, 관리자 기능
-    </td>
-  </tr>
-</table>
-
-
-
+ | 박주호 | 김명수 | 고희은 | 도상원 | 황지윤 |
+ |:--------:|:--------:|:--------:|:--------:|:--------:|
+ | <img src="https://github.com/JAWSP.png" alt="박주호" width="150"> | <img src="https://github.com/Kim-ms527.png" alt="김명수" width="150"> | <img src="https://github.com/heeeun-ko.png" alt="고희은" width="150"> | <img src="https://github.com/dark2138.png" alt="도상원" width="150"> | <img src="https://github.com/jiyuuuuun.png" alt="황지윤" width="150"> |
+ | BE | BE | BE | BE | BE |
+ | 인증, 인가 | 유저 등록 | 사용자 프로필, 배포 | 게시글 | 댓글, 관리자 |
+ | [GitHub](https://github.com/JAWSP) | [GitHub](https://github.com/Kim-ms527) | [GitHub](https://github.com/heeeun-ko) | [GitHub](https://github.com/dark2138) | [GitHub](https://github.com/jiyuuuuun) |
+ <br/>
+ <br/>
 ## 📸 UI 스크린샷
 
 <details>
