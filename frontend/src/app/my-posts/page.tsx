@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGlobalLoginMember } from '@/stores/auth/loginMember'
 import { fetchApi } from '@/utils/api'
+import { formatRelativeTime } from '@/utils/dateUtils'
 
 // 게시물 타입 정의
 interface Post {
@@ -51,24 +52,6 @@ export default function MyPostsPage() {
     const [totalPages, setTotalPages] = useState(0)
     const [totalElements, setTotalElements] = useState(0)
     const pageSize = 10
-
-    // 날짜 포맷팅 함수
-    const formatDate = (dateString: string) => {
-        if (!dateString) return ''
-        
-        const date = new Date(dateString)
-        const now = new Date()
-        const diff = now.getTime() - date.getTime()
-        
-        // 24시간 이내면 "X시간 전" 형식으로 표시
-        if (diff < 24 * 60 * 60 * 1000) {
-            const hours = Math.floor(diff / (60 * 60 * 1000))
-            return hours > 0 ? `${hours}시간 전` : '방금 전'
-        }
-        
-        // 그 외에는 "YYYY.MM.DD" 형식으로 표시
-        return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
-    }
 
     // 게시물 데이터 가져오기
     const fetchPosts = async (page = currentPage) => {
@@ -223,7 +206,7 @@ export default function MyPostsPage() {
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
-                                            <span>{formatDate(post.createdAt)}</span>
+                                            <span>{formatRelativeTime(post.createdAt)}</span>
                                         </div>
                                         
                                         <div className="flex items-center gap-4">

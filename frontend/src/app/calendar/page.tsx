@@ -7,6 +7,8 @@ import interactionPlugin from '@fullcalendar/interaction'
 import './fixed-calendar.css'
 import CalendarModal from './CalendarModal'
 import { fetchApi } from '@/utils/api'
+import { useGlobalLoginMember } from '@/stores/auth/loginMember'
+import { useRouter } from 'next/navigation'
 
 interface EventItem {
   id: string
@@ -25,7 +27,10 @@ interface EventItem {
 }
 
 export default function CalendarPage() {
+  const { isLogin, loginMember, isLoginMemberPending } = useGlobalLoginMember()
+  const router = useRouter()
   const calendarRef = useRef<any>(null)
+  const alertShownRef = useRef(false)
 
   const [events, setEvents] = useState<EventItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,15 +57,34 @@ export default function CalendarPage() {
     '#64748b': '기타'
   }
 
-  // 브라우저 알림 권한 요청
+  // 학원 코드 확인 및 리다이렉트 로직 추가
   useEffect(() => {
-    if ('Notification' in window) {
-      Notification.requestPermission()
+    // 인증 상태 로딩 중이면 대기
+    if (isLoginMemberPending) {
+      return;
     }
-  }, [])
+
+    // Ref를 확인하여 이미 알림/리다이렉션이 시작되지 않았는지 체크
+    if (isLogin && !loginMember?.academyCode && !alertShownRef.current) {
+      alertShownRef.current = true; // 플래그 설정
+      alert('학원코드를 먼저 등록하세요.');
+      router.push('/myinfo/academyRegister');
+    }
+    // 로그인하지 않았으면 로그인 페이지로
+    else if (!isLogin && !alertShownRef.current) { // 로그인 안된 경우도 중복 방지
+      alertShownRef.current = true; // 플래그 설정
+      router.push('/login');
+    }
+  }, [isLogin, loginMember, isLoginMemberPending, router]);
 
   // 일정 불러오기
   const fetchEvents = async () => {
+    // 로그인 상태 및 학원 코드 확인 추가
+    if (!isLogin || !loginMember?.academyCode) {
+        setLoading(false); // 로딩 상태 해제
+        return;
+    }
+
     setLoading(true)
     try {
       const res = await fetchApi('/api/v1/schedules', {
@@ -109,9 +133,13 @@ export default function CalendarPage() {
     }
   }
 
+  // fetchEvents 호출 시점 조정
   useEffect(() => {
-    fetchEvents()
-  }, [])
+    // 로그인 및 학원 코드 확인 후 호출
+    if (isLogin && loginMember?.academyCode) {
+        fetchEvents();
+    }
+  }, [isLogin, loginMember]); // isLogin, loginMember 의존성 추가
 
   // 알림 설정
   const scheduleNotification = (event: EventItem) => {
@@ -176,6 +204,15 @@ export default function CalendarPage() {
     setModalOpen(false)
     setSelectedDate(null)
     setSelectedEvent(null)
+  }
+
+  // 리다이렉트 중이거나 로딩 중일 때 표시할 내용
+  if (isLoginMemberPending || (isLogin && !loginMember?.academyCode)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8C4FF2]"></div>
+      </div>
+    );
   }
 
   return (

@@ -35,6 +35,8 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     implementation("org.springframework.boot:spring-boot-starter-validation")
 
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+
     // JWT & JSON
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")

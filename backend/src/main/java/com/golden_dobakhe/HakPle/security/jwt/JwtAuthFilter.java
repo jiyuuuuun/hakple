@@ -34,6 +34,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // 로그 추가: 실제 요청 메소드와 URI 확인 (메소드 가장 시작 부분으로 이동)
+        log.info("[JwtAuthFilter] Received Request: Method={}, URI={}", request.getMethod(), request.getRequestURI());
+
         if (!request.getRequestURI().startsWith("/api/")) {
             filterChain.doFilter(request, response);
             return;

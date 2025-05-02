@@ -7,6 +7,7 @@ import { useGlobalLoginMember } from '@/stores/auth/loginMember';
 import { fetchApi } from '@/utils/api';
 import { handleLike } from '@/utils/likeHandler';
 import PostSkeleton from '@/components/PostSkeleton';
+import { formatRelativeTime } from '@/utils/dateUtils'
 
 interface Post {
   id: number;
@@ -33,9 +34,10 @@ interface Tag {
 }
 
 export default function PostPage() {
-  const { isLogin, loginMember } = useGlobalLoginMember();
+  const { isLogin, loginMember, isLoginMemberPending } = useGlobalLoginMember();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const alertShownRef = useRef(false);
   const [postType, setPostType] = useState<'free'|'popular'>(() =>
     searchParams.get('type') === 'popular' ? 'popular' : 'free'
   );
@@ -64,8 +66,6 @@ export default function PostPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [popularTags, setPopularTags] = useState<Tag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(false);
-  const [academyAlertShown, setAcademyAlertShown] = useState(false);
-  const academyAlertRef = useRef(false);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [likingPosts, setLikingPosts] = useState<Set<number>>(new Set());
   const [showScrollTopButton, setShowScrollTopButton] = useState(false);
@@ -75,24 +75,20 @@ export default function PostPage() {
   }, []);
 
   useEffect(() => {
-    if (!isLogin) {
-      router.push('/login');
+    if (isLoginMemberPending) {
+        return;
     }
-  }, [isLogin, router]);
 
-  useEffect(() => {
-    if (isMounted && isLogin && !academyAlertRef.current) {
+    if (isLogin && !loginMember?.academyCode && !alertShownRef.current) {
+        alertShownRef.current = true;
+        alert('학원코드를 먼저 등록하세요.');
+        router.push('/myinfo/academyRegister');
     }
-  }, [isLogin, isMounted, loginMember, academyAlertRef]);
-
-  const showAcademyAlert = () => {
-    if (!academyAlertRef.current) {
-      academyAlertRef.current = true;
-      setAcademyAlertShown(true);
-      alert('먼저 학원을 등록해주세요');
-      router.push('/home');
+    else if (!isLogin && !alertShownRef.current) {
+        alertShownRef.current = true;
+        router.push('/login');
     }
-  };
+  }, [isLogin, loginMember, isLoginMemberPending, router]);
 
   useEffect(() => {
     setSearchKeyword(searchParams.get('keyword') ?? '');
@@ -112,7 +108,7 @@ export default function PostPage() {
   const boardType = searchParams.get('type') === 'popular' ? 'popular' : 'free';
 
   const fetchPosts = async (page: number, size: string, sort: string, keyword?: string, tag?: string) => {
-    if (!isMounted || academyAlertRef.current) return;
+    if (!isMounted || (isLogin && !loginMember?.academyCode)) return;
 
     setLoading(true);
     try {
@@ -194,7 +190,7 @@ export default function PostPage() {
   };
 
   const fetchPopularTags = async () => {
-    if (!isMounted || academyAlertShown) return;
+    if (!isMounted || (isLogin && !loginMember?.academyCode)) return;
 
     setTagsLoading(true);
     try {
@@ -219,7 +215,6 @@ export default function PostPage() {
 
         if (errorMessage.includes('아카데미 코드가 등록되지 않았습니다') ||
             errorMessage.includes('먼저 학원을 등록해주세요')) {
-            showAcademyAlert();
             return;
         }
         throw new Error(errorMessage);
@@ -251,15 +246,13 @@ export default function PostPage() {
   };
 
   useEffect(() => {
-    if (!isMounted || academyAlertRef.current) return;
+    if (!isMounted || (isLogin && !loginMember?.academyCode)) return;
     fetchPosts(currentPage, pageSize, sortType, searchKeyword, selectedTag || undefined);
   }, [isMounted, searchParams, currentPage, pageSize, sortType, searchKeyword, selectedTag]);
 
   useEffect(() => {
     if (isMounted) {
-      if (!academyAlertRef.current) {
-        fetchPopularTags();
-      }
+      fetchPopularTags();
     }
   }, [isMounted, postType]);
 
@@ -392,6 +385,14 @@ export default function PostPage() {
     });
   };
 
+  if (isLoginMemberPending || (isLogin && !loginMember?.academyCode)) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <PostSkeleton count={5} />
+      </div>
+    );
+  }
+
   if (!isMounted) {
     return (
       <main className="bg-[#f9fafc] min-h-screen pb-8">
@@ -399,18 +400,6 @@ export default function PostPage() {
           <div className="text-center py-8">페이지 로딩 중...</div>
         </div>
       </main>
-    );
-  }
-
-  if (!isLogin) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <h2 className="text-2xl font-bold mb-4">로그인 필요</h2>
-          <p className="text-gray-600 mb-6">게시판에 접근하려면 로그인이 필요합니다.</p>
-          <p className="text-gray-600 mb-6">로그인 페이지로 이동합니다...</p>
-        </div>
-      </div>
     );
   }
 
@@ -835,14 +824,14 @@ function PostCard({ id, title, nickname, time, viewCount, commentCount, likeCoun
               <p className="text-sm text-gray-500">{formatDate(time, modificationTime)}</p>
             </div>
           </div>
+          {hasImage && (
+            <span className="material-icons text-base text-[#980ffa] align-middle flex-shrink-0 ml-2">image</span>
+          )}
         </div>
 
         <Link href={`/post/${id}`} className="block no-underline">
           <h3 className="text-xl font-semibold text-gray-900 mb-3 hover:text-[#9C50D4] transition-colors line-clamp-2">
             {title}
-            {hasImage && (
-              <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-            )}
           </h3>
         </Link>
 
@@ -952,66 +941,68 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
   return (
     <div className="p-6 hover:bg-gray-50 transition-all duration-200 group border-l-4 border-transparent hover:border-l-4 hover:border-l-[#9C50D4] hover:shadow-md">
       <Link href={`/post/${id}`} className="block">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-            {profileImageUrl ? (
-              <img
-                src={profileImageUrl}
-                alt={`${nickname}의 프로필 이미지`}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null;
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-6 w-6 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    `;
-                  }
-                }}
-              />
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            )}
-          </div>
+        <div className="flex justify-between items-center gap-4 mb-2">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900">{nickname}</span>
-            <span className="text-gray-400">•</span>
-            <span className="text-gray-500">{formatDate(time, modificationTime)}</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+              {profileImageUrl ? (
+                <img
+                  src={profileImageUrl}
+                  alt={`${nickname}의 프로필 이미지`}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    const parent = target.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-6 w-6 text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      `;
+                    }
+                  }}
+                />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-900">{nickname}</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-gray-500">{formatDate(time, modificationTime)}</span>
+            </div>
           </div>
+          {hasImage && (
+            <span className="material-icons text-base text-[#980ffa] align-middle flex-shrink-0">image</span>
+          )}
         </div>
 
         <h2 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#9C50D4] transition-colors line-clamp-1">
           {title}
-          {hasImage && (
-            <span className="material-icons text-base text-[#980ffa] ml-2 align-middle">image</span>
-          )}
         </h2>
 
         <div className="flex flex-wrap gap-2 mb-4">
@@ -1090,43 +1081,11 @@ function PostListItem({ id, title, nickname, time, viewCount, commentCount, like
 function formatDate(creationTimeString: string, modificationTimeString?: string): string {
   const useModificationTime = modificationTimeString && modificationTimeString !== creationTimeString;
   const dateStringToFormat = useModificationTime ? modificationTimeString : creationTimeString;
-
+  
   if (!dateStringToFormat) {
     return '';
   }
-
-  const date = new Date(dateStringToFormat);
-  if (isNaN(date.getTime())) {
-    console.warn('Invalid date string provided to formatDate:', dateStringToFormat);
-    return '';
-  }
-
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / (60 * 1000));
-  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-
-  let formattedDate: string;
-
-  if (diffMinutes < 1) {
-    formattedDate = '방금 전';
-  } else if (diffMinutes < 60) {
-    formattedDate = `${diffMinutes}분 전`;
-  } else if (diffHours < 24) {
-    formattedDate = `${diffHours}시간 전`;
-  } else if (diffDays < 7) {
-    formattedDate = `${diffDays}일 전`;
-  } else {
-    formattedDate = new Intl.DateTimeFormat('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }).format(date);
-  }
-
+  
+  const formattedDate = formatRelativeTime(dateStringToFormat);
   return useModificationTime ? `${formattedDate} (수정됨)` : formattedDate;
 }

@@ -10,6 +10,7 @@ import com.golden_dobakhe.HakPle.domain.resource.image.util.FileUtils;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -80,6 +81,7 @@ public class ProfileImageService {
 
         imageRepository.save(newImage);
         user.setProfileImage(newImage);
+        user.setModificationTime(LocalDateTime.now());
 //        userRepository.save(user);
 
         return profileImageUrl;
@@ -97,6 +99,7 @@ public class ProfileImageService {
 
             imageRepository.delete(existingImage);
             user.setProfileImage(null);
+            user.setModificationTime(LocalDateTime.now());
             userRepository.save(user);
         }
     }

@@ -9,16 +9,24 @@
 **Hakple**는 학원 수강생들이 소통하고, 질문하고, 정보를 공유할 수 있는 커뮤니티 플랫폼입니다.  
 주요 기능으로는 회원가입, 게시판(질문/인기), 공지사항 열람, 댓글/좋아요 기능과, 실시간 알림 서비스 등이 있습니다.
 
+## 👥 팀원 소개
+
+ | 박주호 | 김명수 | 고희은 | 도상원 | 황지윤 |
+ |:--------:|:--------:|:--------:|:--------:|:--------:|
+ | <img src="https://github.com/JAWSP.png" alt="박주호" width="150"> | <img src="https://github.com/Kim-ms527.png" alt="김명수" width="150"> | <img src="https://github.com/heeeun-ko.png" alt="고희은" width="150"> | <img src="https://github.com/dark2138.png" alt="도상원" width="150"> | <img src="https://github.com/jiyuuuuun.png" alt="황지윤" width="150"> |
+ | BE | BE | BE | BE | BE |
+ | 인증, 인가 | 유저 등록 | 유저 프로필, 배포 | 게시글 | 댓글, 관리자 |
+ | [GitHub](https://github.com/JAWSP) | [GitHub](https://github.com/Kim-ms527) | [GitHub](https://github.com/heeeun-ko) | [GitHub](https://github.com/dark2138) | [GitHub](https://github.com/jiyuuuuun) |
+
+---
+
 ## 📸 UI 스크린샷
 
-<details>
-  <summary>메인 페이지 화면 보기</summary>
+- 메인 페이지 화면 보기
 
   <p align="center">
-    <img src="https://github.com/user-attachments/assets/fe70fdf7-c212-46c3-a15c-9ea6f9dab755" width="400" />
+    <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/265aac14-88cc-4774-9f2c-c2cdfc1bceb2" />
   </p>
-
-</details>
 
 ---
 
@@ -98,6 +106,30 @@ npm run dev
   - 회원 목록 조회 등등
  
 ---
+
+## :open_file_folder: Project Structure
+
+```markdown
+backend
+└── src
+    └── main
+        └── java
+            └── com
+                └── golden_dobakhe
+                    └── HakPle
+                        ├── config           # AWS S3 설정 등
+                        ├── domain           # 핵심 도메인 로직
+                        │   ├── notification # 알림
+                        │   ├── post         # 게시글 (board, comment, like, report)
+                        │   ├── resource     # 리소스 (image)
+                        │   └── user         # 사용자 (admin, exception, myInfo, user)
+                        ├── global           # 전역 설정 (entity, exception, Status enum 등)
+                        └── security         # Spring Security 관련 (config, controller, dto, exception, jwt, OAuth, service, utils
+```
+
+---
+
+
  
 ## 🌐 배포 주소
 - [Hakple 웹사이트 링크](https://www.hakple.site)
