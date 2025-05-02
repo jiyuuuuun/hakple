@@ -15,15 +15,17 @@ public class NotificationResponseDto {
     private String link;
     private Boolean isRead;
     private LocalDateTime creationTime;
+    private Long contentId;
 
     @Builder
-    public NotificationResponseDto(Long id, NotificationType notificationType, String message, String link, Boolean isRead, LocalDateTime creationTime) {
+    public NotificationResponseDto(Long id, NotificationType notificationType, String message, String link, Boolean isRead, LocalDateTime creationTime, Long contentId) {
         this.id = id;
         this.notificationType = notificationType;
         this.message = message;
         this.link = link;
         this.isRead = isRead;
         this.creationTime = creationTime;
+        this.contentId = contentId;
     }
 
     public static NotificationResponseDto fromEntity(Notification notification) {
@@ -34,6 +36,7 @@ public class NotificationResponseDto {
                 .link(notification.getLink())
                 .isRead(notification.getIsRead())
                 .creationTime(notification.getCreationTime())
+                .contentId(notification.getContentId())
                 .build();
     }
 } 

@@ -108,4 +108,6 @@ public interface BoardService {
                                           String searchKeyword, String type, Pageable pageable);
 
     void adminChangeBoardStatus(Long id, Status status);
+
+    Status getBoardStatus(Long id);
 }
