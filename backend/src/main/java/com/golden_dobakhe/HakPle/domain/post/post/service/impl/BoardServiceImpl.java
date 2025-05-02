@@ -327,9 +327,6 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public void toggleLike(Long boardId, Long userId, String academyCode) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다: " + userId));
-
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound());
 
@@ -339,43 +336,39 @@ public class BoardServiceImpl implements BoardService {
 
         board.validateStatus();
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> BoardException.notFound());
+
         boardLikeRepository.findByBoardIdAndUserId(boardId, userId)
                 .ifPresentOrElse(
                         boardLike -> {
                             boardLikeRepository.delete(boardLike);
                         },
                         () -> {
-                            BoardLike newBoardLike = BoardLike.builder()
-                                    .user(user)
+                            BoardLike newLike = BoardLike.builder()
                                     .board(board)
+                                    .user(user)
                                     .build();
-                            boardLikeRepository.save(newBoardLike);
+                            boardLikeRepository.save(newLike);
 
                             if (!board.getUser().getId().equals(userId)) {
-                                String message = String.format("회원님이 작성한 글 '%s'에 좋아요가 표시되었습니다.", board.getTitle());
-                                String link = "/post/" + board.getId();
-                                notificationService.createNotification(
-                                        board.getUser(),
-                                        NotificationType.POST_LIKE,
-                                        message,
-                                        link
-                                );
+                                String message = user.getNickName() + "님이 회원님의 게시글에 좋아요를 눌렀습니다.";
+                                String link = "/post/" + boardId;
+                                notificationService.createNotification(board.getUser(), NotificationType.POST_LIKE, message, link, boardId);
 
-                                int currentLikeCount = board.getLikeCount();
-
-                                if (currentLikeCount == 9) {
+                                int currentLikeCount = board.getLikeCount() + 1;
+                                if (currentLikeCount == 10) {
                                     boolean alreadyNotified = notificationService.hasPopularPostNotification(board);
                                     if (!alreadyNotified) {
-                                        String popularMessage = String.format("회원님의 글 '%s'이(가) 인기글에 선정되었습니다!",
-                                                board.getTitle());
-                                        String popularLink = "/post/" + board.getId();
+                                        String popularMessage = String.format("회원님의 글 '%s'이(가) 인기글에 선정되었습니다!", board.getTitle());
+                                        String popularLink = "/post/" + boardId;
                                         notificationService.createNotification(
                                                 board.getUser(),
                                                 NotificationType.POPULAR_POST,
                                                 popularMessage,
-                                                popularLink
+                                                popularLink,
+                                                boardId
                                         );
-
                                     }
                                 }
                             }
@@ -881,6 +874,13 @@ public class BoardServiceImpl implements BoardService {
 
         board.setStatus(status);
         boardRepository.save(board);
+    }
+
+    @Override
+    public Status getBoardStatus(Long id) {
+        return boardRepository.findById(id)
+                .map(Board::getStatus)
+                .orElseThrow(() -> BoardException.notFound());
     }
 
     // Helper method to replace URLs in HTML content

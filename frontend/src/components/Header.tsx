@@ -15,6 +15,7 @@ interface Notification {
     link: string;
     isRead: boolean;
     creationTime: string;
+    contentId?: number;
 }
 
 interface Page<T> {
@@ -195,7 +196,7 @@ export default function Header() {
         }
     };
 
-    const fetchNotifications = async (page = 0, size = 10, loadMore = false) => {
+    const fetchNotifications = async (page = 0, size = 10) => {
 
         if (!isLogin) return;
         setIsLoadingNotifications(true);
@@ -497,11 +498,47 @@ export default function Header() {
                                                             key={notification.id}
                                                             href={notification.link}
                                                             className={`flex items-start px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 ${notification.isRead ? 'bg-white' : 'bg-purple-50/30'}`}
-                                                            onClick={() => {
+                                                            onClick={async (e) => {
+                                                                e.preventDefault(); 
+
+                                                                const targetContentId = notification.contentId;
+
                                                                 if (!notification.isRead) {
                                                                     markNotificationAsRead(notification.id);
                                                                 }
                                                                 setIsNotificationOpen(false);
+
+                                                                if (!targetContentId) {
+                                                                    router.push(notification.link);
+                                                                    return;
+                                                                }
+
+                                                                try {
+                                                                    const response = await fetchApi(`/api/v1/posts/${targetContentId}/status`, {
+                                                                        method: 'GET',
+                                                                    });
+
+                                                                    if (!response.ok) {
+                                                                        if (response.status === 404) {
+                                                                            alert("현재 게시글은 삭제되었거나 찾을 수 없습니다.");
+                                                                        } else {
+                                                                            console.error('게시글 상태 확인 실패:', response.status);
+                                                                            alert('게시글 상태를 확인하는 중 오류가 발생했습니다.');
+                                                                        }
+                                                                        return; 
+                                                                    }
+
+                                                                    const data = await response.json();
+
+                                                                    if (data.isActive) {
+                                                                        router.push(notification.link); 
+                                                                    } else {
+                                                                        alert("이 글은 삭제되어 내용을 확인할 수 없습니다."); 
+                                                                    }
+                                                                } catch (error) {
+                                                                    console.error('게시글 상태 확인 중 예외 발생:', error);
+                                                                    alert('게시글 정보를 가져오는 중 문제가 발생했습니다.');
+                                                                }
                                                             }}
                                                         >
                                                             {icon}
@@ -539,7 +576,6 @@ export default function Header() {
                                                 <button
                                                     className="text-xs text-[#9C50D4] hover:text-purple-600 transition-colors"
                                                     onClick={() => {
-                                                        // 모든 알림을 읽음 처리하는 로직을 추가할 수 있음
                                                         setIsNotificationOpen(false);
                                                     }}
                                                 >

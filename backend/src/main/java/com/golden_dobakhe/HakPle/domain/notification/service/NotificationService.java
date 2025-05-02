@@ -26,13 +26,14 @@ public class NotificationService {
     private final UserRepository userRepository;
 
     @Transactional 
-    public Notification createNotification(User recipient, NotificationType type, String message, String link) {
+    public Notification createNotification(User recipient, NotificationType type, String message, String link, Long contentId) {
         Notification notification = Notification.builder()
                 .user(recipient)
                 .notificationType(type)
                 .message(message)
                 .link(link)
                 .isRead(false)
+                .contentId(contentId)
                 .build();
         return notificationRepository.save(notification);
     }

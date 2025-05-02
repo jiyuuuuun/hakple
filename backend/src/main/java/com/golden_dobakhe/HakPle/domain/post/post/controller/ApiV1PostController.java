@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.golden_dobakhe.HakPle.global.Status;
 
 @Slf4j
 @RestController
@@ -81,6 +82,22 @@ public class ApiV1PostController {
             @Parameter(description = "조회수 증가 여부 (기본값: true)") @RequestParam(name = "postView", required = false, defaultValue = "true") Boolean postView,
             @Parameter(description = "학원 코드 (선택 사항)") @RequestParam(name = "academyCode", required = false) String academyCode) {
         return ResponseEntity.ok(boardService.getBoard(id, postView, academyCode));
+    }
+
+    @Operation(summary = "게시물 상태 조회", description = "특정 ID 게시물의 상태(ACTIVE/INACTIVE 등)를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "게시물 상태 조회 성공, {\"isActive\": boolean} 형식으로 반환"),
+            @ApiResponse(responseCode = "404", description = "게시물을 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    @GetMapping("/{id}/status")
+    public ResponseEntity<Map<String, Boolean>> getBoardStatus(
+            @Parameter(description = "상태를 조회할 게시물 ID", required = true) @PathVariable(name = "id") Long id
+    ) {
+        Status status = boardService.getBoardStatus(id);
+        // Status.ACTIVE 인 경우에만 isActive: true 를 반환
+        Map<String, Boolean> response = Map.of("isActive", status == Status.ACTIVE);
+        return ResponseEntity.ok(response);
     }
 
     @Operation(summary = "게시물 목록 조회", description = "게시물 목록을 페이징 처리하여 조회합니다. type 파라미터로 'notice', 'free' 등을 지정하여 게시판 종류별 조회가 가능합니다.")

@@ -35,13 +35,16 @@ public class Notification extends BaseEntity {
     @Column(nullable = false)
     private Boolean isRead = false; 
 
+    private Long contentId; // 게시글 ID 등 관련 컨텐츠 ID 저장
+
     @Builder
-    public Notification(User user, NotificationType notificationType, String message, String link, Boolean isRead) {
+    public Notification(User user, NotificationType notificationType, String message, String link, Boolean isRead, Long contentId) {
         this.user = user;
         this.notificationType = notificationType;
         this.message = message;
         this.link = link;
         this.isRead = (isRead != null) ? isRead : false;
+        this.contentId = contentId; // contentId 초기화
     }
 
     public void markAsRead() {

@@ -133,7 +133,8 @@ public class CommentService {
                     board.getUser(),
                     NotificationType.POST_COMMENT,
                     message,
-                    link
+                    link,
+                    board.getId()
             );
         }
 
