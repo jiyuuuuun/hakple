@@ -1,6 +1,8 @@
 package com.golden_dobakhe.HakPle.domain.post.post.service.impl;
 
 
+import com.golden_dobakhe.HakPle.domain.notification.entity.NotificationType;
+import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService;
 import com.golden_dobakhe.HakPle.domain.post.comment.comment.repository.CommentRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardRequest;
 import com.golden_dobakhe.HakPle.domain.post.post.dto.BoardResponse;
@@ -17,49 +19,38 @@ import com.golden_dobakhe.HakPle.domain.post.post.repository.BoardRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.HashtagRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.repository.TagMappingRepository;
 import com.golden_dobakhe.HakPle.domain.post.post.service.BoardService;
-import com.golden_dobakhe.HakPle.domain.resource.image.entity.Image;
 import com.golden_dobakhe.HakPle.domain.resource.image.repository.ImageRepository;
+import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserErrorCode;
 import com.golden_dobakhe.HakPle.domain.user.exception.UserException;
+import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
+import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import com.golden_dobakhe.HakPle.global.Status;
-import com.golden_dobakhe.HakPle.domain.notification.entity.NotificationType;
-import com.golden_dobakhe.HakPle.domain.notification.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.Optional;
-
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import com.golden_dobakhe.HakPle.domain.resource.image.service.FileService;
-import java.util.Map;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
-import lombok.extern.slf4j.Slf4j;
-import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
-import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
-import java.net.URLDecoder;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Slf4j
 public class BoardServiceImpl implements BoardService {
@@ -90,11 +81,9 @@ public class BoardServiceImpl implements BoardService {
 
         if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
             resolvedAcademyCode = request.getAcademyCode();
-        }
-        else if (academyCode != null && !academyCode.isEmpty()) {
+        } else if (academyCode != null && !academyCode.isEmpty()) {
             resolvedAcademyCode = academyCode;
-        }
-        else {
+        } else {
             resolvedAcademyCode = user.getAcademyId();
         }
 
@@ -133,7 +122,8 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("Error processing tag '{}' for academyCode '{}': {}", tagName, resolvedAcademyCode, e.getMessage(), e);
+                    log.error("Error processing tag '{}' for academyCode '{}': {}", tagName, resolvedAcademyCode,
+                            e.getMessage(), e);
                     throw e;
                 }
             }
@@ -142,7 +132,7 @@ public class BoardServiceImpl implements BoardService {
         // Link images and update content URLs
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             Map<String, String> urlMapping = fileService.linkImagesToBoard(request.getTempIdList(), board.getId());
-            
+
             if (!urlMapping.isEmpty()) {
                 String currentContent = board.getContent();
                 String updatedContent = replaceImageUrlsInContent(currentContent, urlMapping);
@@ -193,7 +183,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> getBoards(String academyCode, String sortType, Pageable pageable) {
         if (!StringUtils.hasText(academyCode)) {
             throw BoardException.invalidRequest();
@@ -204,7 +193,8 @@ public class BoardServiceImpl implements BoardService {
         if (!StringUtils.hasText(translatedSortType)) {
             translatedSortType = "등록일순";
         }
-        return boardRepository.findByAcademyCodeAndStatusExcludeNotice(academyCode, Status.ACTIVE, translatedSortType, null, pageable)
+        return boardRepository.findByAcademyCodeAndStatusExcludeNotice(academyCode, Status.ACTIVE, translatedSortType,
+                        null, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -212,7 +202,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> searchBoards(String academyCode, String keyword, String sortType, Pageable pageable) {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword)) {
             throw BoardException.invalidRequest();
@@ -251,11 +240,9 @@ public class BoardServiceImpl implements BoardService {
 
         if (request.getAcademyCode() != null && !request.getAcademyCode().isEmpty()) {
             resolvedAcademyCode = request.getAcademyCode();
-        }
-        else if (academyCode != null && !academyCode.isEmpty()) {
+        } else if (academyCode != null && !academyCode.isEmpty()) {
             resolvedAcademyCode = academyCode;
-        }
-        else {
+        } else {
             resolvedAcademyCode = user.getAcademyId();
         }
 
@@ -278,7 +265,8 @@ public class BoardServiceImpl implements BoardService {
                         tagMappingRepository.save(tagMapping);
                     }
                 } catch (Exception e) {
-                    log.error("Error processing tag '{}' for academyCode '{}': {}", tagName, resolvedAcademyCode, e.getMessage(), e);
+                    log.error("Error processing tag '{}' for academyCode '{}': {}", tagName, resolvedAcademyCode,
+                            e.getMessage(), e);
                     throw e;
                 }
             }
@@ -291,7 +279,7 @@ public class BoardServiceImpl implements BoardService {
         // Link new temporary images and update content URLs
         if (request.getTempIdList() != null && !request.getTempIdList().isEmpty()) {
             Map<String, String> urlMapping = fileService.linkImagesToBoard(request.getTempIdList(), id);
-            
+
             if (!urlMapping.isEmpty()) {
                 String currentContent = board.getContent(); // Get content *after* potential update by board.update()
                 String updatedContent = replaceImageUrlsInContent(currentContent, urlMapping);
@@ -303,7 +291,7 @@ public class BoardServiceImpl implements BoardService {
                 }
             }
         }
-        
+
         // Note: Transactional context should handle saving the updated board entity
         // If not relying on dirty checking, uncomment the save below:
         // board = boardRepository.save(board); 
@@ -378,7 +366,8 @@ public class BoardServiceImpl implements BoardService {
                                 if (currentLikeCount == 9) {
                                     boolean alreadyNotified = notificationService.hasPopularPostNotification(board);
                                     if (!alreadyNotified) {
-                                        String popularMessage = String.format("회원님의 글 '%s'이(가) 인기글에 선정되었습니다!", board.getTitle());
+                                        String popularMessage = String.format("회원님의 글 '%s'이(가) 인기글에 선정되었습니다!",
+                                                board.getTitle());
                                         String popularLink = "/post/" + board.getId();
                                         notificationService.createNotification(
                                                 board.getUser(),
@@ -401,7 +390,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> getBoardsByTag(String academyCode, String tag, String sortType, Pageable pageable) {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(tag)) {
             throw BoardException.invalidRequest();
@@ -445,7 +433,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<TagResponse> getPopularTags(String academyCode) {
         return tagMappingRepository.findTop5PopularTagsByAcademyCode(academyCode)
                 .stream()
@@ -457,7 +444,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<TagResponse> getPopularTags(String academyCode, Integer minLikes) {
         return tagMappingRepository.findTop5PopularTagsByAcademyCode(academyCode, minLikes)
                 .stream()
@@ -483,23 +469,11 @@ public class BoardServiceImpl implements BoardService {
             throw BoardException.invalidRequest();
         }
         if (request.getContent().getBytes(StandardCharsets.UTF_8).length > MAX_CONTENT_LENGTH) {
-            throw BoardException.invalidRequest("Content exceeds maximum allowed length of " + MAX_CONTENT_LENGTH + " characters.");
+            throw BoardException.invalidRequest(
+                    "Content exceeds maximum allowed length of " + MAX_CONTENT_LENGTH + " characters.");
         }
 
     }
-
-    private List<String> extractImageUrls(String content) {
-        Pattern pattern = Pattern.compile("!\\[.*?\\]\\((.*?)\\)");
-        Matcher matcher = pattern.matcher(content);
-        List<String> urls = new ArrayList<>();
-
-        while (matcher.find()) {
-            urls.add(matcher.group(1));
-        }
-
-        return urls;
-    }
-
 
     @Override
     public String getAcademyCodeByUserId(Long userId) {
@@ -516,8 +490,8 @@ public class BoardServiceImpl implements BoardService {
 
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, String type, Pageable pageable) {
+    public Page<BoardResponse> getBoardsByUserId(Long userId, String sortType, Integer minLikes, String type,
+                                                 Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
         if (academyCode == null) {
             throw BoardException.notFound();
@@ -525,7 +499,7 @@ public class BoardServiceImpl implements BoardService {
         String translatedSortType = translateSortType(sortType);
 
         return boardRepository.findByAcademyCodeAndStatusAndType(
-                academyCode, Status.ACTIVE, type, translatedSortType, minLikes, pageable)
+                        academyCode, Status.ACTIVE, type, translatedSortType, minLikes, pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -533,7 +507,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> searchBoardsByUserId(Long userId, String keyword, String sortType, Integer minLikes,
                                                     String type, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
@@ -551,7 +524,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> getBoardsByTagAndUserId(Long userId, String tag, String sortType, Integer minLikes,
                                                        String type, Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
@@ -570,7 +542,6 @@ public class BoardServiceImpl implements BoardService {
 
 
     @Override
-    @Transactional(readOnly = true)
     public List<TagResponse> getPopularTagsByUserId(Long userId, String type) {
         String academyCode = getAcademyCodeByUserId(userId);
         return tagMappingRepository.findTop5PopularTagsByAcademyCodeAndType(academyCode, type)
@@ -583,7 +554,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<TagResponse> getPopularTagsByUserId(Long userId, Integer minLikes, String type) {
         String academyCode = getAcademyCodeByUserId(userId);
         return tagMappingRepository.findTop5PopularTagsByAcademyCodeAndMinLikesAndType(academyCode, minLikes, type)
@@ -597,7 +567,6 @@ public class BoardServiceImpl implements BoardService {
 
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> searchBoardsByType(String academyCode, String searchType, String keyword,
                                                   String sortType, Pageable pageable) {
         if (!StringUtils.hasText(academyCode) || !StringUtils.hasText(keyword) || !StringUtils.hasText(searchType)) {
@@ -608,7 +577,8 @@ public class BoardServiceImpl implements BoardService {
         }
         String translatedSortType = translateSortType(sortType);
 
-        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, translatedSortType, null, "free", pageable)
+        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, translatedSortType, null, "free",
+                        pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -617,16 +587,17 @@ public class BoardServiceImpl implements BoardService {
 
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> searchBoardsByTypeAndUserId(Long userId, String searchType, String keyword,
-                                                           String sortType, Integer minLikes, String type, Pageable pageable) {
+                                                           String sortType, Integer minLikes, String type,
+                                                           Pageable pageable) {
         String academyCode = getAcademyCodeByUserId(userId);
         if (academyCode == null) {
             throw BoardException.notFound();
         }
         String translatedSortType = translateSortType(sortType);
 
-        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, translatedSortType, minLikes, type, pageable)
+        return boardRepository.searchBoardsByType(academyCode, searchType, keyword, translatedSortType, minLikes, type,
+                        pageable)
                 .map(board -> {
                     Hibernate.initialize(board.getBoardLikes());
                     return createBoardResponse(board);
@@ -644,20 +615,17 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean isReportedByUser(Long boardId, Long userId) {
 
         return boardReportRepository.findByBoardIdAndUserId(boardId, userId).isPresent();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean isLikedByUser(Long boardId, Long userId) {
         return boardLikeRepository.findByBoardIdAndUserId(boardId, userId).isPresent();
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean isBoardOwner(Long boardId, Long userId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> BoardException.notFound());
@@ -666,9 +634,8 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> getMyBoards(Long userId, Pageable pageable) {
-        return boardRepository.findByUserId(userId, pageable)
+        return boardRepository.findByUserIdAndStatus(userId, Status.ACTIVE, pageable)
                 .map(board -> {
                     List<String> tagNames = board.getTags().stream()
                             .map(tagMapping -> {
@@ -681,7 +648,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> getLikedBoards(Long userId, Pageable pageable) {
         return boardLikeRepository.findLikedBoardsByUserId(userId, pageable)
                 .map(board -> {
@@ -694,10 +660,9 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> getNoticeBoards(String academyCode, String sortType, Pageable pageable) {
         String translatedSortType = translateSortType(sortType);
-        
+
         if (translatedSortType == null || translatedSortType.isEmpty()) {
             translatedSortType = "등록일순";
         }
@@ -705,22 +670,22 @@ public class BoardServiceImpl implements BoardService {
         Page<Board> boards;
         if (translatedSortType.equals("조회순")) {
             Pageable viewPageable = PageRequest.of(
-                pageable.getPageNumber(), 
-                pageable.getPageSize(), 
-                Sort.by(Sort.Direction.DESC, "viewCount", "creationTime")
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    Sort.by(Sort.Direction.DESC, "viewCount", "creationTime")
             );
             boards = boardRepository.findByAcademyCodeAndStatusAndTypeFlexible(
-                academyCode, Status.ACTIVE, "notice", translatedSortType, viewPageable);
+                    academyCode, Status.ACTIVE, "notice", translatedSortType, viewPageable);
         } else {
             boards = boardRepository.findByAcademyCodeAndStatusAndTypeFlexible(
-                academyCode, Status.ACTIVE, "notice", translatedSortType, Pageable.unpaged());
-            
+                    academyCode, Status.ACTIVE, "notice", translatedSortType, Pageable.unpaged());
+
             List<Board> sortedList = new ArrayList<>(boards.getContent());
             if (translatedSortType.equals("댓글순")) {
                 sortedList.sort((b1, b2) -> {
                     int count1 = commentRepository.countByBoardIdAndStatus(b1.getId(), Status.ACTIVE);
                     int count2 = commentRepository.countByBoardIdAndStatus(b2.getId(), Status.ACTIVE);
-                    return Integer.compare(count2, count1); 
+                    return Integer.compare(count2, count1);
                 });
             } else if (translatedSortType.equals("좋아요순")) {
                 sortedList.sort((b1, b2) -> {
@@ -729,18 +694,18 @@ public class BoardServiceImpl implements BoardService {
                     return Integer.compare(count2, count1);
                 });
             }
-            
+
             int start = (int) pageable.getOffset();
             int end = Math.min((start + pageable.getPageSize()), sortedList.size());
-            
+
             if (start > sortedList.size()) {
                 start = 0;
                 end = 0;
             }
-            
+
             List<Board> pageContent = start < end ? sortedList.subList(start, end) : new ArrayList<>();
             boards = new org.springframework.data.domain.PageImpl<>(
-                pageContent, pageable, sortedList.size());
+                    pageContent, pageable, sortedList.size());
         }
 
         return boards.map(board -> {
@@ -749,13 +714,12 @@ public class BoardServiceImpl implements BoardService {
                     .collect(Collectors.toList());
 
             int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
-            
+
             return BoardResponse.from(board, tags, commentCount, imageRepository);
         });
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, Pageable pageable) {
         String translatedSortType = "등록일순";
 
@@ -772,7 +736,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, Pageable pageable) {
         String translatedSortType = "등록일순";
 
@@ -790,7 +753,8 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    public Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, String sortType, Pageable pageable) {
+    public Page<BoardResponse> searchNoticeBoards(String academyCode, String keyword, String type, String sortType,
+                                                  Pageable pageable) {
         String translatedSortType = translateSortType(sortType);
 
         return boardRepository.searchNoticeBoardsWithTypeAndCounts(
@@ -849,7 +813,6 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Page<BoardResponse> getNoticeBoards(String academyCode, Pageable pageable) {
         String sortType = "creationTime";
         if (pageable.getSort().isSorted()) {
@@ -867,35 +830,36 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<BoardResponse> searchBoardsDynamic(String academyCode, String searchType, 
-                                                 String searchKeyword, String type, Pageable pageable) {
+    public Page<BoardResponse> searchBoardsDynamic(String academyCode, String searchType,
+                                                   String searchKeyword, String type, Pageable pageable) {
         Page<Board> boardPage = boardRepository.searchBoardsDynamic(
-            academyCode, 
-            searchType,
-            searchKeyword, 
-            type,
-            pageable
+                academyCode,
+                searchType,
+                searchKeyword,
+                type,
+                pageable
         );
-        
+
         return boardPage.map(board -> {
             List<String> tagNames = Collections.emptyList();
-            
+
             if (board.getTags() != null && !board.getTags().isEmpty()) {
                 tagNames = board.getTags().stream()
                         .map(tag -> tag.getHashtag().getHashtagName())
                         .collect(Collectors.toList());
             }
-            
+
             int commentCount = commentRepository.countByBoardIdAndStatus(board.getId(), Status.ACTIVE);
-            
+
             return BoardResponse.from(board, tagNames, commentCount, imageRepository);
         });
     }
 
     private String translateSortType(String sortType) {
-        if (sortType == null) return "등록일순";
-        
+        if (sortType == null) {
+            return "등록일순";
+        }
+
         return switch (sortType) {
             case "viewCount" -> "조회순";
             case "commentCount" -> "댓글순";
@@ -936,8 +900,8 @@ public class BoardServiceImpl implements BoardService {
                 // Decode the src attribute to match potential keys in the map
                 decodedCurrentSrc = URLDecoder.decode(currentSrc, StandardCharsets.UTF_8);
             } catch (Exception e) {
-                 log.warn("Failed to decode image src URL: {}", currentSrc, e);
-                 decodedCurrentSrc = currentSrc; // Use original if decoding fails
+                log.warn("Failed to decode image src URL: {}", currentSrc, e);
+                decodedCurrentSrc = currentSrc; // Use original if decoding fails
             }
 
             if (decodedCurrentSrc != null && urlMapping.containsKey(decodedCurrentSrc)) {
@@ -947,8 +911,6 @@ public class BoardServiceImpl implements BoardService {
                 log.debug("Replaced image URL: {} -> {}", decodedCurrentSrc, newSrc);
             }
         }
-
         return contentChanged ? doc.body().html() : htmlContent;
     }
-
 }
