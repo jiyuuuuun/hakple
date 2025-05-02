@@ -17,8 +17,7 @@
  | BE | BE | BE | BE | BE |
  | 인증, 인가 | 유저 등록 | 사용자 프로필, 배포 | 게시글 | 댓글, 관리자 |
  | [GitHub](https://github.com/JAWSP) | [GitHub](https://github.com/Kim-ms527) | [GitHub](https://github.com/heeeun-ko) | [GitHub](https://github.com/dark2138) | [GitHub](https://github.com/jiyuuuuun) |
- <br/>
- <br/>
+
 ## 📸 UI 스크린샷
 
 <details>
