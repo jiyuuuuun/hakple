@@ -2,7 +2,6 @@ package com.golden_dobakhe.HakPle.domain.post.post.repository;
 
 import com.golden_dobakhe.HakPle.domain.post.post.entity.Board;
 import com.golden_dobakhe.HakPle.domain.post.post.entity.BoardLike;
-
 import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -17,7 +16,7 @@ import org.springframework.stereotype.Repository;
 public interface BoardLikeRepository extends JpaRepository<BoardLike, Long> {
     Optional<BoardLike> findByBoardIdAndUserId(Long boardId, Long userId);
 
-    @Query("SELECT bl.board FROM BoardLike bl WHERE bl.user.id = :userId")
+    @Query("SELECT b FROM BoardLike bl JOIN bl.board b WHERE bl.user.id = :userId AND b.status = 'ACTIVE'")
     Page<Board> findLikedBoardsByUserId(@Param("userId") Long userId, Pageable pageable);
 
     Collection<BoardLike> findByUserId(Long userId);
