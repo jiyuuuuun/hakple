@@ -11,50 +11,22 @@
 
 ## 👥 팀원 소개
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="https://github.com/JAWSP.png" width="100"/><br/>
-      <b>박주호</b><br/>
-      팀장/얼굴마담<br/><br/>
-      역할:<br/>인증, 인가, 응원
-    </td>
-    <td align="center">
-      <img src="https://github.com/Kim-ms527.png" width="100"/><br/>
-      <b>김명수</b><br/>
-      부팀장<br/><br/>
-      역할:<br/>유저 등록
-    </td>
-    <td align="center">
-      <img src="https://github.com/heeeun-ko.png" width="100"/><br/>
-      <b>고희은</b><br/><br/>
-      역할:<br/>사용자 프로필 관리, 배포
-    </td>
-    <td align="center">
-      <img src="https://github.com/dark2138.png" width="100"/><br/>
-      <b>도상원</b><br/><br/>
-      역할:<br/>게시글 기능
-    </td>
-    <td align="center">
-      <img src="https://github.com/jiyuuuuun.png" width="100"/><br/>
-      <b>황지윤</b><br/><br/>
-      역할:<br/>댓글 기능, 관리자 기능
-    </td>
-  </tr>
-</table>
+ | 박주호 | 김명수 | 고희은 | 도상원 | 황지윤 |
+ |:--------:|:--------:|:--------:|:--------:|:--------:|
+ | <img src="https://github.com/JAWSP.png" alt="박주호" width="150"> | <img src="https://github.com/Kim-ms527.png" alt="김명수" width="150"> | <img src="https://github.com/heeeun-ko.png" alt="고희은" width="150"> | <img src="https://github.com/dark2138.png" alt="도상원" width="150"> | <img src="https://github.com/jiyuuuuun.png" alt="황지윤" width="150"> |
+ | BE | BE | BE | BE | BE |
+ | 인증, 인가 | 유저 등록 | 유저 프로필, 배포 | 게시글 | 댓글, 관리자 |
+ | [GitHub](https://github.com/JAWSP) | [GitHub](https://github.com/Kim-ms527) | [GitHub](https://github.com/heeeun-ko) | [GitHub](https://github.com/dark2138) | [GitHub](https://github.com/jiyuuuuun) |
 
-
+---
 
 ## 📸 UI 스크린샷
 
-<details>
-  <summary>메인 페이지 화면 보기</summary>
+- 메인 페이지 화면 보기
 
   <p align="center">
     <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/265aac14-88cc-4774-9f2c-c2cdfc1bceb2" />
   </p>
-
-</details>
 
 ---
 
@@ -145,14 +117,14 @@ backend
             └── com
                 └── golden_dobakhe
                     └── HakPle
-                        ├── config          # AWS S3 설정 등
-                        ├── domain          # 핵심 도메인 로직
+                        ├── config           # AWS S3 설정 등
+                        ├── domain           # 핵심 도메인 로직
                         │   ├── notification # 알림
                         │   ├── post         # 게시글 (board, comment, like, report)
                         │   ├── resource     # 리소스 (image)
                         │   └── user         # 사용자 (admin, exception, myInfo, user)
-                        ├── global          # 전역 설정 (entity, exception, Status enum 등)
-                        └── security        # Spring Security 관련 (config, controller, dto, exception, jwt, OAuth, service, utils
+                        ├── global           # 전역 설정 (entity, exception, Status enum 등)
+                        └── security         # Spring Security 관련 (config, controller, dto, exception, jwt, OAuth, service, utils
 ```
 
 ---
