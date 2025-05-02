@@ -15,7 +15,7 @@
  |:--------:|:--------:|:--------:|:--------:|:--------:|
  | <img src="https://github.com/JAWSP.png" alt="박주호" width="150"> | <img src="https://github.com/Kim-ms527.png" alt="김명수" width="150"> | <img src="https://github.com/heeeun-ko.png" alt="고희은" width="150"> | <img src="https://github.com/dark2138.png" alt="도상원" width="150"> | <img src="https://github.com/jiyuuuuun.png" alt="황지윤" width="150"> |
  | BE | BE | BE | BE | BE |
- | 인증, 인가 | 유저 등록 | 사용자 프로필, 배포 | 게시글 | 댓글, 관리자 |
+ | 인증, 인가 | 유저 등록 | 유저 프로필, 배포 | 게시글 | 댓글, 관리자 |
  | [GitHub](https://github.com/JAWSP) | [GitHub](https://github.com/Kim-ms527) | [GitHub](https://github.com/heeeun-ko) | [GitHub](https://github.com/dark2138) | [GitHub](https://github.com/jiyuuuuun) |
 
 ---
