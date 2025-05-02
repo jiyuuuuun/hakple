@@ -20,14 +20,11 @@
 
 ## 📸 UI 스크린샷
 
-<details>
-  <summary>메인 페이지 화면 보기</summary>
+- 메인 페이지 화면 보기
 
   <p align="center">
     <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/265aac14-88cc-4774-9f2c-c2cdfc1bceb2" />
   </p>
-
-</details>
 
 ---
 
