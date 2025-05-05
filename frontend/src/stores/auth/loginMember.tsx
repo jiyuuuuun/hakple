@@ -85,7 +85,7 @@ export function useLoginMember() {
         _setLoginMember(createEmptyMember()) // 로그아웃 시 멤버 정보도 초기화
         setIsLogin(false) // setIsLogin은 의존성에 포함하지 않아도 됨 (stable)
         setLoginMemberPending(false) // setLoginMemberPending도 stable
-        console.log('Called memoized setNoLoginMember')
+
     }, []) // 의존성 없음
 
     // useCallback으로 setLoginMember 감싸기
@@ -104,7 +104,7 @@ export function useLoginMember() {
             _setLoginMember(user)
             setIsLogin(true)
             setLoginMemberPending(false)
-            console.log('Set login member from access token response:', user)
+
             console.groupEnd()
             return
         }
@@ -135,14 +135,14 @@ export function useLoginMember() {
         const isValidLogin = !!user.userName || !!user.nickname // 유효성 검사 강화 가능
         setIsLogin(isValidLogin)
         setLoginMemberPending(false)
-        console.log('Set login member from API response:', user)
+
         console.groupEnd()
     }, []) // _setLoginMember, setIsLogin, setLoginMemberPending은 stable하므로 의존성 필요 없음
 
     // useCallback으로 logout 감싸기
     const logout = useCallback(
         (callback: () => void) => {
-            console.log('Called memoized logout')
+
             fetchApi(
                 `/api/v1/auth/logout`,
                 {
@@ -152,7 +152,7 @@ export function useLoginMember() {
                 true,
             ) // 401 발생 시 리다이렉트 방지 (필수는 아님)
                 .then(() => {
-                    console.log('로그아웃 API 호출 성공')
+
                 })
                 .catch((err) => {
                     console.error('로그아웃 API 호출 중 오류 발생:', err)
@@ -160,7 +160,7 @@ export function useLoginMember() {
                 .finally(() => {
                     // finally 블록 내에서 setNoLoginMember 호출 (memoized 버전)
                     setNoLoginMember() // 이미 useCallback으로 감싸짐
-                    console.log('로그아웃 완료 (프론트엔드 상태 초기화)')
+
 
                     if (typeof window !== 'undefined') {
                         localStorage.removeItem('academyCode')
@@ -176,7 +176,7 @@ export function useLoginMember() {
 
     // useCallback으로 logoutAndHome 감싸기
     const logoutAndHome = useCallback(() => {
-        console.log('Called memoized logoutAndHome')
+
         // logout 함수 호출 (memoized 버전)
         logout(() => {
             window.location.href = '/' // useRouter().push('/') 보다 페이지 새로고침 효과
@@ -186,7 +186,7 @@ export function useLoginMember() {
 
     // useCallback으로 checkAdminAndRedirect 감싸기
     const checkAdminAndRedirect = useCallback(async () => {
-        console.log('Called memoized checkAdminAndRedirect')
+
         // 이 함수는 이제 단순 확인용. 실제 리다이렉트는 ClientLayout에서 처리.
         try {
             const response = await fetchApi(
