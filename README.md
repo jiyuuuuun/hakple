@@ -39,13 +39,10 @@
 <details>
   <summary>로그인 & 회원가입 화면</summary>
 
-    <p align="center">
+  <div align="center">
     <img width="600" alt="로그인 화면" src="https://github.com/user-attachments/assets/7b68630f-74ec-47b1-85f5-b0b613621a85" />
-    </p>
-    <p align="center">
     <img width="600" alt="회원가입 화면" src="https://github.com/user-attachments/assets/0994a336-3164-4e3d-b34c-c0425abaabc8" />
-    </p>
-    
+  </div>
 </details>
 
 <details>
