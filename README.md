@@ -22,11 +22,36 @@
 
 ## 📸 UI 스크린샷
 
-- 메인 페이지 화면 보기
+- 메인 페이지 화면 
 
   <p align="center">
     <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/265aac14-88cc-4774-9f2c-c2cdfc1bceb2" />
   </p>
+
+- 홈 페이지 화면 
+
+  <p align="center">
+    <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/a48552c1-e9c3-40fe-823d-824ee4e7d524" />
+  </p>
+
+- 게시물 페이지 화면 
+
+  <p align="center">
+    <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/aa368789-dce8-4a25-b904-7c82f8fccc1a" />
+  </p>
+
+- 캘린더 페이지 화면 
+
+  <p align="center">
+    <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/63ff4ce3-76eb-41da-b0ce-ca3d967af17e" />
+  </p>
+
+- 마이 페이지 화면 
+
+  <p align="center">
+    <img width="1251" alt="스크린샷 2025-05-02 오전 9 42 08" src="https://github.com/user-attachments/assets/e6183e6a-f698-4952-80c8-db63b67a09b2" />
+  </p>
+
 
 ---
 
@@ -84,7 +109,7 @@ npm run dev
 
 - 회원 관리
   - 회원가입 / 로그인 (JWT 인증)
-  - 프로필 수정 (후대폰 번호, 프로필 이미지 변경)
+  - 프로필 수정 (휴대폰 번호, 프로필 이미지 변경)
 - 게시판
   - 자유 게시판 / 인기 게시판 분리
   - 글 작성, 수정, 삭제
@@ -137,6 +162,7 @@ backend
 ---
 
 ## 🎥 데모 영상
+- [Hakple 데모 영상](https://youtu.be/fph2-jl0f7Q)
 
 
 
