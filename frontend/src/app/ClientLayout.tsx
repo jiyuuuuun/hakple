@@ -44,25 +44,23 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         const isValidLogin = !!user.userName || !!user.nickname;
         setIsLogin(isValidLogin);
 
-        console.log('Set login member:', user);
-        console.log('Set isLogin:', isValidLogin);
         console.groupEnd();
     }, []);
 
     const setNoLoginMember = useCallback(() => {
-        console.log('ClientLayout - setNoLoginMember');
+
         _setLoginMember(createEmptyMember());
         setIsLogin(false);
     }, []);
 
     const logout = useCallback((callback: () => void) => {
-        console.log('ClientLayout - logout');
+
         fetchApi(`/api/v1/auth/logout`, { method: 'DELETE' }, true)
-            .then(() => console.log('로그아웃 API 호출 성공'))
+            .then(() => console.log(''))
             .catch(err => console.error('로그아웃 API 호출 중 오류 발생:', err))
             .finally(() => {
                 setNoLoginMember();
-                console.log('로그아웃 완료 (프론트엔드 상태 초기화)');
+
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('academyCode');
                     localStorage.removeItem('academyName');
@@ -72,14 +70,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }, [setNoLoginMember]);
 
     const logoutAndHome = useCallback(() => {
-        console.log('ClientLayout - logoutAndHome');
+
         logout(() => {
             window.location.href = '/';
         });
     }, [logout]);
 
     const checkAdminAndRedirect = useCallback(async () => {
-        console.log('ClientLayout - checkAdminAndRedirect');
+
         try {
             const response = await fetchApi(`/api/v1/admin/check`, { method: 'GET' }, true);
             if (!response.ok) return false;
@@ -140,17 +138,17 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             let userData = null;
 
             try {
-                console.log(`[ClientLayout] Checking login status for ${pathname}...`);
+
                 const response = await fetchApi('/api/v1/auth/me', { method: 'GET' }, true);
                 isLoggedIn = response.ok;
 
                 if (isLoggedIn) {
                     userData = await response.json();
                     setLoginMember(userData);
-                    console.log(`[ClientLayout] User is logged in on ${pathname}.`);
+
                 } else {
                     setNoLoginMember();
-                    console.log(`[ClientLayout] User is not logged in on ${pathname} (Status: ${response.status}).`);
+
                 }
             } catch (err) {
                 console.error('[ClientLayout] Error checking login status:', err);
@@ -158,7 +156,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                 isLoggedIn = false;
             } finally {
                  setLoginMemberPending(false);
-                 console.log('[ClientLayout] Dispatching loginMemberLoaded event (if needed).');
+
                  const event = new CustomEvent('loginMemberLoaded')
                  window.dispatchEvent(event)
             }
@@ -168,19 +166,19 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             const isSignupPage = pathname === '/signup';
             const isProtectedPath = protectedPaths.some((path) => pathname?.startsWith(path));
 
-            console.log(`[ClientLayout] Redirection logic: isLoggedIn=${isLoggedIn}, pathname=${pathname}, isPublic=${isPublicPage}, isProtected=${isProtectedPath}, isLogin=${isLoginPage}, isSignup=${isSignupPage}`);
+
 
             if (!isLoggedIn) {
                 if (isProtectedPath) {
-                    console.log('[ClientLayout] Accessing protected path while logged out. Redirecting to /login.');
+
                     router.replace("/login");
                 }
                 else {
-                     console.log('[ClientLayout] Accessing non-protected path while logged out. Allowing access.');
+
                 }
             } else {
                 if (isLoginPage || isSignupPage) {
-                    console.log(`[ClientLayout] Accessing ${pathname} while logged in. Redirecting to /home.`);
+
                     router.replace("/home");
                 }
                 else {
@@ -195,7 +193,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (isLogin && !loginMember.profileImageUrl && !profileImageFetchAttempted) {
-            console.log('[ClientLayout] Attempting to fetch profile image...');
+
             setProfileImageFetchAttempted(true);
 
             const fetchUserInfoAndUpdate = async () => {
@@ -210,10 +208,10 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
                     const data = await response.json();
 
                     if (data.profileImageUrl) {
-                        console.log('[ClientLayout] Profile image found, updating loginMember state.');
+
                         _setLoginMember(prev => ({ ...prev, profileImageUrl: data.profileImageUrl }));
                     } else {
-                         console.log('[ClientLayout] Fetched user info, but profile image is still missing.');
+
                     }
                 } catch(err) {
                     console.error('[ClientLayout] Error fetching user info for profile image:', err);
@@ -223,7 +221,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         }
 
         if (!isLogin && profileImageFetchAttempted) {
-            console.log('[ClientLayout] User logged out, resetting profile image fetch flag.');
+
             setProfileImageFetchAttempted(false);
         }
 

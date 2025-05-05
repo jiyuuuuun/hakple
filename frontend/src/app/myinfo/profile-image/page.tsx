@@ -163,11 +163,7 @@ export default function ProfileImagePage() {
             setImagePreview(croppedUrl)
             setSelectedFile(croppedFile)
             setIsCropping(false)
-            
-            console.log('크롭 완료:', {
-                크기: croppedBlob.size,
-                파일명: croppedFile.name
-            })
+
             
         } catch (error) {
             console.error('크롭 처리 중 오류:', error)
