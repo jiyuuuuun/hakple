@@ -24,7 +24,7 @@ export default function CalendarModal({
   const [end, setEnd] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [color, setColor] = useState(event?.color || '#a855f7')
-
+  
   // 컬러 매핑 정보
   const colorInfo = [
     { value: '#a855f7', label: '시험', emoji: '📚', bg: 'bg-purple-100' },
@@ -44,15 +44,82 @@ export default function CalendarModal({
     if (mode === 'edit' && event) {
       setTitle(event.title || '')
       setDescription(event.description || '')
-      setStart(new Date(event.start).toISOString().slice(0, 16))
-      setEnd(new Date(event.end).toISOString().slice(0, 16))
+      
+
+      
+      try {
+        // 날짜 변환 시도
+        const startDate = new Date(event.start);
+        const endDate = new Date(event.end);
+        
+
+        
+        // HTML datetime-local 형식으로 변환
+        const formatToDatetimeLocal = (date: Date) => {
+          const pad = (num: number) => num.toString().padStart(2, '0');
+          const year = date.getFullYear();
+          const month = pad(date.getMonth() + 1);
+          const day = pad(date.getDate());
+          const hours = pad(date.getHours());
+          const minutes = pad(date.getMinutes());
+          
+          return `${year}-${month}-${day}T${hours}:${minutes}`;
+        };
+        
+        const formattedStart = formatToDatetimeLocal(startDate);
+        const formattedEnd = formatToDatetimeLocal(endDate);
+          
+
+        
+        setStart(formattedStart);
+        setEnd(formattedEnd);
+      } catch (error) {
+        console.error('날짜 변환 오류:', error, event.start, event.end);
+        const now = new Date();
+        
+        // 기본값 설정
+        const formatToDatetimeLocal = (date: Date) => {
+          const pad = (num: number) => num.toString().padStart(2, '0');
+          const year = date.getFullYear();
+          const month = pad(date.getMonth() + 1);
+          const day = pad(date.getDate());
+          const hours = pad(date.getHours());
+          const minutes = pad(date.getMinutes());
+          
+          return `${year}-${month}-${day}T${hours}:${minutes}`;
+        };
+        
+        const formattedNow = formatToDatetimeLocal(now);
+        setStart(formattedNow);
+        
+        const later = new Date(now);
+        later.setHours(later.getHours() + 1);
+        const formattedLater = formatToDatetimeLocal(later);
+        setEnd(formattedLater);
+      }
     } else if (mode === 'create' && date) {
-      const startDate = new Date(date)
-      const endDate = new Date(date)
-      endDate.setHours(endDate.getHours() + 1)
-      setStart(startDate.toISOString().slice(0, 16))
-      setEnd(endDate.toISOString().slice(0, 16))
-      setIsEditing(true) // 새로운 일정 생성시에는 바로 수정 모드
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setHours(endDate.getHours() + 1);
+      
+      // HTML datetime-local 형식으로 변환
+      const formatToDatetimeLocal = (date: Date) => {
+        const pad = (num: number) => num.toString().padStart(2, '0');
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+      
+      const formattedStart = formatToDatetimeLocal(startDate);
+      const formattedEnd = formatToDatetimeLocal(endDate);
+      
+      setStart(formattedStart);
+      setEnd(formattedEnd);
+      setIsEditing(true); // 새로운 일정 생성시에는 바로 수정 모드
     }
   }, [mode, event, date])
 
@@ -69,15 +136,32 @@ export default function CalendarModal({
     else if (color === '#4ade80') finalColor = '#e3f1cf';
     else if (color === '#f87171') finalColor = '#ffe0e0';
     else if (color === '#64748b') finalColor = '#e5e7ec';
-
+    
+    // 입력 필드에서 가져온 날짜 문자열을 Date 객체로 변환
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    // LocalDateTime 형식으로 변환 (yyyy-MM-ddTHH:mm)
+    const formatToLocalDateTime = (date: Date) => {
+      const pad = (num: number) => num.toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1);
+      const day = pad(date.getDate());
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+    
+    // 백엔드 LocalDateTime 형식에 맞게 변환
     const payload = {
       title,
       description,
-      startDate: start,
-      endDate: end,
+      startDate: formatToLocalDateTime(startDate),
+      endDate: formatToLocalDateTime(endDate),
       color: finalColor,
     }
-
+    
     try {
       const res = await fetchApi(
         mode === 'create'
@@ -93,7 +177,7 @@ export default function CalendarModal({
         onRefresh()
         onClose()
       } else {
-
+        console.error('일정 저장 실패:', res.status);
         alert('일정 저장에 실패했어요 ')
       }
     } catch (error) {
