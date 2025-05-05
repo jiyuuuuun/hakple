@@ -4,6 +4,7 @@ import com.golden_dobakhe.HakPle.domain.schedule.dto.ScheduleRequestDto;
 import com.golden_dobakhe.HakPle.domain.schedule.dto.ScheduleResponseDto;
 import com.golden_dobakhe.HakPle.domain.schedule.entity.Schedule;
 import com.golden_dobakhe.HakPle.domain.schedule.repository.ScheduleRepository;
+import com.golden_dobakhe.HakPle.domain.schedule.util.TimeUtil;
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
@@ -68,11 +69,13 @@ public class ScheduleService {
 
     // 내부 변환 메서드
     private ScheduleResponseDto toDto(Schedule s) {
+        String start = TimeUtil.toLocalTimeString(s.getStartDate());
+        String end = TimeUtil.toLocalTimeString(s.getEndDate());
         return new ScheduleResponseDto(
                 s.getId(),
                 s.getTitle(),
-                s.getStartDate(),
-                s.getEndDate(),
+                start,
+                end,
                 s.getDescription(),
                 s.getColor()
         );
