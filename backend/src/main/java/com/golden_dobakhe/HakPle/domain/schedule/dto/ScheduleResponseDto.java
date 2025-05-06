@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 public class ScheduleResponseDto {
     private Long id;
     private String title;
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
+    private String startDate;
+    private String endDate;
     private String description;
     private String color;
 

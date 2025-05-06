@@ -16,7 +16,7 @@ export default function Home() {
     // 로그인 상태를 useGlobalLoginMember 훅으로 가져옴 (Context 사용)
     const { isLogin } = useGlobalLoginMember()
 
-    console.log('현재 isLogin 상태(from Context):', isLogin);
+
 
     // 타이핑 효과 구현
     useEffect(() => {

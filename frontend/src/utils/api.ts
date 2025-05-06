@@ -27,7 +27,7 @@ export async function fetchApi(
 ): Promise<Response> {
     // 전체 URL 생성 (상대 경로인 경우에만 BASE_URL 추가)
     const fullUrl = url.startsWith('http') ? url : `${BASE_URL}${url}`
-    console.log(`[fetchApi] Requesting: ${url}, PreventRedirect: ${preventRedirectOn401}`); // Log start
+
 
     // 기본 옵션
     const defaultOptions: RequestInit = {
@@ -57,7 +57,7 @@ export async function fetchApi(
 
     // API 요청 실행 및 타임아웃 설정
     try {
-        console.log(`[fetchApi DEBUG] Requesting: ${url}, Options:`, mergedOptions, `PreventRedirect: ${preventRedirectOn401}`);
+
 
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT) // 환경 변수로 설정된 타임아웃
@@ -69,7 +69,7 @@ export async function fetchApi(
 
         clearTimeout(timeoutId)
 
-        console.log(`[fetchApi DEBUG] Response received for ${url}. Status: ${response.status}`);
+
 
         // 401 에러 처리 (리다이렉트 방지 옵션 확인)
         if (
@@ -112,7 +112,7 @@ export async function fetchApi(
                         localStorage.setItem('academyName', userInfo.academyName || '등록된 학원')
                     }
                 } else {
-                    console.log(`[fetchApi] Internal myInfos update failed with status: ${userInfoResponse.status}`); // 실패 로그 추가
+
                 }
             } catch (error) {
                 console.error('[fetchApi] Internal myInfos update failed:', error)
@@ -142,13 +142,13 @@ export async function fetchJson<T>(
     options?: RequestInit,
     preventRedirectOn401: boolean = false // preventRedirectOn401 파라미터 추가 (fetchApi에 전달하기 위함)
 ): Promise<T> { 
-    console.log(`[fetchJson] Calling fetchApi for: ${url}, PreventRedirect: ${preventRedirectOn401}`); // Log fetchJson start
+
     // fetchApi 호출 시 preventRedirectOn401 옵션 전달
     const response = await fetchApi(url, options, preventRedirectOn401)
 
     // 응답이 ok가 아니면 에러 발생
     if (!response.ok) {
-        console.log(`[fetchJson] Response not OK for ${url}. Status: ${response.status}`); // Log not ok
+
         // 에러 상태에 따른 처리
         if (response.status === 400 || response.status === 403) {
             // 클라이언트 에러는 일반 로그로 처리

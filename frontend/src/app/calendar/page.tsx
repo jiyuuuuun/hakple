@@ -90,10 +90,27 @@ export default function CalendarPage() {
       const res = await fetchApi('/api/v1/schedules', {
         method: 'GET',
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        console.error('응답 에러:', res.status);
+        return;
+      }
 
       const data = await res.json()
+
+      
+      // 데이터가 비어있거나 배열이 아닌 경우 확인
+      if (!data || !Array.isArray(data) || data.length === 0) {
+
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+      
+
+      
       const mappedEvents = data.map((item: any) => {
+
+        
         // 카테고리별 색상 매핑
         let eventColor = item.color || '#f1dffb';
         
@@ -107,11 +124,55 @@ export default function CalendarPage() {
         // 헥스 값을 제거한 색상 코드만 추출 (예: #f1dffb -> f1dffb)
         const colorCode = eventColor.replace('#', '');
         
+
+        
+        // 백엔드 응답은 string 형식으로 그대로 사용
+        // 단, 문자열이 아닌 경우에만 기본값 처리
+        let startDateStr = item.startDate;
+        let endDateStr = item.endDate;
+        
+        if (typeof startDateStr !== 'string') {
+  
+          startDateStr = new Date().toISOString(); // 기본값 설정
+        }
+        
+        if (typeof endDateStr !== 'string') {
+ 
+          endDateStr = new Date().toISOString(); // 기본값 설정
+        }
+        
+        // 백엔드 날짜 형식 변환 ('2025-04-24 07:40:00 KST' -> ISO 형식)
+        const parseBackendDate = (dateStr: string) => {
+          // KST 제거 및 형식 정리
+          const cleanedDateStr = dateStr.replace(' KST', '');
+          // 공백을 T로 변환하여 ISO 형식과 유사하게 만듦
+          const isoLikeStr = cleanedDateStr.replace(' ', 'T');
+          // Date 객체로 변환
+          return new Date(isoLikeStr);
+        };
+        
+        // 날짜 변환 및 ISO 문자열로 포맷
+        let formattedStart, formattedEnd;
+        
+        try {
+          formattedStart = parseBackendDate(startDateStr).toISOString();
+        } catch (error) {
+          console.error('시작 날짜 변환 오류:', startDateStr);
+          formattedStart = new Date().toISOString();
+        }
+        
+        try {
+          formattedEnd = parseBackendDate(endDateStr).toISOString();
+        } catch (error) {
+          console.error('종료 날짜 변환 오류:', endDateStr);
+          formattedEnd = new Date().toISOString();
+        }
+        
         return {
           id: String(item.id),
           title: item.title,
-          start: item.startDate,
-          end: item.endDate,
+          start: formattedStart, // ISO 형식으로 변환
+          end: formattedEnd,     // ISO 형식으로 변환
           description: item.description,
           color: eventColor,
           backgroundColor: eventColor,
@@ -124,10 +185,11 @@ export default function CalendarPage() {
         };
       })
 
+
       mappedEvents.forEach(scheduleNotification)
       setEvents(mappedEvents)
     } catch (err) {
-      console.error(err)
+      console.error('이벤트 로딩 중 오류 발생:', err)
     } finally {
       setLoading(false)
     }
