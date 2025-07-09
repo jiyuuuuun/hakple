@@ -62,9 +62,6 @@ public class CommentService {
 
     public List<CommentResponseDto> getCommentsByBoardId(Long boardId, Long userId) {
 
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new RuntimeException("게시글이 존재하지 않습니다."));
-
         List<Comment> comments = commentRepository.findWithUserByBoardIdAndStatus(boardId, Status.ACTIVE);
 
         if (comments.isEmpty()) {
