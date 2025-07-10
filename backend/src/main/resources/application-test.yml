@@ -1,12 +1,6 @@
 spring:
-  datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:db_test;MODE=MySQL
-    username: sa
-    password:
-custom:
-  site:
-    name: "BLOG"
-    cookieDomain: "${custom.prod.cookieDomain}"
-    frontUrl: "${custom.prod.frontUrl}"
-    backUrl: "${custom.prod.backUrl}"
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
