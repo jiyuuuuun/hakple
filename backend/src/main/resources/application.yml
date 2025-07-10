@@ -86,12 +86,14 @@ spring:
 
 logging:
   level:
-    com.ll.blog: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
-    org.hibernate.type.descriptor.sql: trace
-    org.hibernate.orm.jdbc.extract: TRACE
-    org.springframework.transaction.interceptor: TRACE
+    root: INFO                    # 전체 기본 로그는 INFO로
+    com.ll.blog: DEBUG           # 내 패키지는 DEBUG로 (서비스 흐름 확인용)
+    org.hibernate.SQL: DEBUG     # SQL 쿼리만 출력
+    org.hibernate.type.descriptor.sql: OFF  # 바인딩 값 숨김
+    org.hibernate.orm.jdbc.bind: OFF
+    org.hibernate.orm.jdbc.extract: OFF
+    org.springframework.transaction.interceptor: INFO  # 트랜잭션 시작/커밋 정도만
+
 
 custom:
   dev:
