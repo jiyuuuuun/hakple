@@ -74,7 +74,7 @@ spring:
       start-timeout: 120s # 시작 타임아웃 늘림
   data:
     redis:
-      host: hakple-redis # 컨테이너 이름으로 설정
+      host: localhost # 컨테이너 이름으로 설정
       port: 6379
       connect-timeout: 10000 # 연결 타임아웃 10초
   web:
