@@ -21,7 +21,9 @@ import com.golden_dobakhe.HakPle.global.Status;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -74,18 +76,20 @@ public class CommentService {
 
         List<CommentLike> likes = likeRepository.findByCommentIdInAndUserId(commentIds, userId);
 
-        Set<Long> likedCommentIds = likes.stream()
+        Map<Long, Boolean> likedMap = likes.stream()
                 .map(like -> like.getComment().getId())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        id -> true
+                ));
 
         List<CommentResponseDto> result = comments.stream()
                 .map(comment -> {
-                    boolean isLiked = likedCommentIds.contains(comment.getId());
-
-                    CommentResponseDto dto = CommentResponseDto.fromEntity(comment, isLiked);
-                    return dto;
+                    boolean isLiked = likedMap.getOrDefault(comment.getId(), false);
+                    return CommentResponseDto.fromEntity(comment, isLiked);
                 })
-                .collect(Collectors.toList());
+                .toList();
+
 
         return result;
     }
