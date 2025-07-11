@@ -11,6 +11,7 @@ import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class LikeService {
     private final CommentRepository commentRepository;
     private final LikeRepository likeRepository;
     private final UserRepository userRepository;
+    private final RedisTemplate<String, Integer> redisTemplate;
 
     //좋아요 +
     @Transactional
@@ -72,12 +74,17 @@ public class LikeService {
 
         if (existingLike.isPresent()) {
             // 이미 좋아요 한 경우: 좋아요 취소
-            likeRepository.delete(existingLike.get());
-            comment.setLikeCount(Math.max(0, comment.getLikeCount() - 1)); // 음수 방지
+            likeRepository.deleteById(existingLike.get().getId());
+
+            String key = "comment:like:count:" + commentId;
+            redisTemplate.opsForValue().decrement(key);
+
             return CommentResult.SUCCESS;
         } else {
             // 아직 좋아요 안 한 경우: 좋아요 추가
-            comment.setLikeCount(comment.getLikeCount() + 1);
+            String key = "comment:like:count:" + commentId;
+            redisTemplate.opsForValue().increment(key);
+
             CommentLike commentLike = CommentLike.builder()
                     .comment(comment)
                     .user(user)
@@ -101,10 +108,14 @@ public class LikeService {
 
     //댓글 당 좋아요 수
     public int likeCount(Long commentId) {
-        Comment comment = commentRepository.findById(commentId).orElse(null);
-        if (comment == null) {
-            throw new CommentException(CommentResult.COMMENT_NOT_FOUND);
-        }
-        return comment.getLikeCount();
+        String key = "comment:like:count:" + commentId;
+        Integer count = redisTemplate.opsForValue().get(key);
+
+        if (count != null) return count;
+
+        // fallback: DB에서 읽기
+        return commentRepository.findById(commentId)
+                .map(Comment::getLikeCount)
+                .orElse(0);
     }
 }
