@@ -67,7 +67,10 @@ dependencies {
 
     // Jsoup 추가
     implementation("org.jsoup:jsoup:1.17.2")
+}
 
+tasks.test {
+    useJUnitPlatform()
 }
 
 // Docker Compose 설정 (정상 작동되는 버전)
@@ -86,4 +89,14 @@ tasks.named("bootRun") {
 }
 tasks.withType<JavaCompile> {
     options.compilerArgs.add("-parameters")
+}
+sourceSets {
+    test {
+        java {
+            srcDirs("src/test/java")
+        }
+        resources {
+            srcDirs("src/test/resources")
+        }
+    }
 }
