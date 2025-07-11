@@ -67,6 +67,9 @@ dependencies {
 
     // Jsoup 추가
     implementation("org.jsoup:jsoup:1.17.2")
+
+    //redisson
+    implementation("org.redisson:redisson-spring-boot-starter:3.23.4")
 }
 
 tasks.test {

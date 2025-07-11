@@ -10,11 +10,20 @@ import com.golden_dobakhe.HakPle.domain.post.comment.like.repository.LikeReposit
 import com.golden_dobakhe.HakPle.domain.user.user.entity.User;
 import com.golden_dobakhe.HakPle.domain.user.user.repository.UserRepository;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+
+
+
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -24,6 +33,7 @@ public class LikeService {
     private final LikeRepository likeRepository;
     private final UserRepository userRepository;
     private final RedisTemplate<String, Integer> redisTemplate;
+    private final RedissonClient redissonClient;
 
     //좋아요 +
     @Transactional
@@ -66,31 +76,47 @@ public class LikeService {
     //댓글 좋아요 토글 - 이미 좋아요 했으면 취소하고, 안했으면 추가
     @Transactional
     public CommentResult toggleCommentLike(Long commentId, User user) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
+        String lockKey = "lock:comment:like:" + commentId; // 락 키 설정
+        RLock lock = redissonClient.getLock(lockKey); // 락 객체 생성
 
-        // 이미 좋아요 했는지 확인
-        Optional<CommentLike> existingLike = likeRepository.findByCommentIdAndUserId(commentId, user.getId());
+        try {
+            boolean available = lock.tryLock(5, 3, TimeUnit.SECONDS); // 락 시도 (최대 5초 대기, 3초 유지)
+            if (!available) {
+                throw new IllegalStateException("다른 사용자가 좋아요 처리 중입니다.");
+            }
 
-        if (existingLike.isPresent()) {
-            // 이미 좋아요 한 경우: 좋아요 취소
-            likeRepository.deleteById(existingLike.get().getId());
+            // ========== 여기가 핵심 작업 ==========
+            Comment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new CommentException(CommentResult.COMMENT_NOT_FOUND));
 
+            Optional<CommentLike> existingLike = likeRepository.findByCommentIdAndUserId(commentId, user.getId());
             String key = "comment:like:count:" + commentId;
-            redisTemplate.opsForValue().decrement(key);
+
+            if (existingLike.isPresent()) {
+                // 이미 좋아요 했으면 → 취소
+                likeRepository.delete(existingLike.get());
+                redisTemplate.opsForValue().decrement(key);
+            } else {
+                if (!likeRepository.existsByCommentIdAndUserId(commentId, user.getId())) {
+                    redisTemplate.opsForValue().increment(key);
+
+                    CommentLike commentLike = CommentLike.builder()
+                            .comment(comment)
+                            .user(user)
+                            .build();
+                    likeRepository.save(commentLike);
+                } else {
+                    log.warn("중복 좋아요 감지됨: commentId={}, userId={}", commentId, user.getId());
+                }
+            }
 
             return CommentResult.SUCCESS;
-        } else {
-            // 아직 좋아요 안 한 경우: 좋아요 추가
-            String key = "comment:like:count:" + commentId;
-            redisTemplate.opsForValue().increment(key);
 
-            CommentLike commentLike = CommentLike.builder()
-                    .comment(comment)
-                    .user(user)
-                    .build();
-            likeRepository.save(commentLike);
-            return CommentResult.SUCCESS;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // 예외 처리
+            throw new RuntimeException("락 대기 중 인터럽트 발생", e);
+        } finally {
+            lock.unlock(); // 락 해제
         }
     }
 
