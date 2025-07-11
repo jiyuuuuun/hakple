@@ -10,4 +10,6 @@ public interface LikeRepository extends JpaRepository<CommentLike,Long> {
     
     // 여러 댓글 ID와 사용자 ID로 좋아요 엔티티 목록 조회
     List<CommentLike> findByCommentIdInAndUserId(List<Long> commentIds, Long userId);
+
+    boolean existsByCommentIdAndUserId(Long commentId, Long id);
 }
